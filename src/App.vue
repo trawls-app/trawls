@@ -1,17 +1,17 @@
 <template>
   <div id="app">
-    <img alt="Vue logo" src="./assets/logo.png">
-    <HelloWorld msg="Welcome to Trawls"/>
+    <ImageSelection/>
   </div>
 </template>
 
 <script>
-import HelloWorld from './components/HelloWorld.vue'
+import ImageSelection from "@/components/ImageSelection";
+
 
 export default {
   name: 'App',
   components: {
-    HelloWorld
+    ImageSelection
   }
 }
 </script>
