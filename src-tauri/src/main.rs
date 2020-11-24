@@ -4,6 +4,13 @@
 )]
 
 mod cmd;
+mod image;
+
+use serde_json::json;
+use chrono::prelude::*;
+use std::path::Path;
+use std::fs;
+
 
 fn main() {
   tauri::AppBuilder::new()
@@ -19,8 +26,13 @@ fn main() {
               tauri::execute_promise(
                 _webview,
                 move || {
-                  println!("Loading {}", path);
-                  Ok(path)
+                  let p = Path::new(&path);
+                  let metadata = fs::metadata(p)?;
+                  let time : chrono::DateTime<Local> = metadata.created()?.into();
+                  assert!(metadata.is_file());
+
+                  let candidate = image::ImageCandidate::load(p).unwrap();
+                  Ok(candidate.json())
                 },
                 callback,
                 error
