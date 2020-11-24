@@ -6,8 +6,6 @@
 mod cmd;
 mod image;
 
-use serde_json::json;
-use chrono::prelude::*;
 use std::path::Path;
 use std::fs;
 
@@ -28,7 +26,6 @@ fn main() {
                 move || {
                   let p = Path::new(&path);
                   let metadata = fs::metadata(p)?;
-                  let time : chrono::DateTime<Local> = metadata.created()?.into();
                   assert!(metadata.is_file());
 
                   let candidate = image::ImageCandidate::load(p).unwrap();

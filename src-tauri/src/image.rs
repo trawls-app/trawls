@@ -1,10 +1,8 @@
-use std::boxed::Box;
 use std::sync::{Arc, Mutex};
 use std::path::{Path, PathBuf};
 use std::fs::File;
 use std::io::BufReader;
 use serde_json::json;
-use chrono::{DateTime, Local};
 use exif::Exif;
 
 
