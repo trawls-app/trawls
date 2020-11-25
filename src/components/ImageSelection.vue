@@ -5,6 +5,8 @@
       <option value="creation_time">Time</option>
       <option value="filename">Filename</option>
     </select>
+    <button v-on:click="run_processing">Process images</button>
+
     <table>
       <thead>
         <tr>
@@ -37,6 +39,7 @@ export default {
   data: function () {
     return {
       images: [],
+      already_loaded: new Set(),
       sortkey: 'creation_time'
     }
   },
@@ -52,13 +55,30 @@ export default {
       if (event) {
         open({multiple: true}).then(function (res) {
           for (let image of res) {
+            if (parent.already_loaded.has(image)) { continue }
             promisified({
               cmd: "loadImage",
               path: image
             }).then(function (resp) {
-              parent.images.push(resp)
+              if (!parent.already_loaded.has(resp.path)) {
+                parent.images.push(resp)
+                parent.already_loaded.add(resp.path)
+              }
             })
           }
+        })
+      }
+    },
+    run_processing: function (event) {
+      let parent = this
+      if (event) {
+        promisified({
+          cmd: "runMerge",
+          mode_str: "normal",
+          lightframes: parent.sortedImages.map(img => img.path)
+        }).then(function () {
+          parent.images = []
+          parent.already_loaded = new Set()
         })
       }
     }
@@ -70,5 +90,9 @@ export default {
 table {
   margin: auto;
   width: calc(100% - 40px);
+}
+
+thead {
+  font-weight: bold;
 }
 </style>

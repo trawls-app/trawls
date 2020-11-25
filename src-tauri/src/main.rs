@@ -4,8 +4,10 @@
 )]
 
 mod cmd;
-mod image;
+mod fileinfo;
+mod processing;
 
+use std::boxed::Box;
 use std::path::Path;
 use std::fs;
 
@@ -28,12 +30,24 @@ fn main() {
                   let metadata = fs::metadata(p)?;
                   assert!(metadata.is_file());
 
-                  let candidate = image::ImageCandidate::load(p).unwrap();
+                  let candidate = fileinfo::ImageCandidate::load(p).unwrap();
                   Ok(candidate.json())
-                },
-                callback,
-                error
-              )
+                }, callback, error)
+            },
+            RunMerge { lightframes, mode_str, callback, error} => {
+              let paths = lightframes.into_iter().map(|x| Path::new(&x).to_path_buf()).collect();
+              let mode = match mode_str.as_str() {
+                "falling" => processing::CometMode::Falling,
+                "raising" => processing::CometMode::Raising,
+                _ => processing::CometMode::Normal
+              };
+
+              tauri::execute_promise(
+                _webview,
+                move || {
+                  processing::run_merge(paths, mode);
+                  Ok(())
+                }, callback, error)
             }
           }
           Ok(())
