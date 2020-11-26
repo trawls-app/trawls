@@ -1,4 +1,4 @@
-use std::{io, thread, time};
+use std::{thread, time};
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 use std::sync::atomic::{AtomicBool, Ordering};

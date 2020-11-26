@@ -7,7 +7,6 @@ mod cmd;
 mod fileinfo;
 mod processing;
 
-use std::boxed::Box;
 use std::path::Path;
 use std::fs;
 

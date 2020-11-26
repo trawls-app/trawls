@@ -1,14 +1,18 @@
 <template>
   <div class="image-selection">
-    <button v-on:click="choose_image_dialog">Add images</button>
-    <select v-model="sortkey">
-      <option value="creation_time">Time</option>
-      <option value="filename">Filename</option>
-    </select>
-    <button v-on:click="run_processing">Process images</button>
+    <b-button variant="success" v-on:click="choose_image_dialog">Select images</b-button>
 
-    <table>
-      <thead>
+
+    <label class="pull-right">
+      <select v-model="sortkey">
+        <option value="creation_time">Time</option>
+        <option value="filename">Filename</option>
+      </select>
+    </label>
+
+    <div class="table-responsive">
+      <table class="table">
+        <thead>
         <tr>
           <td>Filename</td>
           <td>ISO</td>
@@ -16,8 +20,8 @@
           <td>Height</td>
           <td>Time</td>
         </tr>
-      </thead>
-      <tbody>
+        </thead>
+        <tbody>
         <tr v-for="image in sortedImages" :key="image.path">
           <td>{{ image.filename}}</td>
           <td>{{ image.iso }}</td>
@@ -25,8 +29,9 @@
           <td>{{ image.height }}</td>
           <td>{{ image.creation_time}}</td>
         </tr>
-      </tbody>
-    </table>
+        </tbody>
+      </table>
+    </div>
   </div>
 </template>
 
@@ -68,19 +73,6 @@ export default {
           }
         })
       }
-    },
-    run_processing: function (event) {
-      let parent = this
-      if (event) {
-        promisified({
-          cmd: "runMerge",
-          mode_str: "normal",
-          lightframes: parent.sortedImages.map(img => img.path)
-        }).then(function () {
-          parent.images = []
-          parent.already_loaded = new Set()
-        })
-      }
     }
   }
 }
@@ -93,6 +85,6 @@ table {
 }
 
 thead {
-  font-weight: bold;
+  font-weight: bolder;
 }
 </style>

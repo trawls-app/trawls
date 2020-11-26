@@ -1,9 +1,6 @@
 use std::path::Path;
 use std::unimplemented;
-use std::fs::File;
-use std::io::BufReader;
 use std::cmp::max;
-use std::sync::{Arc, Mutex};
 
 
 pub struct Image {
