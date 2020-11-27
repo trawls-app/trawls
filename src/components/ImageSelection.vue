@@ -1,14 +1,17 @@
 <template>
   <div class="image-selection">
-    <b-button variant="success" v-on:click="choose_image_dialog">Select images</b-button>
-
-
-    <label class="pull-right">
-      <select v-model="sortkey">
-        <option value="creation_time">Time</option>
-        <option value="filename">Filename</option>
-      </select>
-    </label>
+    <div class="d-flex justify-content-center">
+      <div class="p-2"><b-button variant="success" v-on:click="choose_image_dialog">Select images</b-button></div>
+      <div class="p-2"><b-button variant="warning" v-on:click="clear_list">Clear list</b-button></div>
+      <div class="p-2">
+        <label class="pull-right">
+          <select v-model="sortkey" class="form-control">
+            <option value="creation_time">Time</option>
+            <option value="filename">Filename</option>
+          </select>
+        </label>
+      </div>
+    </div>
 
     <div class="table-responsive">
       <table class="table">
@@ -55,6 +58,10 @@ export default {
     }
   },
   methods: {
+    clear_list: function () {
+      this.images = []
+      this.already_loaded = new Set()
+    },
     choose_image_dialog: function (event) {
       let parent = this
       if (event) {
