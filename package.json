@@ -10,7 +10,7 @@
     "tauri:serve": "vue-cli-service tauri:serve"
   },
   "dependencies": {
-    "bootstrap-vue": "^2.20.1",
+    "bootstrap-vue": "^2.21.0",
     "core-js": "^3.8.1",
     "tauri": "^0.13.0",
     "vue": "^2.6.11"
