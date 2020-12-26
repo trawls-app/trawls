@@ -40,6 +40,7 @@ fn main() {
                 "raising" => processing::CometMode::Raising,
                 _ => processing::CometMode::Normal
               };
+              println!("Selected '{}' mode", mode_str);
 
               tauri::execute_promise(
                 _webview,

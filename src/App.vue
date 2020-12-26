@@ -10,7 +10,7 @@
             <b-card-text><ImageSelection ref="darkframes"/></b-card-text>
           </b-tab>
           <b-tab title="3. Process images">
-            <b-card-text><ManageProcessing @start-processing="run_processing"/></b-card-text>
+            <b-card-text><ManageProcessing @start-processing="run_processing" ref="settings"/></b-card-text>
           </b-tab>
         </b-tabs>
       </b-card>
@@ -32,11 +32,11 @@ export default {
   },
   methods: {
     run_processing: function () {
-      console.log('run')
       let parent = this
+      console.log('run', parent.$refs.merge_mode)
       promisified({
         cmd: "runMerge",
-        mode_str: "normal",
+        mode_str: parent.$refs.settings.merge_mode,
         lightframes: parent.$refs.lightframes.sortedImages.map(img => img.path)
       }).then(function () {
         parent.$refs.lightframes.clear_list()
