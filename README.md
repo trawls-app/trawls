@@ -1,4 +1,4 @@
-# trawls-vue
+# trawls
 
 ## Project setup
 ```
