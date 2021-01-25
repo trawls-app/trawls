@@ -12,7 +12,7 @@
   "dependencies": {
     "bootstrap-vue": "^2.21.2",
     "core-js": "^3.8.3",
-    "tauri": "^0.14.0",
+    "tauri": "^0.14.1",
     "vue": "^2.6.11"
   },
   "devDependencies": {
