@@ -9,6 +9,7 @@ mod processing;
 
 use std::path::Path;
 use std::fs;
+use libdng;
 
 
 fn main() {
@@ -41,6 +42,7 @@ fn main() {
                 _ => processing::CometMode::Normal
               };
               println!("Selected '{}' mode", mode_str);
+              libdng::call_dummy();
 
               tauri::execute_promise(
                 _webview,
