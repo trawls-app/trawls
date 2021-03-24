@@ -25,7 +25,7 @@
         </tr>
         </thead>
         <tbody>
-        <tr v-for="(image, path) in sortedImages" :key="path" v-b-popover.hover.top="image.path">
+        <tr v-for="(image, path) in sortedImages" :key="path">
           <td>{{ image.filename}}</td>
           <td>{{ image.iso }}</td>
           <td>{{ image.width}}</td>
