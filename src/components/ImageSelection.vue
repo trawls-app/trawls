@@ -25,7 +25,7 @@
         </tr>
         </thead>
         <tbody>
-        <tr v-for="image in sortedImages" :key="image.path">
+        <tr v-for="(image, path) in sortedImages" :key="path">
           <td>{{ image.filename}}</td>
           <td>{{ image.iso }}</td>
           <td>{{ image.width}}</td>
@@ -46,36 +46,32 @@ export default {
   name: "ImageSelection",
   data: function () {
     return {
-      images: [],
-      already_loaded: new Set(),
+      images: {},
       sortkey: 'creation_time'
     }
   },
   computed: {
     sortedImages: function () {
-      let sorted = [...this.images]
+      let sorted = [...Object.values(this.images)]
       return sorted.sort((a, b) => (a[this.sortkey] > b[this.sortkey]) ? 1 : -1)
     }
   },
   methods: {
     clear_list: function () {
-      this.images = []
-      this.already_loaded = new Set()
+      this.images = {}
     },
     choose_image_dialog: function (event) {
       let parent = this
       if (event) {
         open({multiple: true}).then(function (res) {
           for (let image of res) {
-            if (parent.already_loaded.has(image)) { continue }
+            parent.$set(parent.images, image, {"filename": image.split("/").pop()})
+
             promisified({
               cmd: "loadImage",
               path: image
             }).then(function (resp) {
-              if (!parent.already_loaded.has(resp.path)) {
-                parent.images.push(resp)
-                parent.already_loaded.add(resp.path)
-              }
+              parent.$set(parent.images, resp.path, resp)
             })
           }
         })
