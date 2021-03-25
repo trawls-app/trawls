@@ -30,13 +30,14 @@ impl Status {
 
     fn update_status(&self) {
         emit(&mut self.webview.clone(), "state_change", Some(self.json())).expect("Could not emit status update");
-        println!("Total {}, Loaded {}, Loading {}, Merged {}, Merging {}, loading_done = {}",
+        println!("Total {}, Loaded {}, Loading {}, Merged {}, Merging {}, loading_done = {}, merging_done = {}",
                  self.count_lights.load(Relaxed),
                  self.count_loaded_lights.load(Relaxed),
                  self.count_loading_lights.load(Relaxed),
                  self.count_merge_completed.load(Relaxed),
                  self.count_merging.load(Relaxed),
-                 self.loading_done()
+                 self.loading_done(),
+                 self.merging_done()
         );
     }
 
