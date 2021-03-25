@@ -3,14 +3,7 @@
     <div class="d-flex justify-content-center">
       <div class="p-2"><b-button variant="success" v-on:click="choose_image_dialog">Select images</b-button></div>
       <div class="p-2"><b-button variant="warning" v-on:click="clear_list">Clear list</b-button></div>
-      <div class="p-2">
-        <label class="pull-right">
-          <select v-model="sortkey" class="form-control">
-            <option value="creation_time">Time</option>
-            <option value="filename">Filename</option>
-          </select>
-        </label>
-      </div>
+      <div class="p-2"><b-form-select v-model="sortkey" :options="available_sortkeys"></b-form-select></div>
     </div>
 
     <div class="table-responsive">
@@ -47,7 +40,11 @@ export default {
   data: function () {
     return {
       images: {},
-      sortkey: 'creation_time'
+      sortkey: 'creation_time',
+      available_sortkeys: [
+          { value: 'creation_time', text: 'Time' },
+          { value: 'filename', text: 'Filename'}
+      ]
     }
   },
   computed: {
