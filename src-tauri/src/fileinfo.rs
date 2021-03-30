@@ -28,7 +28,7 @@ impl ImageCandidate {
             "creation_time": get_exif_string(self.exif.clone(), exif::Tag::DateTime, true),
             "height": get_exif_int(self.exif.clone(), exif::Tag::PixelYDimension),
             "width": get_exif_int(self.exif.clone(), exif::Tag::PixelXDimension),
-            "iso": get_exif_int(self.exif.clone(), exif::Tag::ISOSpeedLatitudeyyy),
+            "iso": get_exif_int(self.exif, exif::Tag::ISOSpeedLatitudeyyy),
         })
     }
 }

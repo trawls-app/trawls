@@ -10,7 +10,6 @@ mod processing;
 use crate::processing::status::Status;
 use std::path::Path;
 use std::fs;
-use libdng;
 
 
 fn main() {
