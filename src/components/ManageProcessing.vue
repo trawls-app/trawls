@@ -28,11 +28,43 @@
       </div>
       <b-button v-on:click="$emit('start-processing')" variant="success">Start processing</b-button>
     </form>
+    <br>
+
+
+    <h6>
+      Loading lightframes
+      <b-icon icon="check-circle" v-if="state.loading_done" variant="success"></b-icon>
+      <b-icon icon="arrow-clockwise" animation="spin" v-if="state.loading_done === false"></b-icon>
+    </h6>
+
+    <b-progress class="mt-2" :max="state.count_lights">
+      <b-progress-bar :value="state.count_loaded_lights" variant="success">
+        <span><strong>{{ state.count_loaded_lights }} / {{ state.count_lights }}</strong></span>
+      </b-progress-bar>
+      <b-progress-bar :value="state.count_loading_lights" animated show-value></b-progress-bar>
+    </b-progress>
+    <br>
+
+    <h6>
+      Merging images
+      <b-icon icon="check-circle" v-if="state.merging_done" variant="success"></b-icon>
+      <b-icon icon="arrow-clockwise" animation="spin" v-if="state.merging_done === false"></b-icon>
+    </h6>
+
+    <b-progress class="mt-2" :max="state.count_lights - 1" show-value>
+      <b-progress-bar :value="state.count_merged" variant="success">
+        <span><strong>{{ state.count_merged }} / {{ state.count_lights - 1 }}</strong></span>
+      </b-progress-bar>
+      <b-progress-bar :value="state.count_merging" animated show-value></b-progress-bar>
+    </b-progress>
   </div>
 </template>
 
 <script>
+import { listen } from 'tauri/api/event'
 import { save } from 'tauri/api/dialog'
+
+let vue = undefined
 
 export default {
   name: "ManageProcessing",
@@ -42,18 +74,25 @@ export default {
   data: function () {
     return {
       output_path: null,
-      merge_mode: "normal"
+      merge_mode: "normal",
+      state: {},
     }
   },
+  created() { vue = this; },
   methods: {
     choose_output: function () {
       let parent = this
       save({filter: "*.dng"}).then(function (res) {
         parent.output_path = res
       })
+    },
+    update_state: function (updated_state) {
+      this.state = updated_state.payload
     }
-  }
+  },
 }
+
+listen('state_change', payload => { vue.update_state(payload) })
 </script>
 
 <style scoped>
