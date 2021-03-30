@@ -1,5 +1,5 @@
 use std::{thread, time};
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex};
 use rayon::prelude::*;
 
@@ -31,7 +31,7 @@ pub fn run_merge(lightframe_files: Vec<PathBuf>, mode: CometMode, state: status:
 
     lightframe_files.par_iter()
         .zip(0..lightframe_files.len())
-        .for_each(|(e, i)| process_image(e, Arc::clone(&result), i, lightframe_files.len(), mode, state.clone()));
+        .for_each(|(e, i)| process_image(e.as_path(), Arc::clone(&result), i, lightframe_files.len(), mode, state.clone()));
 
     for t in thread_handles {
         t.join().unwrap_or(());
@@ -67,7 +67,7 @@ fn queue_worker(queue: Arc<Mutex<Vec<image::Image>>>, state: status::Status) {
 }
 
 
-fn process_image(entry: &PathBuf, queue: Arc<Mutex<Vec<image::Image>>>, index: usize, num_images: usize, mode: CometMode, state: status::Status) {
+fn process_image(entry: &Path, queue: Arc<Mutex<Vec<image::Image>>>, index: usize, num_images: usize, mode: CometMode, state: status::Status) {
     state.start_loading();
 
     let intensity = match mode {
@@ -76,7 +76,7 @@ fn process_image(entry: &PathBuf, queue: Arc<Mutex<Vec<image::Image>>>, index: u
         CometMode::Normal => 1.0,
     };
 
-    let img = image::Image::load_from_raw(entry.as_path(), intensity).unwrap();
+    let img = image::Image::load_from_raw(entry, intensity).unwrap();
     queue.lock().unwrap().push(img);
 
     state.finish_loading();
