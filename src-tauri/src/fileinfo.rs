@@ -25,8 +25,8 @@ impl ImageCandidate {
             "path": self.path.to_str(),
             "filename": self.path.file_name().unwrap().to_str().unwrap(),
             "creation_time": exif.get_string(rexif::ExifTag::DateTimeOriginal),
-            "height": exif.get_int(rexif::ExifTag::XResolution),
-            "width": exif.get_int(rexif::ExifTag::YResolution),
+            "exposure_seconds": exif.get_float(rexif::ExifTag::ExposureTime),
+            "aperture": exif.get_float(rexif::ExifTag::FNumber),
             "iso": exif.get_int(rexif::ExifTag::ISOSpeedRatings),
         })
     }
@@ -52,6 +52,7 @@ impl ExifContainer {
     #[allow(dead_code)]
     pub fn print_all(&self) {
         for entry in self.entries.values() {
+            if entry.tag == rexif::ExifTag::MakerNote { continue; }
             println!("\t{}: {}", entry.tag, entry.value);
         }
     }
@@ -70,7 +71,6 @@ impl ExifContainer {
         }
     }
 
-    #[allow(dead_code)]
     pub fn get_float(&self, tag: rexif::ExifTag) -> Option<f64> {
         match self.entries.get(&tag) {
             Some(x) => x.value.to_f64(0),

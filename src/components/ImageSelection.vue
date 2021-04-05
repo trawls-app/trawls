@@ -11,19 +11,19 @@
         <thead>
         <tr>
           <td>Filename</td>
-          <td>ISO</td>
-          <td>Width</td>
-          <td>Height</td>
-          <td>Time</td>
+          <td class="text-center">Aperture</td>
+          <td class="text-center">Exposure</td>
+          <td class="text-center">ISO</td>
+          <td class="text-center">Time</td>
         </tr>
         </thead>
         <tbody>
         <tr v-for="(image, path) in sortedImages" :key="path">
           <td>{{ image.filename}}</td>
-          <td>{{ image.iso }}</td>
-          <td>{{ image.width}}</td>
-          <td>{{ image.height }}</td>
-          <td>{{ image.creation_time}}</td>
+          <td class="text-center">f{{ image.aperture }}</td>
+          <td class="text-center">{{ image.exposure_seconds }}s</td>
+          <td class="text-center">{{ image.iso }}</td>
+          <td class="text-center">{{ image.creation_time}}</td>
         </tr>
         </tbody>
       </table>
