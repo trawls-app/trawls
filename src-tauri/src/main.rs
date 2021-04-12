@@ -45,7 +45,6 @@ fn main() {
                 _ => processing::CometMode::Normal
               };
               println!("Selected '{}' mode", mode_str);
-              libdng::call_dummy();
 
               tauri::execute_promise(
                 _webview,

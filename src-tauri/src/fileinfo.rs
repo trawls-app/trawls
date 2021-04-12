@@ -20,7 +20,6 @@ impl ImageCandidate {
 
     pub fn json(self) -> serde_json::Value {
         let exif = self.exif.lock().unwrap();
-        exif.print_all();
 
         json!({
             "path": self.path.to_str(),
@@ -35,8 +34,8 @@ impl ImageCandidate {
 
 
 pub struct ExifContainer {
-    mapped_entries: HashMap<rexif::ExifTag, rexif::ExifEntry>,
-    unknown_entries: Vec<rexif::ExifEntry>
+    pub mapped_entries: HashMap<rexif::ExifTag, rexif::ExifEntry>,
+    pub all_entries: HashMap<u16, rexif::ExifEntry>
 }
 
 impl ExifContainer {
@@ -46,18 +45,20 @@ impl ExifContainer {
     }
 
     pub fn from_rexif_data(data: rexif::ExifData) -> ExifContainer {
-        let exif_map = data.entries.iter()
-            .filter(|x| x.tag != rexif::ExifTag::UnknownToMe)
-            .map(|x| (x.tag, x.clone())).collect();
+        let all = data.entries.iter()
+            .map(|x| (x.ifd.tag, x.clone())).collect();
 
-        let unknowns = data.entries.iter()
-            .filter(|x| x.tag == rexif::ExifTag::UnknownToMe)
-            .map(|x| x.clone()).collect();
 
         ExifContainer {
-            mapped_entries: exif_map,
-            unknown_entries: unknowns
+            mapped_entries: ExifContainer::get_known_map(&all),
+            all_entries: all
         }
+    }
+
+    fn get_known_map(map: &HashMap<u16, rexif::ExifEntry>) -> HashMap<rexif::ExifTag, rexif::ExifEntry> {
+        map .values().into_iter()
+            .filter(|x| x.tag != rexif::ExifTag::UnknownToMe)
+            .map(|x| (x.tag, x.clone())).collect()
     }
 
     #[allow(dead_code)]
@@ -65,20 +66,20 @@ impl ExifContainer {
         println!("\n\nMAPPED EXIF ENTRIES");
         self.print_mapped();
 
-        println!("\n\nUNKNOWN EXIF ENTRIES");
+        println!("\n\nALL EXIF ENTRIES");
         self.print_unknown();
     }
 
     pub fn print_mapped(&self) {
         for entry in self.mapped_entries.values() {
             if entry.tag == rexif::ExifTag::MakerNote { continue; }
-            println!("\t{}: {}", entry.tag, entry.value_more_readable);
+            println!("\t{}\t{}: {} ({})", entry.ifd.tag, entry.tag, entry.value, entry.value_more_readable);
         }
     }
 
     pub fn print_unknown(&self) {
-        for entry in &self.unknown_entries {
-            println!("\t{}: {}", entry.tag, entry.value);
+        for (ifd_tag, entry) in &self.all_entries {
+            println!("\t{}\t{}: {}", ifd_tag, entry.tag, entry.value);
         }
     }
 
