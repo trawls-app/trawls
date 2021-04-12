@@ -1,10 +1,11 @@
 use std::path::Path;
 use std::unimplemented;
 use std::cmp::max;
-use rawloader::{RawImage, RawImageData};
-use crate::fileinfo::ExifContainer;
 use std::collections::HashMap;
+use num::rational::Ratio;
+use rawloader::{RawImage, RawImageData};
 use rexif::{ExifTag, TagValue};
+use crate::fileinfo::ExifContainer;
 
 
 pub trait Mergable<Rhs=Self> {
@@ -139,17 +140,19 @@ impl Mergable for ExifContainer {
 
 fn add_urationals(op1: &rexif::TagValue, op2: &rexif::TagValue) -> rexif::TagValue {
     let v1 = match op1 {
-        TagValue::URational(data) => { data[0] }
+        TagValue::URational(x) => { Ratio::new(x[0].numerator, x[0].denominator) }
         _ => { panic!("Exposure time has unexpected type."); }
     };
 
     let v2 = match op2 {
-        TagValue::URational(data) => { data[0] }
+        TagValue::URational(x) => { Ratio::new(x[0].numerator, x[0].denominator) }
         _ => { panic!("Exposure time has unexpected type."); }
     };
 
+    let res = v1 + v2;
+
     rexif::TagValue::URational(vec![rexif::URational {
-        numerator: v1.numerator + v2.numerator,
-        denominator: v1.denominator
+        numerator: *res.numer(),
+        denominator: *res.denom()
     }])
 }
