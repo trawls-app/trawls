@@ -45,7 +45,7 @@ impl Mergable for RawImage {
     fn load_from_raw(path: &Path, intensity: f32) -> Result<Self::Container, &str> {
         let mut raw_image = rawloader::decode_file(path).unwrap();
 
-        if intensity != 1.0 {
+        if (intensity - 1.0).abs() > 0.001 {
             raw_image.data = match raw_image.data {
                 RawImageData::Integer(d) => RawImageData::Integer(d.iter().map(|x| (*x as f32 * intensity) as u16).collect()),
                 RawImageData::Float(d) => RawImageData::Float(d.iter().map(|x| (*x as f32 * intensity)).collect())
@@ -113,7 +113,7 @@ impl Mergable for ExifContainer {
                 },
                 // Take earliest capture date
                 ExifTag::DateTime | ExifTag::DateTimeDigitized | ExifTag::DateTimeOriginal => {
-                    if &self_entry.value.to_string() <= &other_entry.value.to_string() {
+                    if self_entry.value.to_string() <= other_entry.value.to_string() {
                         Some(self_entry.clone())
                     } else {
                         Some(other_entry.clone())
@@ -127,7 +127,7 @@ impl Mergable for ExifContainer {
             };
 
             if let Some(v) = merged_value {
-                res.insert(key.clone(), v);
+                res.insert(*key, v);
             }
         }
 
@@ -149,8 +149,7 @@ fn add_urationals(op1: &rexif::TagValue, op2: &rexif::TagValue) -> rexif::TagVal
         _ => { panic!("Exposure time has unexpected type."); }
     };
 
-    let res = v1 + v2;
-
+    let res = (v1 + v2).reduced();
     rexif::TagValue::URational(vec![rexif::URational {
         numerator: *res.numer(),
         denominator: *res.denom()
