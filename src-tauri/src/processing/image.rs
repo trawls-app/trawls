@@ -2,9 +2,12 @@ use std::path::Path;
 use std::unimplemented;
 use std::cmp::max;
 use std::collections::HashMap;
+use arrayvec::ArrayVec;
 use num::rational::Ratio;
 use rawloader::{RawImage, RawImageData};
 use rexif::{ExifTag, TagValue};
+use libdng::image_info::RawSavableImage;
+use libdng::bindings::{Area, ImageInfoContainer};
 use crate::fileinfo::ExifContainer;
 
 
@@ -34,6 +37,42 @@ impl Mergable for Image {
         Image {
             raw_image: self.raw_image.merge(other.raw_image),
             exif: self.exif.merge(other.exif)
+        }
+    }
+}
+
+impl RawSavableImage for Image {
+    fn get_make_model(&self) -> (String, String) {
+        (self.raw_image.clean_make.clone(), self.raw_image.clean_model.clone())
+    }
+
+    fn get_info_container(&self) -> ImageInfoContainer {
+        let black_levels: ArrayVec<_, 4> = self.raw_image.blacklevels.iter().map(|x| *x as f64).collect();
+        let white_levels: ArrayVec<_, 4> = self.raw_image.whitelevels.iter().map(|x| *x as f64).collect();
+        let neutrals: ArrayVec<_, 3> = self.raw_image.wb_coeffs[0..3].iter().map(|x| 1.0 / (*x as f64)).collect();
+        let colormatrix: ArrayVec<_, 3> = self.raw_image.xyz_to_cam[0..3].iter().map(|x| *x).collect();
+
+        ImageInfoContainer {
+            width: self.raw_image.width as u16,
+            height: self.raw_image.height as u16,
+            black_levels: black_levels.into_inner().unwrap(),
+            white_levels: white_levels.into_inner().unwrap(),
+            camera_neutral: neutrals.into_inner().unwrap(),
+            xyz_to_cam: colormatrix.into_inner().unwrap(),
+            active_area: Area {
+                top: self.raw_image.crops[0] as u16,
+                left: self.raw_image.crops[3] as u16,
+                bottom: (self.raw_image.height - self.raw_image.crops[2]) as u16,
+                right: (self.raw_image.width - self.raw_image.crops[1]) as u16
+            },
+        }
+    }
+
+    fn get_image_data(&self) -> Vec<u16> {
+        if let rawloader::RawImageData::Integer(data) = &self.raw_image.data {
+            data.clone()
+        } else {
+            unimplemented!("Can't parse RAWs with non-integer data, yet.");
         }
     }
 }

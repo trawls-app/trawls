@@ -364,6 +364,7 @@ dependencies = [
 [[package]]
 name = "dng-rs"
 version = "0.1.0"
+source = "git+https://github.com/Silberschleier/libdng-rust#3084da975a3fa2f87ff415111c0c7561e70639cc"
 dependencies = [
  "arrayvec 0.7.0",
  "cmake",
@@ -1596,6 +1597,7 @@ dependencies = [
 name = "trawls"
 version = "0.1.2"
 dependencies = [
+ "arrayvec 0.7.0",
  "chrono",
  "dng-rs",
  "num 0.4.0",

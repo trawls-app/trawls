@@ -3,6 +3,7 @@ use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex};
 use rayon::prelude::*;
 use crate::processing::image::{Image, Mergable};
+use libdng::image_info::DNGWriting;
 
 mod image;
 pub mod status;
@@ -14,7 +15,7 @@ pub enum CometMode {
     Normal,
 }
 
-pub fn run_merge(lightframe_files: Vec<PathBuf>, mode: CometMode, state: status::Status) {
+pub fn run_merge(lightframe_files: Vec<PathBuf>, out_path: PathBuf, mode: CometMode, state: status::Status) {
     let num_threads = num_cpus::get();
     println!("System has {} cores and {} threads. Using {} worker threads.", num_cpus::get_physical(), num_threads, num_threads);
 
@@ -43,14 +44,9 @@ pub fn run_merge(lightframe_files: Vec<PathBuf>, mode: CometMode, state: status:
     println!("Processing done");
     raw_image.exif.print_mapped();
 
-    //write_ppm(&raw_image, Path::new("/home/chris/test.ppm"));
-
-    /*let writer = libdng::DNGWriter::new(raw_image.width.try_into().unwrap(), raw_image.height.try_into().unwrap());
-    writer.dummy();
-    writer.build_negative(raw_image.raw_image_data);
-    writer.write_tif(Path::new("/home/chris/test.tif"));
-    writer.write_jpg(Path::new("/home/chris/test.jpg"));
-    writer.write_dng(Path::new("/home/chris/test.dng"));*/
+    let writer = raw_image.get_dng_writer();
+    //writer.write_jpg(Path::new("/home/chris/test.jpg"));
+    writer.write_dng(&out_path);
 }
 
 
@@ -92,19 +88,3 @@ fn process_image(entry: &Path, queue: Arc<Mutex<Vec<Image>>>, index: usize, num_
 
     state.finish_loading();
 }
-
-/*
-fn write_ppm(image: &Image, output: &Path) {
-    println!("Writing debug PPM to '{}'", output.display());
-    // Write out the image as a grayscale PPM
-    let mut f = BufWriter::new(File::create("/home/chris/test.ppm").unwrap());
-    let preamble = format!("P6 {} {} {}\n", image.width, image.height, 65535).into_bytes();
-    f.write_all(&preamble).unwrap();
-
-    for pix in &image.raw_image_data {
-        // Do an extremely crude "demosaic" by setting R=G=B
-        let pixhigh = (pix>>8) as u8;
-        let pixlow  = (pix&0x0f) as u8;
-        f.write_all(&[pixhigh, pixlow, pixhigh, pixlow, pixhigh, pixlow]).unwrap()
-    }
-}*/
