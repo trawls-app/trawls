@@ -7,5 +7,5 @@ pub enum Cmd {
   // multiple arguments are allowed
   // note that rename_all = "camelCase": you need to use "myCustomCommand" on JS
   LoadImage { path: String, callback: String, error: String },
-  RunMerge { lightframes: Vec<String>, mode_str: String, callback: String, error: String}
+  RunMerge { lightframes: Vec<String>, mode_str: String, out_path: String, callback: String, error: String}
 }

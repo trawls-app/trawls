@@ -1,62 +1,105 @@
 use std::sync::{Arc, Mutex};
 use std::path::{Path, PathBuf};
-use std::fs::File;
-use std::io::BufReader;
+use std::collections::HashMap;
 use serde_json::json;
-use exif::Exif;
 
 
 pub struct ImageCandidate {
     pub path: PathBuf,
-    exif: Arc<Mutex<exif::Exif>>,
+    exif: Arc<Mutex<ExifContainer>>,
 }
 
 impl ImageCandidate {
-    pub fn load(path: &Path) -> Result<ImageCandidate, &'static str> {
-        let exif = load_exif(&path).unwrap();
-        
+    pub fn load(path: &Path) -> Result<ImageCandidate, ()> {
         Ok(ImageCandidate {
             path: path.to_path_buf(),
-            exif: Arc::new(Mutex::new(exif))
+            exif: Arc::new(Mutex::new(ExifContainer::from_file(path)?))
         })
     }
 
     pub fn json(self) -> serde_json::Value {
+        let exif = self.exif.lock().unwrap();
+
         json!({
             "path": self.path.to_str(),
             "filename": self.path.file_name().unwrap().to_str().unwrap(),
-            "creation_time": get_exif_string(self.exif.clone(), exif::Tag::DateTime, true),
-            "height": get_exif_int(self.exif.clone(), exif::Tag::PixelYDimension),
-            "width": get_exif_int(self.exif.clone(), exif::Tag::PixelXDimension),
-            "iso": get_exif_int(self.exif, exif::Tag::ISOSpeedLatitudeyyy),
+            "creation_time": exif.get_string(rexif::ExifTag::DateTimeOriginal),
+            "exposure_seconds": exif.get_float(rexif::ExifTag::ExposureTime),
+            "aperture": exif.get_float(rexif::ExifTag::FNumber),
+            "iso": exif.get_int(rexif::ExifTag::ISOSpeedRatings),
         })
     }
 }
 
-fn load_exif(path: &Path) -> Result<exif::Exif, exif::Error> {
-    let file = File::open(path)?;
-    let exif = exif::Reader::new().read_from_container(
-        &mut BufReader::new(&file))?;
 
-    Ok(exif)
+pub struct ExifContainer {
+    pub mapped_entries: HashMap<rexif::ExifTag, rexif::ExifEntry>,
+    pub all_entries: HashMap<u16, rexif::ExifEntry>
 }
 
-fn get_exif_string(exif: Arc<Mutex<Exif>>, tag: exif::Tag, return_empty: bool) -> Option<String> {
-    if let Some(field) = exif.lock().unwrap().get_field(tag, exif::In::PRIMARY) {
-        return Some(field.display_value().to_string())
+impl ExifContainer {
+    pub fn from_file(path: &Path) -> Result<ExifContainer, ()> {
+        let data = rexif::parse_file(path).unwrap();
+        Ok(ExifContainer::from_rexif_data(data))
     }
 
-    if return_empty {
-        return Some("".to_string())
+    pub fn from_rexif_data(data: rexif::ExifData) -> ExifContainer {
+        let all = data.entries.iter()
+            .map(|x| (x.ifd.tag, x.clone())).collect();
+
+
+        ExifContainer {
+            mapped_entries: ExifContainer::get_known_map(&all),
+            all_entries: all
+        }
     }
 
-    None
-}
-
-fn get_exif_int(exif: Arc<Mutex<Exif>>, tag: exif::Tag) -> Option<u32> {
-    if let Some(field) = exif.lock().unwrap().get_field(tag, exif::In::PRIMARY) {
-        return field.value.get_uint(0)
+    fn get_known_map(map: &HashMap<u16, rexif::ExifEntry>) -> HashMap<rexif::ExifTag, rexif::ExifEntry> {
+        map .values().into_iter()
+            .filter(|x| x.tag != rexif::ExifTag::UnknownToMe)
+            .map(|x| (x.tag, x.clone())).collect()
     }
 
-    None
+    #[allow(dead_code)]
+    pub fn print_all(&self) {
+        println!("\n\nMAPPED EXIF ENTRIES");
+        self.print_mapped();
+
+        println!("\n\nALL EXIF ENTRIES");
+        self.print_unknown();
+    }
+
+    pub fn print_mapped(&self) {
+        for entry in self.mapped_entries.values() {
+            if entry.tag == rexif::ExifTag::MakerNote { continue; }
+            println!("\t{}\t{}: {} ({})", entry.ifd.tag, entry.tag, entry.value, entry.value_more_readable);
+        }
+    }
+
+    pub fn print_unknown(&self) {
+        for (ifd_tag, entry) in &self.all_entries {
+            println!("\t{}\t{}: {}", ifd_tag, entry.tag, entry.value);
+        }
+    }
+
+    pub fn get_string(&self, tag: rexif::ExifTag) -> Option<String> {
+        match self.mapped_entries.get(&tag) {
+            Some(x) => Some(x.value.to_string()),
+            None => None
+        }
+    }
+
+    pub fn get_int(&self, tag: rexif::ExifTag) -> Option<i64> {
+        match self.mapped_entries.get(&tag) {
+            Some(x) => x.value.to_i64(0),
+            None => None
+        }
+    }
+
+    pub fn get_float(&self, tag: rexif::ExifTag) -> Option<f64> {
+        match self.mapped_entries.get(&tag) {
+            Some(x) => x.value.to_f64(0),
+            None => None
+        }
+    }
 }
