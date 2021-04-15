@@ -61,16 +61,14 @@ export default {
       let parent = this
       if (event) {
         open({multiple: true}).then(function (res) {
-          for (let image of res) {
-            parent.$set(parent.images, image, {"filename": image.split("/").pop()})
-
-            promisified({
-              cmd: "loadImage",
-              path: image
-            }).then(function (resp) {
-              parent.$set(parent.images, resp.path, resp)
-            })
-          }
+          promisified({
+            cmd: "loadImages",
+            paths: res
+          }).then(function (resp) {
+            for (let r of resp) {
+              parent.$set(parent.images, r.path, r)
+            }
+          })
         })
       }
     }
