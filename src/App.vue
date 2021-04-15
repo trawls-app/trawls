@@ -33,13 +33,14 @@ export default {
   methods: {
     run_processing: function () {
       let parent = this
-      console.log('run', parent.$refs.merge_mode)
+      console.log('run', parent.$refs.settings.merge_mode, parent.$refs.settings.output_path)
       promisified({
         cmd: "runMerge",
+        out_path: parent.$refs.settings.output_path,
         mode_str: parent.$refs.settings.merge_mode,
         lightframes: parent.$refs.lightframes.sortedImages.map(img => img.path)
       }).then(function () {
-        parent.$refs.lightframes.clear_list()
+        console.log("Finished merge")
       })
     }
   }

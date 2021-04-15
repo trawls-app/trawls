@@ -36,21 +36,21 @@ fn main() {
                 }, callback, error)
             },
 
-            RunMerge { lightframes, mode_str, callback, error} => {
+            RunMerge { lightframes, mode_str, out_path, callback, error} => {
               let state = Status::new(lightframes.len(), _webview.as_mut());
               let paths = lightframes.into_iter().map(|x| Path::new(&x).to_path_buf()).collect();
+              let output = Path::new(&out_path).to_path_buf();
               let mode = match mode_str.as_str() {
                 "falling" => processing::CometMode::Falling,
                 "raising" => processing::CometMode::Raising,
                 _ => processing::CometMode::Normal
               };
               println!("Selected '{}' mode", mode_str);
-              libdng::call_dummy();
 
               tauri::execute_promise(
                 _webview,
                 move || {
-                  processing::run_merge(paths, mode, state);
+                  processing::run_merge(paths, output, mode, state);
                   Ok(())
                 }, callback, error)
             }
