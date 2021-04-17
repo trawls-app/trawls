@@ -6,11 +6,6 @@
       <div class="p-2"><b-form-select v-model="sortkey" :options="available_sortkeys"></b-form-select></div>
     </div>
 
-    <b-alert show variant="info" v-if="loading_exif === true">
-      <b-icon icon="arrow-clockwise" animation="spin"></b-icon>
-      Reading Exif data from images
-    </b-alert>
-
     <div class="table-responsive">
       <table class="table">
         <thead>
@@ -57,6 +52,12 @@ export default {
     sortedImages: function () {
       let sorted = [...Object.values(this.images)]
       return sorted.sort((a, b) => (a[this.sortkey] > b[this.sortkey]) ? 1 : -1)
+    },
+    numImages: function () {
+      return Object.keys(this.images).length
+    },
+    ready: function () {
+      return this.numImages > 1 && !this.loading_exif
     }
   },
   methods: {
