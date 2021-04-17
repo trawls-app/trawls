@@ -12,20 +12,65 @@
 
         <small id="out_path_help" class="form-text text-muted">Where the resulting DNG file should be saved.</small>
       </div>
+
       <div class="form-group form-check">
-        <div class="form-check form-check-inline">
-          <input class="form-check-input" type="radio" id="normal_mode" v-model="merge_mode" v-bind:value="'normal'">
-          <label class="form-check-label" for="normal_mode">Normal mode</label>
-        </div>
-        <div class="form-check form-check-inline">
-          <input class="form-check-input" type="radio" id="falling_mode" v-model="merge_mode" v-bind:value="'falling'">
-          <label class="form-check-label" for="falling_mode">Falling comets (fade out)</label>
-        </div>
-        <div class="form-check form-check-inline">
-          <input class="form-check-input" type="radio" id="raising_mode" v-model="merge_mode" v-bind:value="'raising'">
-          <label class="form-check-label" for="raising_mode">Raising comets (fade in)</label>
-        </div>
+        <b-card-group deck class="col d-flex justify-content-center">
+          <b-card
+              title="Normal"
+              img-src="@/assets/examples/mode_normal.jpg"
+              img-top
+              tag="article"
+              style="max-width: 20rem;"
+              border-variant="primary"
+              class="mb-2"
+          >
+            <b-card-text>
+              <div class="form-check">
+                <input class="form-check-input" type="radio" id="normal_mode" v-model="merge_mode" v-bind:value="'normal'">
+                <label class="form-check-label" for="normal_mode">All images will be weighted identically.</label>
+              </div>
+            </b-card-text>
+          </b-card>
+
+          <b-card
+              title="Falling Comets"
+              img-src="@/assets/examples/mode_falling.jpg"
+              img-top
+              tag="article"
+              style="max-width: 20rem;"
+              border-variant="primary"
+              class="mb-2"
+          >
+            <b-card-text>
+              <div class="form-check">
+                <input class="form-check-input" type="radio" id="falling_mode" v-model="merge_mode" v-bind:value="'falling'">
+                <label class="form-check-label" for="falling_mode">Later images become darker, such that stars will fade away.</label>
+              </div>
+
+            </b-card-text>
+          </b-card>
+
+          <b-card
+              title="Raising Comets"
+              img-src="@/assets/examples/mode_raising.jpg"
+              img-top
+              tag="article"
+              style="max-width: 20rem;"
+              border-variant="primary"
+              class="mb-2"
+          >
+            <b-card-text>
+              <div class="form-check">
+                <input class="form-check-input" type="radio" id="raising_mode" v-model="merge_mode" v-bind:value="'raising'">
+                <label class="form-check-label" for="raising_mode">Earlier images are darker, such that stars will fade in.</label>
+              </div>
+
+            </b-card-text>
+          </b-card>
+        </b-card-group>
       </div>
+
+
       <b-button v-on:click="$emit('start-processing')" variant="success">Start processing</b-button>
     </form>
     <br>
