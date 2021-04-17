@@ -3,10 +3,20 @@
     <div>
       <b-card no-body>
         <b-tabs card>
-          <b-tab title="1. Add Lightframes" active>
+          <b-tab active>
+            <template v-slot:title>
+              1. Add Lightframes
+              <b-badge variant="light" v-if="$refs.lightframes.loading_exif === false">{{ $refs.lightframes.numImages }}</b-badge>
+              <b-spinner type="border" small v-if="$refs.lightframes.loading_exif === true"></b-spinner>
+            </template>
             <b-card-text><ImageSelection ref="lightframes"/></b-card-text>
           </b-tab>
-          <b-tab title="2. Add Darkframes" disabled>
+          <b-tab disabled>
+            <template v-slot:title>
+              2. Add Darkframes
+              <b-badge variant="light" v-if="$refs.darkframes.loading_exif === false">{{ $refs.darkframes.numImages }}</b-badge>
+              <b-spinner type="border" small v-if="$refs.darkframes.loading_exif === true"></b-spinner>
+            </template>
             <b-card-text><ImageSelection ref="darkframes"/></b-card-text>
           </b-tab>
           <b-tab title="3. Process images">
