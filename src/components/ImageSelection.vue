@@ -6,6 +6,11 @@
       <div class="p-2"><b-form-select v-model="sortkey" :options="available_sortkeys"></b-form-select></div>
     </div>
 
+    <b-alert show variant="info" v-if="loading_exif === true">
+      <b-icon icon="arrow-clockwise" animation="spin"></b-icon>
+      Reading Exif data from images
+    </b-alert>
+
     <div class="table-responsive">
       <table class="table">
         <thead>
@@ -40,6 +45,7 @@ export default {
   data: function () {
     return {
       images: {},
+      loading_exif: false,
       sortkey: 'creation_time',
       available_sortkeys: [
           { value: 'creation_time', text: 'Time' },
@@ -61,6 +67,13 @@ export default {
       let parent = this
       if (event) {
         open({multiple: true}).then(function (res) {
+          parent.loading_exif = true
+
+          // Show images immediately
+          for (let image of res) {
+            parent.$set(parent.images, image, {"filename": image.split("/").pop()})
+          }
+
           promisified({
             cmd: "loadImages",
             paths: res
@@ -68,6 +81,7 @@ export default {
             for (let r of resp) {
               parent.$set(parent.images, r.path, r)
             }
+            parent.loading_exif = false
           })
         })
       }
