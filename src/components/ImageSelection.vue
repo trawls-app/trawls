@@ -55,6 +55,9 @@ export default {
     },
     numImages: function () {
       return Object.keys(this.images).length
+    },
+    ready: function () {
+      return this.numImages > 1 && !this.loading_exif
     }
   },
   methods: {

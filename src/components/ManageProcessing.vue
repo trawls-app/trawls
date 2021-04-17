@@ -30,7 +30,6 @@
     </form>
     <br>
 
-
     <h6>
       Loading lightframes
       <b-icon icon="check-circle" v-if="state.loading_done" variant="success"></b-icon>
