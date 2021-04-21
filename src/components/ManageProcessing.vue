@@ -1,8 +1,9 @@
 <template>
   <div>
     <form>
+      <h4><b-icon icon="hdd"></b-icon> Output path</h4>
       <div class="form-group">
-        <label for="out_path">Output path</label>
+
         <div class="input-group">
           <input class="form-control" type="text" :placeholder="output_path" id="out_path" readonly>
           <div class="input-group-append">
@@ -13,6 +14,7 @@
         <small id="out_path_help" class="form-text text-muted">Where the resulting DNG file should be saved.</small>
       </div>
 
+      <h4><b-icon icon="sliders"></b-icon> Mode selection</h4>
       <div class="form-group form-check">
         <b-card-group deck class="col d-flex justify-content-center">
           <b-card
@@ -71,9 +73,12 @@
       </div>
 
 
-      <b-button v-on:click="$emit('start-processing')" variant="success">Start processing</b-button>
+
     </form>
-    <br>
+
+    <h4><b-icon icon="star"></b-icon> Execution</h4>
+    <b-button v-on:click="$emit('start-processing')" variant="success">Start processing</b-button>
+    <br><br>
 
     <h6>
       Loading lightframes

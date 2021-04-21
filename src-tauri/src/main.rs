@@ -10,6 +10,7 @@ mod processing;
 use crate::processing::status::Status;
 use std::path::Path;
 use std::fs;
+use std::time::Instant;
 
 use rayon::prelude::*;
 
@@ -59,7 +60,10 @@ fn main() {
               tauri::execute_promise(
                 _webview,
                 move || {
+                  let start = Instant::now();
                   processing::run_merge(paths, output, mode, state);
+
+                  println!("Processing took {} seconds.", start.elapsed().as_secs());
                   Ok(())
                 }, callback, error)
             }
