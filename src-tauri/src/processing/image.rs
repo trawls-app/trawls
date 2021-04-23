@@ -139,11 +139,12 @@ impl Mergable for ExifContainer {
 
     fn merge(self, other: Self) -> Self {
         let mut res = HashMap::new();
-        for (key, self_entry) in self.mapped_entries.iter() {
-            if !other.mapped_entries.contains_key(key) { continue; }
-            let other_entry = other.mapped_entries.get(key).unwrap();
+        for (key, self_entry) in self.all_entries.iter() {
+            if !other.all_entries.contains_key(key) { continue; }
+            let other_entry = other.all_entries.get(key).unwrap();
+            let mapped_key = self_entry.tag;
 
-            let merged_value = match key {
+            let merged_value = match mapped_key {
                 // Add exposure time of merged images
                 ExifTag::ExposureTime => {
                     let mut new_entry = self_entry.clone();
@@ -160,7 +161,7 @@ impl Mergable for ExifContainer {
                 },
                 // Copy all remaining entries which are identical in both images
                 _ => {
-                    if self_entry == other.mapped_entries.get(key).unwrap() { Some(self_entry.clone()) }
+                    if self_entry == other.all_entries.get(key).unwrap() { Some(self_entry.clone()) }
                     else { None }
                 }
             };
@@ -171,8 +172,8 @@ impl Mergable for ExifContainer {
         }
 
         ExifContainer {
-            mapped_entries: res,
-            all_entries: self.all_entries
+            mapped_entries: ExifContainer::get_known_map(&res),
+            all_entries: res
         }
     }
 }

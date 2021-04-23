@@ -54,7 +54,7 @@ impl ExifContainer {
         }
     }
 
-    fn get_known_map(map: &HashMap<u16, rexif::ExifEntry>) -> HashMap<rexif::ExifTag, rexif::ExifEntry> {
+    pub fn get_known_map(map: &HashMap<u16, rexif::ExifEntry>) -> HashMap<rexif::ExifTag, rexif::ExifEntry> {
         map .values().into_iter()
             .filter(|x| x.tag != rexif::ExifTag::UnknownToMe)
             .map(|x| (x.tag, x.clone())).collect()
