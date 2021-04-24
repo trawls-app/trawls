@@ -9,6 +9,7 @@ use rexif::{ExifTag, TagValue};
 use libdng::image_info::RawSavableImage;
 use libdng::bindings::{Area, ImageInfoContainer};
 use crate::fileinfo::ExifContainer;
+use libdng::exif::ExifBox;
 
 
 pub trait Mergable<Rhs=Self> {
@@ -44,6 +45,10 @@ impl Mergable for Image {
 impl RawSavableImage for Image {
     fn get_make_model(&self) -> (String, String) {
         (self.raw_image.clean_make.clone(), self.raw_image.clean_model.clone())
+    }
+
+    fn get_exif_box(&self) -> ExifBox {
+        ExifBox { extractable: Box::new(self.exif.clone() ) }
     }
 
     fn get_info_container(&self) -> ImageInfoContainer {
