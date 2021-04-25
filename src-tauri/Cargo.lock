@@ -364,10 +364,11 @@ dependencies = [
 [[package]]
 name = "dng-rs"
 version = "0.1.0"
-source = "git+https://github.com/Silberschleier/libdng-rust#3084da975a3fa2f87ff415111c0c7561e70639cc"
+source = "git+https://github.com/Silberschleier/libdng-rust#904a95e70584fae4b954c11c336a6dfefc375ea7"
 dependencies = [
  "arrayvec 0.7.0",
  "cmake",
+ "num 0.4.0",
  "rawloader",
  "version",
 ]

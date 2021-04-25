@@ -44,7 +44,7 @@ pub fn run_merge(lightframe_files: Vec<PathBuf>, out_path: PathBuf, mode: CometM
 
     state.update_status(true);
     println!("Processing done");
-    raw_image.exif.print_mapped();
+    raw_image.exif.print_all();
 
     let writer = raw_image.get_dng_writer();
     //writer.write_jpg(Path::new("/home/chris/test.jpg"));
