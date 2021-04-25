@@ -40,6 +40,7 @@ export default {
   data: function () {
     return {
       images: {},
+      loading_exif: false,
       sortkey: 'creation_time',
       available_sortkeys: [
           { value: 'creation_time', text: 'Time' },
@@ -51,6 +52,12 @@ export default {
     sortedImages: function () {
       let sorted = [...Object.values(this.images)]
       return sorted.sort((a, b) => (a[this.sortkey] > b[this.sortkey]) ? 1 : -1)
+    },
+    numImages: function () {
+      return Object.keys(this.images).length
+    },
+    ready: function () {
+      return this.numImages > 1 && !this.loading_exif
     }
   },
   methods: {
@@ -61,16 +68,22 @@ export default {
       let parent = this
       if (event) {
         open({multiple: true}).then(function (res) {
+          parent.loading_exif = true
+
+          // Show images immediately
           for (let image of res) {
             parent.$set(parent.images, image, {"filename": image.split("/").pop()})
-
-            promisified({
-              cmd: "loadImage",
-              path: image
-            }).then(function (resp) {
-              parent.$set(parent.images, resp.path, resp)
-            })
           }
+
+          promisified({
+            cmd: "loadImages",
+            paths: res
+          }).then(function (resp) {
+            for (let r of resp) {
+              parent.$set(parent.images, r.path, r)
+            }
+            parent.loading_exif = false
+          })
         })
       }
     }

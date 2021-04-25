@@ -41,8 +41,10 @@ pub fn run_merge(lightframe_files: Vec<PathBuf>, out_path: PathBuf, mode: CometM
 
     let mut data = result.lock().unwrap();
     let raw_image = data.pop().unwrap();
+
+    state.update_status(true);
     println!("Processing done");
-    raw_image.exif.print_mapped();
+    raw_image.exif.print_all();
 
     let writer = raw_image.get_dng_writer();
     //writer.write_jpg(Path::new("/home/chris/test.jpg"));
@@ -54,7 +56,7 @@ fn queue_worker(queue: Arc<Mutex<Vec<Image>>>, state: status::Status) {
     loop {
         let mut q = queue.lock().unwrap();
         if q.len() <= 1 {
-            if state.loading_done() { return; } else {
+            if state.loading_done() { state.update_status(true); return; } else {
                 // Queue is empty but work is not done yet => Wait.
                 drop(q);
                 thread::sleep(time::Duration::from_millis(20));
