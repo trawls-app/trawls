@@ -6,6 +6,7 @@ use libdng::exif::ExifExtractable;
 use libdng::bindings::*;
 use num::rational::Ratio;
 use rexif::{ExifEntry, TagValue};
+use num::ToPrimitive;
 
 
 pub struct ImageCandidate {
@@ -23,14 +24,22 @@ impl ImageCandidate {
 
     pub fn json(self) -> serde_json::Value {
         let exif = self.exif.lock().unwrap();
+        let exposure = match exif.get_urational(ExifTag_Photo_ExposureTime, 0) {
+            None => None,
+            Some(x) => x.to_f64()
+        };
+        let aperture = match exif.get_urational(ExifTag_Photo_FNumber, 0) {
+            None => None,
+            Some(x) => x.to_f64()
+        };
 
         json!({
             "path": self.path.to_str(),
             "filename": self.path.file_name().unwrap().to_str().unwrap(),
-            "creation_time": exif.get_string(rexif::ExifTag::DateTimeOriginal),
-            "exposure_seconds": exif.get_float(rexif::ExifTag::ExposureTime),
-            "aperture": exif.get_float(rexif::ExifTag::FNumber),
-            "iso": exif.get_int(rexif::ExifTag::ISOSpeedRatings),
+            "creation_time": exif.get_string(ExifTag_Photo_DateTimeOriginal),
+            "exposure_seconds": exposure,
+            "aperture": aperture,
+            "iso": exif.get_uint(ExifTag_Photo_ISOSpeedRatings, 0),
         })
     }
 }
@@ -85,35 +94,18 @@ impl ExifContainer {
             println!("\t{}\t{}: {}", ifd_tag, entry.tag, entry.value);
         }
     }
-
-    pub fn get_string(&self, tag: rexif::ExifTag) -> Option<String> {
-        match self.mapped_entries.get(&tag) {
-            Some(x) => Some(x.value.to_string()),
-            None => None
-        }
-    }
-
-    pub fn get_int(&self, tag: rexif::ExifTag) -> Option<i64> {
-        match self.mapped_entries.get(&tag) {
-            Some(x) => x.value.to_i64(0),
-            None => None
-        }
-    }
-
-    pub fn get_float(&self, tag: rexif::ExifTag) -> Option<f64> {
-        match self.mapped_entries.get(&tag) {
-            Some(x) => x.value.to_f64(0),
-            None => None
-        }
-    }
 }
 
 impl ExifExtractable for ExifContainer {
     fn get_uint(&self, tag: u32, index: u16) -> Option<u32> {
         let r_tag = map_external_tag_to_rexif(tag)?;
-        match self.get_int(r_tag) {
-            Some(x) => Some(x as u32),
-            None => None
+        let entry = self.mapped_entries.get(&r_tag)?;
+
+        match &entry.value {
+            TagValue::U8(x) => Some(*x.get(index as usize)? as u32),
+            TagValue::U16(x) => Some(*x.get(index as usize)? as u32),
+            TagValue::U32(x)  => Some(*x.get(index as usize)?),
+            _ => None
         }
     }
 
