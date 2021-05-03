@@ -1,9 +1,16 @@
 use std::{thread, time};
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex};
+use std::fs;
+use serde::Serialize;
 use rayon::prelude::*;
-use crate::processing::image::{Image, Mergable};
+use tempfile::tempdir;
+use base64;
 use libdng::image_info::DNGWriting;
+use libdng::exif::ExifExtractable;
+use libdng::bindings::ExifTag_Photo_FNumber;
+use crate::processing::image::{Image, Mergable};
+
 
 mod image;
 pub mod status;
@@ -15,7 +22,26 @@ pub enum CometMode {
     Normal,
 }
 
-pub fn run_merge(lightframe_files: Vec<PathBuf>, out_path: PathBuf, mode: CometMode, state: status::Status) {
+#[derive(Serialize)]
+pub struct Preview {
+    pub encoded: String,
+    pub aperture: f32,
+    pub exposure: f32
+}
+
+impl Preview {
+    fn new(image_path: &Path, exif: Box<dyn ExifExtractable>) -> Preview {
+        let image_bytes = fs::read(image_path).unwrap();
+        let encoded = base64::encode(image_bytes);
+        Preview {
+            encoded,
+            aperture: 0.0,
+            exposure: 0.0
+        }
+    }
+}
+
+pub fn run_merge(lightframe_files: Vec<PathBuf>, out_path: PathBuf, mode: CometMode, state: status::Status) -> Preview {
     let num_threads = num_cpus::get();
     println!("System has {} cores and {} threads. Using {} worker threads.", num_cpus::get_physical(), num_threads, num_threads);
 
@@ -46,9 +72,16 @@ pub fn run_merge(lightframe_files: Vec<PathBuf>, out_path: PathBuf, mode: CometM
     println!("Processing done");
     raw_image.exif.print_all();
 
+    // Write the result
     let writer = raw_image.get_dng_writer();
-    //writer.write_jpg(Path::new("/home/chris/test.jpg"));
     writer.write_dng(&out_path);
+
+    // Create a preview to show in the UI
+    let dir = tempdir().unwrap();
+    let preview_path = dir.path().join("preview.jpg");
+    writer.write_jpg(preview_path.as_path());
+    
+    Preview::new(preview_path.as_path(), Box::new(raw_image.exif))
 }
 
 

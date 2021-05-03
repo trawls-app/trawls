@@ -61,10 +61,10 @@ fn main() {
                 _webview,
                 move || {
                   let start = Instant::now();
-                  processing::run_merge(paths, output, mode, state);
+                  let preview = processing::run_merge(paths, output, mode, state);
 
                   println!("Processing took {} seconds.", start.elapsed().as_secs());
-                  Ok(())
+                  Ok(serde_json::json!(preview))
                 }, callback, error)
             }
           }
