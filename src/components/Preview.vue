@@ -1,6 +1,9 @@
 <template>
   <div>
-    <b-img v-bind:src="'data:image/jpeg;base64,'+image_data" fluid v-if="image_data" />
+    <image-zoom
+        v-bind:regular="'data:image/jpeg;base64,'+image_data" v-if="image_data"
+        img-class="img-fluid" v-bind:zoom-amount="3" click-zoom>
+    </image-zoom>
   </div>
 </template>
 
