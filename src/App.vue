@@ -24,7 +24,7 @@
               <ManageProcessing @start-processing="run_processing" ref="settings" />
             </b-card-text>
           </b-tab>
-          <b-tab title="4. Preview result" ref="tab_preview">
+          <b-tab title="4. Preview" ref="tab_preview">
             <b-card-text>
               <Preview ref="preview" />
             </b-card-text>
