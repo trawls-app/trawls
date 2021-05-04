@@ -2,7 +2,7 @@
   <div id="app">
     <div>
       <b-card no-body>
-        <b-tabs v-model="tabIndex" card>
+        <b-tabs card>
           <b-tab active>
             <template v-slot:title>
               1. Add Lightframes
@@ -24,7 +24,7 @@
               <ManageProcessing @start-processing="run_processing" ref="settings" />
             </b-card-text>
           </b-tab>
-          <b-tab title="4. Preview result">
+          <b-tab title="4. Preview result" ref="tab_preview">
             <b-card-text>
               <Preview ref="preview" />
             </b-card-text>
@@ -65,8 +65,7 @@ export default {
   data: function () {
     return {
       lightframes_ready: false,
-      output_path_ready: false,
-      tabIndex: 1
+      output_path_ready: false
     }
   },
   methods: {
@@ -88,8 +87,8 @@ export default {
         lightframes: parent.$refs.lightframes.sortedImages.map(img => img.path)
       }).then(function (preview) {
         console.log("Finished merge")
-        parent.$refs.preview.image_data = preview.encoded
-        parent.tabIndex = 4
+        parent.$refs.preview.preview = preview
+        parent.$refs.tab_preview.activate()
       })
     }
   }

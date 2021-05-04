@@ -2,14 +2,17 @@ use std::{thread, time};
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex};
 use std::fs;
+use std::time::Duration;
 use serde::Serialize;
 use rayon::prelude::*;
 use tempfile::tempdir;
 use base64;
 use libdng::image_info::DNGWriting;
 use libdng::exif::ExifExtractable;
-use libdng::bindings::ExifTag_Photo_FNumber;
+use libdng::bindings::{ExifTag_Photo_FNumber, ExifTag_Photo_ExposureTime, ExifTag_Photo_ISOSpeedRatings};
 use crate::processing::image::{Image, Mergable};
+use num::rational::Ratio;
+use std::cmp::min;
 
 
 mod image;
@@ -23,25 +26,38 @@ pub enum CometMode {
 }
 
 #[derive(Serialize)]
-pub struct Preview {
+pub struct RenderedPreview {
     pub encoded: String,
-    pub aperture: f32,
-    pub exposure: f32
+    pub aperture: String,
+    pub exposure: String,
+    pub isospeed: String
 }
 
-impl Preview {
-    fn new(image_path: &Path, exif: Box<dyn ExifExtractable>) -> Preview {
+impl RenderedPreview {
+    fn new(image_path: &Path, exif: Box<dyn ExifExtractable>) -> RenderedPreview {
         let image_bytes = fs::read(image_path).unwrap();
         let encoded = base64::encode(image_bytes);
-        Preview {
+        let aperture_ratio = exif.get_urational(ExifTag_Photo_FNumber, 0).unwrap_or(Ratio::new(0, 1));
+        let exposure_ratio = exif.get_urational(ExifTag_Photo_ExposureTime, 0).unwrap_or(Ratio::new(0, 1));
+        let isospeed = exif.get_uint(ExifTag_Photo_ISOSpeedRatings, 0).unwrap_or(0);
+
+        let aperture = *aperture_ratio.numer() as f32 / *aperture_ratio.denom() as f32;
+        let exposure = Duration::from_secs_f64(*exposure_ratio.numer() as f64 / *exposure_ratio.denom() as f64);
+
+        let seconds = exposure.as_secs() % 60;
+        let minutes = (exposure.as_secs() / 60) % 60;
+        let hours = (exposure.as_secs() / 60) / 60;
+
+        RenderedPreview {
             encoded,
-            aperture: 0.0,
-            exposure: 0.0
+            aperture: format!("f/{}", aperture),
+            exposure: format!("{}h{}m{}s", hours, minutes, seconds),
+            isospeed: format!("ISO{}", isospeed)
         }
     }
 }
 
-pub fn run_merge(lightframe_files: Vec<PathBuf>, out_path: PathBuf, mode: CometMode, state: status::Status) -> Preview {
+pub fn run_merge(lightframe_files: Vec<PathBuf>, out_path: PathBuf, mode: CometMode, state: status::Status) -> RenderedPreview {
     let num_threads = num_cpus::get();
     println!("System has {} cores and {} threads. Using {} worker threads.", num_cpus::get_physical(), num_threads, num_threads);
 
@@ -81,7 +97,7 @@ pub fn run_merge(lightframe_files: Vec<PathBuf>, out_path: PathBuf, mode: CometM
     let preview_path = dir.path().join("preview.jpg");
     writer.write_jpg(preview_path.as_path());
     
-    Preview::new(preview_path.as_path(), Box::new(raw_image.exif))
+    RenderedPreview::new(preview_path.as_path(), Box::new(raw_image.exif))
 }
 
 

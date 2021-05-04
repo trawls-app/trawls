@@ -1,9 +1,10 @@
 <template>
-  <div>
+  <div v-if="preview">
     <image-zoom
-        v-bind:regular="'data:image/jpeg;base64,'+image_data" v-if="image_data"
+        v-bind:regular="'data:image/jpeg;base64,'+preview.encoded"
         img-class="img-fluid" v-bind:zoom-amount="3" click-zoom>
     </image-zoom>
+    <small>{{ preview.isospeed }}, {{ preview.aperture }}, {{ preview.exposure }}</small>
   </div>
 </template>
 
@@ -13,7 +14,7 @@ export default {
   name: "Preview",
   data: function () {
     return {
-      image_data: null
+      preview: null
     }
   }
 }
