@@ -5,7 +5,7 @@ use serde_json::json;
 use libdng::exif::ExifExtractable;
 use libdng::bindings::*;
 use num::rational::Ratio;
-use rexif::{ExifEntry, TagValue};
+use rexif::TagValue;
 use num::ToPrimitive;
 
 

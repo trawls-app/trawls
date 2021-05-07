@@ -11,7 +11,7 @@
             </template>
             <b-card-text><ImageSelection ref="lightframes"/></b-card-text>
           </b-tab>
-          <b-tab disabled>
+          <b-tab>
             <template v-slot:title>
               2. Add Darkframes
               <b-badge variant="light" v-if="$refs.darkframes.loading_exif === false">{{ $refs.darkframes.numImages }}</b-badge>
@@ -84,7 +84,8 @@ export default {
         cmd: "runMerge",
         out_path: parent.$refs.settings.output_path,
         mode_str: parent.$refs.settings.merge_mode,
-        lightframes: parent.$refs.lightframes.sortedImages.map(img => img.path)
+        lightframes: parent.$refs.lightframes.sortedImages.map(img => img.path),
+        darkframes: parent.$refs.darkframes.sortedImages.map(img => img.path)
       }).then(function (preview) {
         console.log("Finished merge")
         parent.$refs.preview.preview = preview
