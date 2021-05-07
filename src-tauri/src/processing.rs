@@ -1,28 +1,40 @@
-use std::{thread, time};
+use std::{fs, thread, time};
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex};
-use std::fs;
-use std::time::Duration;
-use serde::Serialize;
-use rayon::prelude::*;
-use tempfile::tempdir;
+use std::thread::JoinHandle;
+
 use base64;
+use itertools::chain;
+use num::rational::Ratio;
+use rayon::prelude::*;
+use serde::Serialize;
+use tempfile::tempdir;
+
 use libdng::image_info::DNGWriting;
 use libdng::exif::ExifExtractable;
 use libdng::bindings::{ExifTag_Photo_FNumber, ExifTag_Photo_ExposureTime, ExifTag_Photo_ISOSpeedRatings};
-use crate::processing::image::{Image, Mergable};
-use num::rational::Ratio;
-use std::cmp::min;
+use crate::processing::image::{Image, Mergable, MergeMode};
+use crate::processing::image::MergeMode::{Maximize, WeightedAverage};
 
 
 mod image;
 pub mod status;
 
 #[derive(Copy, Clone)]
-pub enum CometMode {
+pub enum Comets {
     Falling,
     Raising,
     Normal,
+}
+
+enum FrameType {
+    Lightframe(usize),
+    Darkframe
+}
+
+struct LoadTask {
+    frame_type: FrameType,
+    path: PathBuf
 }
 
 #[derive(Serialize)]
@@ -42,7 +54,7 @@ impl RenderedPreview {
         let isospeed = exif.get_uint(ExifTag_Photo_ISOSpeedRatings, 0).unwrap_or(0);
 
         let aperture = *aperture_ratio.numer() as f32 / *aperture_ratio.denom() as f32;
-        let exposure = Duration::from_secs_f64(*exposure_ratio.numer() as f64 / *exposure_ratio.denom() as f64);
+        let exposure = time::Duration::from_secs_f64(*exposure_ratio.numer() as f64 / *exposure_ratio.denom() as f64);
 
         let seconds = exposure.as_secs() % 60;
         let minutes = (exposure.as_secs() / 60) % 60;
@@ -57,32 +69,45 @@ impl RenderedPreview {
     }
 }
 
-pub fn run_merge(lightframe_files: Vec<PathBuf>, out_path: PathBuf, mode: CometMode, state: status::Status) -> RenderedPreview {
+pub fn run_merge(lightframe_files: Vec<PathBuf>, darkframe_files: Vec<PathBuf>, out_path: PathBuf, mode: Comets, state: status::Status) -> RenderedPreview {
     let num_threads = num_cpus::get();
     println!("System has {} cores and {} threads. Using {} worker threads.", num_cpus::get_physical(), num_threads, num_threads);
 
 
-    let result = Arc::new(Mutex::new(vec![]));
-    let mut thread_handles = vec![];
+    let queue_lights = Arc::new(Mutex::new(vec![]));
+    let queue_darks = Arc::new(Mutex::new(vec![]));
+    let mut tasks: Vec<LoadTask> = lightframe_files.iter().zip(0..lightframe_files.len())
+        .map(|(p, i)| LoadTask {
+            frame_type: FrameType::Lightframe(i),
+            path: p.to_path_buf()
+        }).collect();
+    tasks.append(&mut darkframe_files.iter()
+        .map(|p| LoadTask {
+            frame_type: FrameType::Darkframe, path: p.to_path_buf()
+        }).collect());
 
-    for _ in 0..num_threads {
-        let q = Arc::clone(&result);
-        let s = state.clone();
-        thread_handles.push(thread::spawn(move || {
-            queue_worker(q, s);
-        }));
-    }
+    // Start workers
+    let thread_handles_lights = spawn_workers(num_threads, Arc::clone(&queue_lights), Maximize, state.clone());
+    let thread_handles_darks = spawn_workers(num_threads, Arc::clone(&queue_darks), WeightedAverage, state.clone());
 
-    lightframe_files.par_iter()
-        .zip(0..lightframe_files.len())
-        .for_each(|(e, i)| process_image(e.as_path(), Arc::clone(&result), i, lightframe_files.len(), mode, state.clone()));
+    // Load light- and darkframes
+    tasks.par_iter().for_each(|t|
+        load_image(t, Arc::clone(&queue_lights), Arc::clone(&queue_darks), mode, state.clone())
+    );
 
-    for t in thread_handles {
+    for t in chain(thread_handles_lights, thread_handles_darks) {
         t.join().unwrap_or(());
     }
 
-    let mut data = result.lock().unwrap();
-    let raw_image = data.pop().unwrap();
+    let lightframe = queue_lights.lock().unwrap().pop().unwrap();
+    let raw_image = if darkframe_files.is_empty() {
+        println!("No darkframes selected");
+        lightframe
+    } else {
+        println!("Subtracting averaged darkframe");
+        let darkframe = queue_darks.lock().unwrap().pop().unwrap();
+        lightframe.apply_darkframe(darkframe)
+    };
 
     state.update_status(true);
     println!("Processing done");
@@ -100,8 +125,22 @@ pub fn run_merge(lightframe_files: Vec<PathBuf>, out_path: PathBuf, mode: CometM
     RenderedPreview::new(preview_path.as_path(), Box::new(raw_image.exif))
 }
 
+fn spawn_workers(num_threads: usize, queue: Arc<Mutex<Vec<Image>>>, merge_mode: MergeMode, state: status::Status) -> Vec<JoinHandle<()>> {
+    let mut thread_handles = vec![];
 
-fn queue_worker(queue: Arc<Mutex<Vec<Image>>>, state: status::Status) {
+    for _ in 0..num_threads {
+        let q = Arc::clone(&queue);
+        let s = state.clone();
+        thread_handles.push(thread::spawn(move || {
+            queue_worker(q, merge_mode, s);
+        }));
+    }
+
+    thread_handles
+}
+
+
+fn queue_worker(queue: Arc<Mutex<Vec<Image>>>, merge_mode: MergeMode, state: status::Status) {
     loop {
         let mut q = queue.lock().unwrap();
         if q.len() <= 1 {
@@ -118,24 +157,40 @@ fn queue_worker(queue: Arc<Mutex<Vec<Image>>>, state: status::Status) {
         let v2 = q.pop().unwrap();
         drop(q);
 
-        let res = v1.merge(v2);
+        let res = v1.merge(v2, merge_mode);
         queue.lock().unwrap().push(res);
         state.finish_merging();
     }
 }
 
-
-fn process_image(entry: &Path, queue: Arc<Mutex<Vec<Image>>>, index: usize, num_images: usize, mode: CometMode, state: status::Status) {
+fn load_image(task: &LoadTask, queue_lights: Arc<Mutex<Vec<Image>>>, queue_darks: Arc<Mutex<Vec<Image>>>, comets: Comets, state: status::Status) {
     state.start_loading();
 
-    let intensity = match mode {
-        CometMode::Falling => 1.0 - index as f32 / num_images as f32,
-        CometMode::Raising => index as f32 / num_images as f32,
-        CometMode::Normal => 1.0,
+    match task.frame_type {
+        FrameType::Lightframe(index) => load_lightframe(
+            task.path.as_path(), queue_lights,
+            index, state.count_lights,
+            comets
+        ),
+        FrameType::Darkframe => load_darkframe(task.path.as_path(), queue_darks)
+    }
+
+    state.finish_loading();
+}
+
+
+fn load_lightframe(entry: &Path, queue: Arc<Mutex<Vec<Image>>>, index: usize, num_images: usize, comets: Comets) {
+    let intensity = match comets {
+        Comets::Falling => 1.0 - index as f32 / num_images as f32,
+        Comets::Raising => index as f32 / num_images as f32,
+        Comets::Normal => 1.0,
     };
 
     let img = Image::load_from_raw(entry, intensity).unwrap();
     queue.lock().unwrap().push(img);
+}
 
-    state.finish_loading();
+fn load_darkframe(entry: &Path, queue: Arc<Mutex<Vec<Image>>>) {
+    let img = Image::load_from_raw(entry, 1.0).unwrap();
+    queue.lock().unwrap().push(img);
 }

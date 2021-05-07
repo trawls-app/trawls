@@ -23,6 +23,7 @@ rayon = "1.4.0"
 dng-rs = { git = "https://github.com/Silberschleier/libdng-rust" }
 tempfile = "3.2.0"
 base64 = "0.13.0"
+itertools = "0.10.0"
 
 [target."cfg(windows)".build-dependencies]
 winres = "0.1"

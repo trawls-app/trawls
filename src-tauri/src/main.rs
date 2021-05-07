@@ -2,6 +2,7 @@
   all(not(debug_assertions), target_os = "windows"),
   windows_subsystem = "windows"
 )]
+#![allow(non_upper_case_globals)]
 
 mod cmd;
 mod fileinfo;
@@ -46,14 +47,15 @@ fn main() {
                 Ok(res) }, callback, error)
             },
 
-            RunMerge { lightframes, mode_str, out_path, callback, error} => {
-              let state = Status::new(lightframes.len(), _webview.as_mut());
-              let paths = lightframes.into_iter().map(|x| Path::new(&x).to_path_buf()).collect();
+            RunMerge { lightframes, darkframes, mode_str, out_path, callback, error} => {
+              let state = Status::new(lightframes.len(), darkframes.len(), _webview.as_mut());
+              let paths_light = lightframes.into_iter().map(|x| Path::new(&x).to_path_buf()).collect();
+              let paths_dark = darkframes.into_iter().map(|x| Path::new(&x).to_path_buf()).collect();
               let output = Path::new(&out_path).to_path_buf();
               let mode = match mode_str.as_str() {
-                "falling" => processing::CometMode::Falling,
-                "raising" => processing::CometMode::Raising,
-                _ => processing::CometMode::Normal
+                "falling" => processing::Comets::Falling,
+                "raising" => processing::Comets::Raising,
+                _ => processing::Comets::Normal
               };
               println!("Selected '{}' mode", mode_str);
 
@@ -61,7 +63,7 @@ fn main() {
                 _webview,
                 move || {
                   let start = Instant::now();
-                  let preview = processing::run_merge(paths, output, mode, state);
+                  let preview = processing::run_merge(paths_light, paths_dark, output, mode, state);
 
                   println!("Processing took {} seconds.", start.elapsed().as_secs());
                   Ok(serde_json::json!(preview))
