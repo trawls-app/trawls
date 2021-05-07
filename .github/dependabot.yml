@@ -1,0 +1,30 @@
+version: 2
+updates:
+- package-ecosystem: cargo
+  directory: "/src-tauri"
+  schedule:
+    interval: daily
+    time: "04:00"
+  open-pull-requests-limit: 10
+  target-branch: dev
+  ignore:
+  - dependency-name: serde_json
+    versions:
+    - 1.0.63
+- package-ecosystem: npm
+  directory: "/"
+  schedule:
+    interval: daily
+    time: "04:00"
+  open-pull-requests-limit: 10
+  target-branch: dev
+  ignore:
+  - dependency-name: "@vue/cli-service"
+    versions:
+    - 4.5.12
+  - dependency-name: core-js
+    versions:
+    - 3.9.0
+  - dependency-name: sass
+    versions:
+    - 1.32.6

@@ -5,11 +5,13 @@ use std::time::Instant;
 use serde_json::json;
 use tauri::event::emit;
 use tauri::WebviewMut;
+use std::cmp::max;
 
 
 #[derive(Clone)]
 pub struct Status {
-    count_lights: Arc<AtomicUsize>,
+    pub count_lights: usize,
+    pub count_darks: usize,
     count_loaded_lights: Arc<AtomicUsize>,
     count_loading_lights: Arc<AtomicUsize>,
     count_merge_completed: Arc<AtomicUsize>,
@@ -19,9 +21,9 @@ pub struct Status {
 }
 
 impl Status {
-    pub fn new(num_lights: usize, webview: WebviewMut) -> Status {
+    pub fn new(count_lights: usize, count_darks: usize, webview: WebviewMut) -> Status {
         Status {
-            count_lights: Arc::new(AtomicUsize::new(num_lights)),
+            count_lights, count_darks,
             count_loaded_lights: Arc::new(AtomicUsize::new(0)),
             count_loading_lights: Arc::new(AtomicUsize::new(0)),
             count_merge_completed: Arc::new(AtomicUsize::new(0)),
@@ -33,7 +35,7 @@ impl Status {
 
     pub fn update_status(&self, force: bool) {
         println!("Total {}, Loaded {}, Loading {}, Merged {}, Merging {}, loading_done = {}, merging_done = {}",
-                 self.count_lights.load(Relaxed),
+                 self.count_lights,
                  self.count_loaded_lights.load(Relaxed),
                  self.count_loading_lights.load(Relaxed),
                  self.count_merge_completed.load(Relaxed),
@@ -50,11 +52,11 @@ impl Status {
     }
 
     pub fn loading_done(&self) -> bool {
-        self.count_lights.load(Relaxed) == self.count_loaded_lights.load(Relaxed)
+        self.count_lights + self.count_darks == self.count_loaded_lights.load(Relaxed)
     }
 
     pub fn merging_done(&self) -> bool {
-        self.count_lights.load(Relaxed) - 1 == self.count_merge_completed.load(Relaxed)
+        self.count_lights - 1  + max(0isize, self.count_darks as isize - 1) as usize == self.count_merge_completed.load(Relaxed)
     }
 
     pub fn start_loading(&self) {
@@ -81,7 +83,8 @@ impl Status {
 
     pub fn json(&self) -> serde_json::Value {
         json!({
-            "count_lights": self.count_lights.load(Relaxed),
+            "count_lights": self.count_lights,
+            "count_darks": self.count_darks,
             "count_loaded_lights": self.count_loaded_lights.load(Relaxed),
             "count_loading_lights": self.count_loading_lights.load(Relaxed),
             "count_merged": self.count_merge_completed.load(Relaxed),

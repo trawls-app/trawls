@@ -11,7 +11,7 @@
             </template>
             <b-card-text><ImageSelection ref="lightframes"/></b-card-text>
           </b-tab>
-          <b-tab disabled>
+          <b-tab>
             <template v-slot:title>
               2. Add Darkframes
               <b-badge variant="light" v-if="$refs.darkframes.loading_exif === false">{{ $refs.darkframes.numImages }}</b-badge>
@@ -22,6 +22,11 @@
           <b-tab title="3. Process images">
             <b-card-text>
               <ManageProcessing @start-processing="run_processing" ref="settings" />
+            </b-card-text>
+          </b-tab>
+          <b-tab title="4. Preview" ref="tab_preview">
+            <b-card-text>
+              <Preview ref="preview" />
             </b-card-text>
           </b-tab>
         </b-tabs>
@@ -47,11 +52,13 @@
 import ImageSelection from "@/components/ImageSelection";
 import ManageProcessing from "@/components/ManageProcessing";
 import {promisified} from "tauri/api/tauri";
+import Preview from "@/components/Preview";
 
 
 export default {
   name: 'App',
   components: {
+    Preview,
     ImageSelection,
     ManageProcessing
   },
@@ -77,9 +84,12 @@ export default {
         cmd: "runMerge",
         out_path: parent.$refs.settings.output_path,
         mode_str: parent.$refs.settings.merge_mode,
-        lightframes: parent.$refs.lightframes.sortedImages.map(img => img.path)
-      }).then(function () {
+        lightframes: parent.$refs.lightframes.sortedImages.map(img => img.path),
+        darkframes: parent.$refs.darkframes.sortedImages.map(img => img.path)
+      }).then(function (preview) {
         console.log("Finished merge")
+        parent.$refs.preview.preview = preview
+        parent.$refs.tab_preview.activate()
       })
     }
   }
