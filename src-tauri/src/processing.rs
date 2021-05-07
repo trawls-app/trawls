@@ -100,10 +100,14 @@ pub fn run_merge(lightframe_files: Vec<PathBuf>, darkframe_files: Vec<PathBuf>, 
     }
 
     let lightframe = queue_lights.lock().unwrap().pop().unwrap();
-
-    println!("Subtracting darkframe");
-    let darkframe = queue_darks.lock().unwrap().pop().unwrap();
-    let raw_image = lightframe.apply_darkframe(darkframe);
+    let raw_image = if darkframe_files.is_empty() {
+        println!("No darkframes selected");
+        lightframe
+    } else {
+        println!("Subtracting averaged darkframe");
+        let darkframe = queue_darks.lock().unwrap().pop().unwrap();
+        lightframe.apply_darkframe(darkframe)
+    };
 
     state.update_status(true);
     println!("Processing done");

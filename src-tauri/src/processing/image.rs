@@ -1,6 +1,6 @@
 use std::path::Path;
 use std::unimplemented;
-use std::cmp::{max, min};
+use std::cmp::max;
 use std::collections::HashMap;
 use arrayvec::ArrayVec;
 use num::rational::Ratio;

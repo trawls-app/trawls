@@ -5,7 +5,7 @@ use std::time::Instant;
 use serde_json::json;
 use tauri::event::emit;
 use tauri::WebviewMut;
-use std::cmp::min;
+use std::cmp::max;
 
 
 #[derive(Clone)]
@@ -56,7 +56,7 @@ impl Status {
     }
 
     pub fn merging_done(&self) -> bool {
-        self.count_lights - 1  + min(0, self.count_darks - 1) == self.count_merge_completed.load(Relaxed)
+        self.count_lights - 1  + max(0isize, self.count_darks as isize - 1) as usize == self.count_merge_completed.load(Relaxed)
     }
 
     pub fn start_loading(&self) {
