@@ -37,8 +37,8 @@
     },
     "window": {
       "title": "Trawls",
-      "width": 1024,
-      "height": 768,
+      "width": 1350,
+      "height": 1000,
       "resizable": true,
       "fullscreen": false
     },

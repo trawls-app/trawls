@@ -2,7 +2,7 @@
   <div id="app">
     <div>
       <b-card no-body>
-        <b-tabs card>
+        <b-tabs card class="stretch">
           <b-tab active>
             <template v-slot:title>
               1. Add Lightframes
@@ -114,4 +114,8 @@ export default {
 @import '../node_modules/bootstrap/scss/bootstrap';
 // BootstrapVue and its default variables
 @import '../node_modules/bootstrap-vue/src/index.scss';
+
+.stretch {
+  min-height: 99.5vh;
+}
 </style>
