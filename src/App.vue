@@ -2,14 +2,17 @@
   <div id="app">
     <div>
       <b-card no-body>
-        <b-tabs card>
+        <b-tabs card class="stretch">
           <b-tab active>
             <template v-slot:title>
               1. Add Lightframes
               <b-badge variant="light" v-if="$refs.lightframes.loading_exif === false">{{ $refs.lightframes.numImages }}</b-badge>
               <b-spinner type="border" small v-if="$refs.lightframes.loading_exif === true"></b-spinner>
             </template>
-            <b-card-text><ImageSelection ref="lightframes"/></b-card-text>
+            <b-card-text>
+              <StepDescription>Select the lightframes in this step.</StepDescription><br/>
+              <ImageSelection ref="lightframes"/>
+            </b-card-text>
           </b-tab>
           <b-tab>
             <template v-slot:title>
@@ -17,10 +20,16 @@
               <b-badge variant="light" v-if="$refs.darkframes.loading_exif === false">{{ $refs.darkframes.numImages }}</b-badge>
               <b-spinner type="border" small v-if="$refs.darkframes.loading_exif === true"></b-spinner>
             </template>
-            <b-card-text><ImageSelection ref="darkframes"/></b-card-text>
+            <b-card-text>
+              <StepDescription>
+                (Optional) Select darkframes, shot with the same settings as the lightframes, to reduce the noise of the resulting image.
+              </StepDescription><br/>
+              <ImageSelection ref="darkframes"/>
+            </b-card-text>
           </b-tab>
           <b-tab title="3. Process images">
             <b-card-text>
+              <StepDescription>Select processing options and start the processing.</StepDescription><br/>
               <ManageProcessing @start-processing="run_processing" ref="settings" />
             </b-card-text>
           </b-tab>
@@ -53,11 +62,13 @@ import ImageSelection from "@/components/ImageSelection";
 import ManageProcessing from "@/components/ManageProcessing";
 import {promisified} from "tauri/api/tauri";
 import Preview from "@/components/Preview";
+import StepDescription from "@/components/StepDescription";
 
 
 export default {
   name: 'App',
   components: {
+    StepDescription,
     Preview,
     ImageSelection,
     ManageProcessing
@@ -103,4 +114,8 @@ export default {
 @import '../node_modules/bootstrap/scss/bootstrap';
 // BootstrapVue and its default variables
 @import '../node_modules/bootstrap-vue/src/index.scss';
+
+.stretch {
+  min-height: 99.5vh;
+}
 </style>

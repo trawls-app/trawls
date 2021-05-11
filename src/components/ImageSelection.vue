@@ -7,7 +7,7 @@
     </div>
 
     <div class="table-responsive">
-      <table class="table">
+      <table class="table" v-if="sortedImages.length > 0">
         <thead>
         <tr>
           <td>Filename</td>
