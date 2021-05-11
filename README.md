@@ -1,4 +1,5 @@
-# trawls
+# Trawls
+![CI dev branch](https://github.com/Silberschleier/trawls/actions/workflows/test-on-pr.yml/badge.svg?branch=dev)
 
 ## Project setup
 ```
@@ -20,5 +21,3 @@ npm run tauri:build
 npm run lint
 ```
 
-### Customize configuration
-See [Configuration Reference](https://cli.vuejs.org/config/).
