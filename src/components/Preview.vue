@@ -1,9 +1,9 @@
 <template>
-  <div v-if="preview">
+  <div v-if="preview" class="text-center">
     <image-zoom
         v-bind:regular="'data:image/jpeg;base64,'+preview.encoded"
-        img-class="img-fluid" v-bind:zoom-amount="3" click-zoom>
-    </image-zoom>
+        img-class="preview-fluid" v-bind:zoom-amount="3" click-zoom>
+    </image-zoom><br>
     <small>{{ preview.isospeed }}, {{ preview.aperture }}, {{ preview.exposure }}</small>
   </div>
   <div v-else>
@@ -25,6 +25,11 @@ export default {
 }
 </script>
 
-<style scoped>
+<style>
 
+.preview-fluid {
+  max-width: 100%;
+  max-height: 92vh;
+  height: auto;
+}
 </style>
