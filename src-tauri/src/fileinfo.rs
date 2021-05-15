@@ -7,6 +7,7 @@ use libdng::bindings::*;
 use num::rational::Ratio;
 use rexif::TagValue;
 use num::ToPrimitive;
+use anyhow;
 
 
 pub struct ImageCandidate {
@@ -15,7 +16,7 @@ pub struct ImageCandidate {
 }
 
 impl ImageCandidate {
-    pub fn load(path: &Path) -> Result<ImageCandidate, ()> {
+    pub fn load(path: &Path) -> anyhow::Result<ImageCandidate> {
         Ok(ImageCandidate {
             path: path.to_path_buf(),
             exif: Arc::new(Mutex::new(ExifContainer::from_file(path)?))
@@ -51,8 +52,8 @@ pub struct ExifContainer {
 }
 
 impl ExifContainer {
-    pub fn from_file(path: &Path) -> Result<ExifContainer, ()> {
-        let data = rexif::parse_file(path).unwrap();
+    pub fn from_file(path: &Path) -> anyhow::Result<ExifContainer> {
+        let data = rexif::parse_file(path)?;
         Ok(ExifContainer::from_rexif_data(data))
     }
 

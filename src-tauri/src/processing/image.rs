@@ -3,6 +3,7 @@ use std::unimplemented;
 use std::cmp::max;
 use std::collections::HashMap;
 use arrayvec::ArrayVec;
+use anyhow;
 use num::rational::Ratio;
 use rawloader::{RawImage, RawImageData};
 use rexif::{ExifTag, TagValue};
@@ -20,7 +21,7 @@ pub enum MergeMode {
 pub trait Mergable<Rhs=Self> {
     type Container;
 
-    fn load_from_raw(path: &Path, intensity: f32) -> Result<Self::Container, &str>;
+    fn load_from_raw(path: &Path, intensity: f32) -> anyhow::Result<Self::Container>;
     fn weighted_merge(self, other: Rhs, weight_self: f32, weight_other: f32, mode: MergeMode) -> Rhs;
     fn merge(self, other: Rhs, mode: MergeMode) -> Rhs;
 }
@@ -63,7 +64,7 @@ impl Image {
 impl Mergable for Image {
     type Container = Image;
 
-    fn load_from_raw(path: &Path, intensity: f32) -> Result<Self::Container, &str> {
+    fn load_from_raw(path: &Path, intensity: f32) -> anyhow::Result<Self::Container> {
         Ok( Image {
             raw_image: RawImage::load_from_raw(path, intensity)?,
             exif: ExifContainer::load_from_raw(path, intensity)?,
@@ -133,8 +134,8 @@ impl RawSavableImage for Image {
 impl Mergable for RawImage {
     type Container = RawImage;
 
-    fn load_from_raw(path: &Path, intensity: f32) -> Result<Self::Container, &str> {
-        let mut raw_image = rawloader::decode_file(path).unwrap();
+    fn load_from_raw(path: &Path, intensity: f32) -> anyhow::Result<Self::Container> {
+        let mut raw_image = rawloader::decode_file(path)?;
 
         if (intensity - 1.0).abs() > 0.001 {
             raw_image.data = match raw_image.data {
@@ -192,7 +193,7 @@ impl Mergable for RawImage {
 impl Mergable for ExifContainer {
     type Container = ExifContainer;
 
-    fn load_from_raw(path: &Path, _intensity: f32) -> Result<Self::Container, &str> {
+    fn load_from_raw(path: &Path, _intensity: f32) -> anyhow::Result<Self::Container> {
         Ok(ExifContainer::from_file(path).unwrap())
     }
 

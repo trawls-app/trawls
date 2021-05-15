@@ -1869,6 +1869,7 @@ dependencies = [
 name = "trawls"
 version = "0.1.6"
 dependencies = [
+ "anyhow",
  "arrayvec 0.7.0",
  "base64",
  "chrono",

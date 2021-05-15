@@ -7,6 +7,7 @@
 mod cmd;
 mod fileinfo;
 mod processing;
+mod errors;
 
 use crate::processing::status::Status;
 use std::path::Path;
@@ -66,7 +67,7 @@ fn main() {
                   let preview = processing::run_merge(paths_light, paths_dark, output, mode, state);
 
                   println!("Processing took {} seconds.", start.elapsed().as_secs());
-                  Ok(serde_json::json!(preview))
+                  preview
                 }, callback, error)
             }
           }
