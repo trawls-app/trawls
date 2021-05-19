@@ -19,7 +19,7 @@ num = "0.4.0"
 rexif = "0.7.3"
 rawloader = "0.36.2"
 num_cpus = "1.13.0"
-rayon = "1.4.0"
+rayon = "1.5.1"
 dng-rs = { git = "https://github.com/Silberschleier/libdng-rust" }
 tempfile = "3.2.0"
 base64 = "0.13.0"
