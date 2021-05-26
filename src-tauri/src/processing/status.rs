@@ -46,7 +46,10 @@ impl Status {
         let mut lu = self.last_update.lock().unwrap();
         if force || (*lu).elapsed().as_millis() > 100 {
             *lu = Instant::now();
-            self.window.lock().unwrap().emit("state_change", Some(self.json())).expect("Could not emit status update");
+
+            self.window.lock().unwrap()
+                .emit("state_change", Some(self.json()))
+                .expect("Failed to emit status");
         }
     }
 

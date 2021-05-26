@@ -16,7 +16,7 @@ use rayon::prelude::*;
 
 
 #[tauri::command]
-fn load_images(paths: Vec<String>) -> Result<serde_json::Value, String> {
+async fn load_images(paths: Vec<String>) -> Result<serde_json::Value, String> {
   println!("Loading exifs");
   let res: Vec<serde_json::Value> = paths.par_iter().map(|x| {
     let p = Path::new(x);
@@ -31,7 +31,7 @@ fn load_images(paths: Vec<String>) -> Result<serde_json::Value, String> {
 }
 
 #[tauri::command]
-fn run_merge(window: tauri::Window, lightframes: Vec<String>, darkframes: Vec<String>, mode_str: String, out_path: String) -> Result<serde_json::Value, String> {
+async fn run_merge(window: tauri::Window, lightframes: Vec<String>, darkframes: Vec<String>, mode_str: String, out_path: String) -> Result<serde_json::Value, String> {
   let state = Status::new(lightframes.len(), darkframes.len(), window);
   let paths_light = lightframes.into_iter().map(|x| Path::new(&x).to_path_buf()).collect();
   let paths_dark = darkframes.into_iter().map(|x| Path::new(&x).to_path_buf()).collect();
