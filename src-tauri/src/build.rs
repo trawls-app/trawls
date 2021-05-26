@@ -1,7 +1,4 @@
 #[cfg(windows)]
-extern crate winres;
-
-#[cfg(windows)]
 fn main() {
   if std::path::Path::new("icons/icon.ico").exists() {
     let mut res = winres::WindowsResource::new();
