@@ -110,8 +110,8 @@
 </template>
 
 <script>
-import { listen } from 'tauri/api/event'
-import { save } from 'tauri/api/dialog'
+import { listen } from '@tauri-apps/api/event'
+import { save } from '@tauri-apps/api/dialog'
 
 let vue = undefined
 
