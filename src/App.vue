@@ -92,15 +92,15 @@ export default {
       }
 
       invoke("run_merge",{
-        out_path: parent.$refs.settings.output_path,
-        mode_str: parent.$refs.settings.merge_mode,
+        outPath: parent.$refs.settings.output_path,
+        modeStr: parent.$refs.settings.merge_mode,
         lightframes: parent.$refs.lightframes.sortedImages.map(img => img.path),
         darkframes: parent.$refs.darkframes.sortedImages.map(img => img.path)
       }).then(function (preview) {
         console.log("Finished merge")
         parent.$refs.preview.preview = preview
         parent.$refs.tab_preview.activate()
-      })
+      }).catch(error => { alert(error)})
     }
   }
 }

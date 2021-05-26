@@ -53,7 +53,6 @@ fn run_merge(window: tauri::Window, lightframes: Vec<String>, darkframes: Vec<St
 
 fn main() {
   tauri::Builder::new()
-      .invoke_handler(tauri::generate_handler![load_images])
-      .invoke_handler(tauri::generate_handler![run_merge])
+      .invoke_handler(tauri::generate_handler![load_images, run_merge])
       .run(tauri::generate_context!()).unwrap();
 }
