@@ -82,7 +82,7 @@ export default {
               parent.$set(parent.images, r.path, r)
             }
             parent.loading_exif = false
-          })
+          }).catch(error => { alert(error) })
         })
       }
     }
