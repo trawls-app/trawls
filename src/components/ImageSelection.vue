@@ -32,8 +32,8 @@
 </template>
 
 <script>
-import { open } from 'tauri/api/dialog'
-import { promisified } from 'tauri/api/tauri'
+import { open } from '@tauri-apps/api/dialog'
+import { invoke } from '@tauri-apps/api/tauri'
 
 export default {
   name: "ImageSelection",
@@ -75,15 +75,14 @@ export default {
             parent.$set(parent.images, image, {"filename": image.split("/").pop()})
           }
 
-          promisified({
-            cmd: "loadImages",
+          invoke("load_images",{
             paths: res
           }).then(function (resp) {
             for (let r of resp) {
               parent.$set(parent.images, r.path, r)
             }
             parent.loading_exif = false
-          })
+          }).catch(error => { alert(error) })
         })
       }
     }

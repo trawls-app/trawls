@@ -60,7 +60,7 @@
 <script>
 import ImageSelection from "@/components/ImageSelection";
 import ManageProcessing from "@/components/ManageProcessing";
-import {promisified} from "tauri/api/tauri";
+import { invoke } from "@tauri-apps/api/tauri";
 import Preview from "@/components/Preview";
 import StepDescription from "@/components/StepDescription";
 
@@ -91,17 +91,16 @@ export default {
         return
       }
 
-      promisified({
-        cmd: "runMerge",
-        out_path: parent.$refs.settings.output_path,
-        mode_str: parent.$refs.settings.merge_mode,
+      invoke("run_merge",{
+        outPath: parent.$refs.settings.output_path,
+        modeStr: parent.$refs.settings.merge_mode,
         lightframes: parent.$refs.lightframes.sortedImages.map(img => img.path),
         darkframes: parent.$refs.darkframes.sortedImages.map(img => img.path)
       }).then(function (preview) {
         console.log("Finished merge")
         parent.$refs.preview.preview = preview
         parent.$refs.tab_preview.activate()
-      })
+      }).catch(error => { alert(error)})
     }
   }
 }
