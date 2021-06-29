@@ -26,7 +26,7 @@ base64 = "0.13.0"
 itertools = "0.10.1"
 
 [build-dependencies]
-tauri-build = { version = "1.0.0-beta.1" }
+tauri-build = { version = "1.0.0-beta.2" }
 
 [features]
 custom-protocol = [ "tauri/custom-protocol" ]
