@@ -3,7 +3,6 @@ use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex};
 use std::thread::JoinHandle;
 
-use base64;
 use itertools::chain;
 use num::rational::Ratio;
 use rayon::prelude::*;
@@ -49,8 +48,8 @@ impl RenderedPreview {
     fn new(image_path: &Path, exif: Box<dyn ExifExtractable>) -> RenderedPreview {
         let image_bytes = fs::read(image_path).unwrap();
         let encoded = base64::encode(image_bytes);
-        let aperture_ratio = exif.get_urational(ExifTag_Photo_FNumber, 0).unwrap_or(Ratio::new(0, 1));
-        let exposure_ratio = exif.get_urational(ExifTag_Photo_ExposureTime, 0).unwrap_or(Ratio::new(0, 1));
+        let aperture_ratio = exif.get_urational(ExifTag_Photo_FNumber, 0).unwrap_or_else(|| Ratio::new(0, 1));
+        let exposure_ratio = exif.get_urational(ExifTag_Photo_ExposureTime, 0).unwrap_or_else(|| Ratio::new(0, 1));
         let isospeed = exif.get_uint(ExifTag_Photo_ISOSpeedRatings, 0).unwrap_or(0);
 
         let aperture = *aperture_ratio.numer() as f32 / *aperture_ratio.denom() as f32;
@@ -76,8 +75,8 @@ pub fn run_merge(lightframe_files: Vec<PathBuf>, darkframe_files: Vec<PathBuf>, 
 
     let queue_lights = Arc::new(Mutex::new(vec![]));
     let queue_darks = Arc::new(Mutex::new(vec![]));
-    let mut tasks: Vec<LoadTask> = lightframe_files.iter().zip(0..lightframe_files.len())
-        .map(|(p, i)| LoadTask {
+    let mut tasks: Vec<LoadTask> = lightframe_files.iter().enumerate()
+        .map(|(i, p)| LoadTask {
             frame_type: FrameType::Lightframe(i),
             path: p.to_path_buf()
         }).collect();

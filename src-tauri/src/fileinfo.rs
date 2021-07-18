@@ -141,10 +141,7 @@ impl ExifExtractable for ExifContainer {
 
     fn get_string(&self, tag: u32) -> Option<String> {
         let r_tag = map_external_tag_to_rexif(tag)?;
-        match self.mapped_entries.get(&r_tag) {
-            Some(x) => Some(x.value.to_string()),
-            None => None
-        }
+        self.mapped_entries.get(&r_tag).map(|x| x.value.to_string())
     }
 }
 
