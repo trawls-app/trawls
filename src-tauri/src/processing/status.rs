@@ -3,8 +3,7 @@ use std::sync::atomic::AtomicUsize;
 use std::sync::atomic::Ordering::Relaxed;
 use std::time::Instant;
 use serde_json::json;
-use tauri::event::emit;
-use tauri::WebviewMut;
+use tauri::Window;
 use std::cmp::max;
 
 
@@ -17,11 +16,11 @@ pub struct Status {
     count_merge_completed: Arc<AtomicUsize>,
     count_merging: Arc<AtomicUsize>,
     last_update: Arc<Mutex<Instant>>,
-    webview: WebviewMut
+    window: Arc<Mutex<Window>>
 }
 
 impl Status {
-    pub fn new(count_lights: usize, count_darks: usize, webview: WebviewMut) -> Status {
+    pub fn new(count_lights: usize, count_darks: usize, window: Window) -> Status {
         Status {
             count_lights, count_darks,
             count_loaded_lights: Arc::new(AtomicUsize::new(0)),
@@ -29,7 +28,7 @@ impl Status {
             count_merge_completed: Arc::new(AtomicUsize::new(0)),
             count_merging: Arc::new(AtomicUsize::new(0)),
             last_update: Arc::new(Mutex::new(Instant::now())),
-            webview
+            window: Arc::new(Mutex::new(window))
         }
     }
 
@@ -47,7 +46,10 @@ impl Status {
         let mut lu = self.last_update.lock().unwrap();
         if force || (*lu).elapsed().as_millis() > 100 {
             *lu = Instant::now();
-            emit(&mut self.webview.clone(), "state_change", Some(self.json())).expect("Could not emit status update");
+
+            self.window.lock().unwrap()
+                .emit("state_change", Some(self.json()))
+                .expect("Failed to emit status");
         }
     }
 

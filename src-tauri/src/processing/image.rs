@@ -102,7 +102,7 @@ impl RawSavableImage for Image {
         let black_levels: ArrayVec<_, 4> = self.raw_image.blacklevels.iter().map(|x| *x as f64).collect();
         let white_levels: ArrayVec<_, 4> = self.raw_image.whitelevels.iter().map(|x| *x as f64).collect();
         let neutrals: ArrayVec<_, 3> = self.raw_image.wb_coeffs[0..3].iter().map(|x| 1.0 / (*x as f64)).collect();
-        let colormatrix: ArrayVec<_, 3> = self.raw_image.xyz_to_cam[0..3].iter().map(|x| *x).collect();
+        let colormatrix: ArrayVec<_, 3> = self.raw_image.xyz_to_cam[0..3].iter().copied().collect();
 
         ImageInfoContainer {
             width: self.raw_image.width as u16,
