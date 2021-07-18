@@ -1,6 +1,6 @@
 [package]
 name = "trawls"
-version = "0.1.6"
+version = "0.1.7"
 description = "Trawls - RAW based startrail processing"
 authors = [ "Christopher Schmidt" ]
 license = ""
