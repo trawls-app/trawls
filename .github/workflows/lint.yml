@@ -1,4 +1,7 @@
-on: push
+on:
+  push:
+    branches-ignore:
+      - 'dependabot/**'
 name: Linting check
 jobs:
   clippy_check:
