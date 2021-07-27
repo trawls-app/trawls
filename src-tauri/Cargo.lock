@@ -701,7 +701,7 @@ checksum = "bd0c93bb4b0c6d9b77f4435b0ae98c24d17f1c45b2ff844c6151a07256ca923b"
 [[package]]
 name = "dng-rs"
 version = "0.1.0"
-source = "git+https://github.com/Silberschleier/libdng-rust#0fca42c95ae7d7e22ee9f79c52cf0a6bd4492b64"
+source = "git+https://github.com/Silberschleier/libdng-rust#47f008728d9097558f3fedd3ad16fe776bea8ac8"
 dependencies = [
  "arrayvec 0.7.1",
  "cmake",
