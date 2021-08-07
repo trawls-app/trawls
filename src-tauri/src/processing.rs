@@ -112,12 +112,18 @@ pub fn run_merge(lightframe_files: Vec<PathBuf>, darkframe_files: Vec<PathBuf>, 
     println!("Processing done");
     raw_image.exif.print_all();
 
+    // Create a temporary directory to store the result and preview for further handling
+    let dir = tempdir().unwrap();
+
     // Write the result
     let writer = raw_image.get_dng_writer();
-    writer.write_dng(&out_path);
+    let result_path = dir.path().join("result.dng");
+    writer.write_dng(&result_path);
+
+    println!("Copying from '{}' to '{}'", result_path.display(), out_path.display());
+    fs::copy(result_path, out_path).unwrap();
 
     // Create a preview to show in the UI
-    let dir = tempdir().unwrap();
     let preview_path = dir.path().join("preview.jpg");
     writer.write_jpg(preview_path.as_path());
     
