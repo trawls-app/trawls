@@ -133,8 +133,12 @@ export default {
       let parent = this
       save({
         filters: [
-            {name: "*.dng", extensions: ["dng"]}]
+            {name: "*.dng", extensions: ["dng"]}
+        ]
       }).then(function (res) {
+        if (!res.endsWith(".dng")) {
+          res = res + ".dng"
+        }
         parent.output_path = res
       })
     },
