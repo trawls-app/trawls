@@ -1,6 +1,8 @@
 # Trawls
 ![CI dev branch](https://github.com/Silberschleier/trawls/actions/workflows/test-on-pr.yml/badge.svg?branch=dev)
 
+Trawls is a fast image processing tool to merge nightsky RAW photos to create a startrail image and output it as another RAW file.
+
 ## Download
 Pre-compiled packages for Linux, macOS and Windows can be found and downloaded on the [release page](https://github.com/Silberschleier/trawls/releases).
 
