@@ -22,8 +22,12 @@ npm run tauri:serve
 npm run tauri:build
 ```
 
-### Lints and fixes files
+### Lints and fixes Vue/JS files
 ```
 npm run lint
 ```
 
+### Lints Rust code
+```
+cargo clippy --all-targets --manifest-path src-tauri/Cargo.toml
+```
