@@ -61,7 +61,7 @@
 import ImageSelection from "@/components/ImageSelection";
 import ManageProcessing from "@/components/ManageProcessing";
 import { invoke } from "@tauri-apps/api/tauri";
-import Preview from "@/components/Preview";
+import Preview from "@/components/ImagePreview";
 import StepDescription from "@/components/StepDescription";
 
 
