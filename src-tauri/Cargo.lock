@@ -43,9 +43,9 @@ checksum = "23b62fc65de8e4e7f52534fb52b0f3ed04746ae267519eef2a83941e8085068b"
 
 [[package]]
 name = "arrayvec"
-version = "0.7.1"
+version = "0.7.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "be4dc07131ffa69b8072d35f5007352af944213cde02545e2103680baed38fcd"
+checksum = "8da52d66c7071e2e3fa2a1e5c6d088fec47b593032b254f5e980de8ea54454d6"
 
 [[package]]
 name = "async-io"
@@ -160,7 +160,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "dcd555c66291d5f836dbb6883b48660ece810fe25a31f3bdfb911945dff2691f"
 dependencies = [
  "arrayref",
- "arrayvec 0.7.1",
+ "arrayvec 0.7.2",
  "cc",
  "cfg-if 1.0.0",
  "constant_time_eq",
@@ -697,7 +697,7 @@ name = "dng-rs"
 version = "0.1.0"
 source = "git+https://github.com/Silberschleier/libdng-rust#47f008728d9097558f3fedd3ad16fe776bea8ac8"
 dependencies = [
- "arrayvec 0.7.1",
+ "arrayvec 0.7.2",
  "cmake",
  "num",
  "rawloader 0.36.3",
@@ -3231,7 +3231,7 @@ dependencies = [
 name = "trawls"
 version = "0.1.7"
 dependencies = [
- "arrayvec 0.7.1",
+ "arrayvec 0.7.2",
  "base64",
  "chrono",
  "dng-rs",
