@@ -15,7 +15,7 @@
 
 import StepDescription from "@/components/StepDescription";
 export default {
-  name: "Preview",
+  name: "ImagePreview",
   components: {StepDescription},
   data: function () {
     return {

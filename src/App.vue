@@ -35,7 +35,7 @@
           </b-tab>
           <b-tab title="4. Preview" ref="tab_preview">
             <b-card-text>
-              <Preview ref="preview" />
+              <ImagePreview ref="preview" />
             </b-card-text>
           </b-tab>
         </b-tabs>
@@ -61,7 +61,7 @@
 import ImageSelection from "@/components/ImageSelection";
 import ManageProcessing from "@/components/ManageProcessing";
 import { invoke } from "@tauri-apps/api/tauri";
-import Preview from "@/components/ImagePreview";
+import ImagePreview from "@/components/ImagePreview";
 import StepDescription from "@/components/StepDescription";
 
 
@@ -69,7 +69,7 @@ export default {
   name: 'App',
   components: {
     StepDescription,
-    Preview,
+    ImagePreview,
     ImageSelection,
     ManageProcessing
   },
