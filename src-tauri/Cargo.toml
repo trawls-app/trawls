@@ -23,7 +23,7 @@ rayon = "1.5.1"
 dng-rs = { git = "https://github.com/Silberschleier/libdng-rust" }
 tempfile = "3.2.0"
 base64 = "0.13.0"
-itertools = "0.10.1"
+itertools = "0.10.3"
 
 [build-dependencies]
 tauri-build = { version = "1.0.0-beta.4" }
