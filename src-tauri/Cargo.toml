@@ -17,7 +17,7 @@ chrono = { version = "0.4", features = [ "serde" ] }
 arrayvec = "0.7.2"
 num = "0.4.0"
 rexif = "0.7.3"
-rawloader = "0.37.0"
+rawloader = "0.37.1"
 num_cpus = "1.13.1"
 rayon = "1.5.1"
 dng-rs = { git = "https://github.com/Silberschleier/libdng-rust" }

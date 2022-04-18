@@ -2357,16 +2357,16 @@ dependencies = [
 
 [[package]]
 name = "rawloader"
-version = "0.37.0"
+version = "0.37.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4d23e8122c7619b7d3a1286ed328e4f5c0cf3dcdadd9adff508f7364d83a7734"
+checksum = "4d8c6f168c492ffd326537b3aa5a8d5fe07f0d8a3970c5957f286bcd13f888aa"
 dependencies = [
  "byteorder",
  "enumn",
  "glob",
  "lazy_static",
  "rayon",
- "rustc_version 0.3.3",
+ "rustc_version 0.4.0",
  "toml",
 ]
 
@@ -2517,6 +2517,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f0dfe2087c51c460008730de8b57e6a320782fbfb312e1f4d520e6c6fae155ee"
 dependencies = [
  "semver 0.11.0",
+]
+
+[[package]]
+name = "rustc_version"
+version = "0.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "bfa0f585226d2e68097d4f95d113b15b83a82e819ab25717ec0590d9584ef366"
+dependencies = [
+ "semver 1.0.3",
 ]
 
 [[package]]
@@ -3238,7 +3247,7 @@ dependencies = [
  "itertools 0.10.3",
  "num",
  "num_cpus",
- "rawloader 0.37.0",
+ "rawloader 0.37.1",
  "rayon",
  "rexif",
  "serde",
