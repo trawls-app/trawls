@@ -12,7 +12,7 @@ build = "src/build.rs"
 [dependencies]
 serde_json = "1.0"
 serde = { version = "1.0", features = [ "derive" ] }
-tauri = {version = "1.0.0-beta.8",features = ["api-all"] }
+tauri = {version = "1.0.0-rc.8",features = ["api-all"] }
 chrono = { version = "0.4", features = [ "serde" ] }
 arrayvec = "0.7.2"
 num = "0.4.0"
@@ -20,13 +20,13 @@ rexif = "0.7.3"
 rawloader = "0.37.0"
 num_cpus = "1.13.1"
 rayon = "1.5.1"
-dng-rs = { git = "https://github.com/Silberschleier/libdng-rust" }
+dng-rs = { git = "https://github.com/Silberschleier/libdng-rust", rev="00208854c25c06d39a260f2f224804d913234748" }
 tempfile = "3.2.0"
 base64 = "0.13.0"
 itertools = "0.10.3"
 
 [build-dependencies]
-tauri-build = { version = "1.0.0-beta.4" }
+tauri-build = { version = "1.0.0-rc.1", features = [] }
 
 [features]
 custom-protocol = [ "tauri/custom-protocol" ]
