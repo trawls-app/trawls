@@ -19,7 +19,13 @@ jobs:
       - name: install Rust stable
         uses: actions-rs/toolchain@v1
         with:
+          profile: minimal
           toolchain: stable
+      - name: Use Rust cache
+        uses: Swatinem/rust-cache@v1
+        with:
+          target-dir: src-tauri/target
+          working-directory: src-tauri
       - name: install tauri bundler
         run: cargo install tauri-bundler --force
       - name: install dependencies (ubuntu only)
