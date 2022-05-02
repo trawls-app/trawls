@@ -8,25 +8,25 @@ Pre-compiled packages for Linux, macOS and Windows can be found and downloaded o
 
 ## Project setup
 Trawls is based on [Tauri](https://tauri.studio/en/) and uses [Vue](https://vuejs.org/) for its user interface.
-Tauri is integrated using a vue-cli plugin, such that setup, compilation and building of the Rust parts can be controlled through `npm`.
+Tauri is integrated using a vue-cli plugin, such that setup, compilation and building of the Rust parts can be controlled through `yarn`.
 
 ```
-npm install
+yarn install
 ```
 
 ### Compiles and hot-reloads for development
 ```
-npm run tauri:serve
+yarn run tauri:serve
 ```
 
 ### Compiles, minifies and packages for production
 ```
-npm run tauri:build
+yarn run tauri:build
 ```
 
 ### Lints and fixes Vue/JS files
 ```
-npm run lint
+yarn run lint
 ```
 
 ### Lints Rust code
