@@ -24,10 +24,9 @@ jobs:
       - name: Use Rust cache
         uses: Swatinem/rust-cache@v1
         with:
-          target-dir: src-tauri/target
           working-directory: src-tauri
       - name: install tauri bundler
-        run: cargo install tauri-bundler --force
+        run: cargo install tauri-bundler
       - name: install dependencies (ubuntu only)
         if: matrix.platform == 'ubuntu-latest'
         run: |
