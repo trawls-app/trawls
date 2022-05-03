@@ -37,7 +37,11 @@
       "all": true
     },
     "updater": {
-      "active": false
+      "active": true,
+      "endpoints": [
+        "https://trawls-app.github.io/static_api/releases/current.json"
+      ],
+      "dialog": true,
     },
     "windows": [
       {
