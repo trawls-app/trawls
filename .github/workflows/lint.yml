@@ -20,5 +20,4 @@ jobs:
       - run: mkdir dist
       - uses: actions-rs/clippy-check@v1
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
           args: --all-targets --manifest-path src-tauri/Cargo.toml
