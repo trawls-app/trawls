@@ -42,6 +42,7 @@
         "https://trawls-app.github.io/static_api/releases/current.json"
       ],
       "dialog": true,
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDM4REM3NTI5NzU1MTVGMTIKUldRU1gxRjFLWFhjT0krYnIrSDh6dUxDNDg0VGRXblBoZ2htd2haNG5QUDdVT2FsbkJpNk1oZmwK"
     },
     "windows": [
       {
