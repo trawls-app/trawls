@@ -1,5 +1,5 @@
 # Trawls
-<img align="right" width="100" height="100" src="src-tauri/icons/Square310x310Logo.png">
+<img align="right" width="128" height="128" src="src-tauri/icons/128x128.png">
 
 ![CI dev branch](https://github.com/Silberschleier/trawls/actions/workflows/test-on-pr.yml/badge.svg?branch=dev)
 
