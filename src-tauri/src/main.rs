@@ -8,38 +8,52 @@ mod fileinfo;
 mod processing;
 
 use crate::processing::status::Status;
-use std::path::Path;
 use std::fs;
+use std::path::Path;
 use std::time::Instant;
 
 use rayon::prelude::*;
 
-
 #[tauri::command]
 async fn load_images(paths: Vec<String>) -> Result<serde_json::Value, String> {
   println!("Loading exifs");
-  let res: Vec<serde_json::Value> = paths.par_iter().map(|x| {
-    let p = Path::new(x);
-    let metadata = fs::metadata(p).unwrap();
-    assert!(metadata.is_file());
+  let res: Vec<serde_json::Value> = paths
+    .par_iter()
+    .map(|x| {
+      let p = Path::new(x);
+      let metadata = fs::metadata(p).unwrap();
+      assert!(metadata.is_file());
 
-    let candidate = fileinfo::ImageCandidate::load(p).unwrap();
-    candidate.json()
-  }).collect();
+      let candidate = fileinfo::ImageCandidate::load(p).unwrap();
+      candidate.json()
+    })
+    .collect();
 
   Ok(serde_json::json!(res))
 }
 
 #[tauri::command]
-async fn run_merge(window: tauri::Window, lightframes: Vec<String>, darkframes: Vec<String>, mode_str: String, out_path: String) -> Result<serde_json::Value, String> {
+async fn run_merge(
+  window: tauri::Window,
+  lightframes: Vec<String>,
+  darkframes: Vec<String>,
+  mode_str: String,
+  out_path: String,
+) -> Result<serde_json::Value, String> {
   let state = Status::new(lightframes.len(), darkframes.len(), window);
-  let paths_light = lightframes.into_iter().map(|x| Path::new(&x).to_path_buf()).collect();
-  let paths_dark = darkframes.into_iter().map(|x| Path::new(&x).to_path_buf()).collect();
+  let paths_light = lightframes
+    .into_iter()
+    .map(|x| Path::new(&x).to_path_buf())
+    .collect();
+  let paths_dark = darkframes
+    .into_iter()
+    .map(|x| Path::new(&x).to_path_buf())
+    .collect();
   let output = Path::new(&out_path).to_path_buf();
   let mode = match mode_str.as_str() {
     "falling" => processing::Comets::Falling,
     "raising" => processing::Comets::Raising,
-    _ => processing::Comets::Normal
+    _ => processing::Comets::Normal,
   };
   println!("Running merge in '{}' mode.", mode_str);
 
@@ -50,9 +64,9 @@ async fn run_merge(window: tauri::Window, lightframes: Vec<String>, darkframes: 
   Ok(serde_json::json!(preview))
 }
 
-
 fn main() {
   tauri::Builder::new()
-      .invoke_handler(tauri::generate_handler![load_images, run_merge])
-      .run(tauri::generate_context!()).unwrap();
+    .invoke_handler(tauri::generate_handler![load_images, run_merge])
+    .run(tauri::generate_context!())
+    .unwrap();
 }
