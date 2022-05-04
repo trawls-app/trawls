@@ -6,6 +6,7 @@ name: Linting check
 jobs:
   clippy_check:
     runs-on: ubuntu-latest
+    permissions: write-all
     steps:
       - uses: actions/checkout@v1
       - name: install dependencies
@@ -19,7 +20,6 @@ jobs:
           override: true
       - run: mkdir dist
       - uses: actions-rs/clippy-check@v1
-        permissions: write-all
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           args: --all-targets --manifest-path src-tauri/Cargo.toml
