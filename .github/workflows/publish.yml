@@ -35,6 +35,7 @@ jobs:
       run: yarn && yarn tauri:build
       env:
         CXXFLAGS: --std=c++14
+        TAURI_PRIVATE_KEY: ${{ secrets.TAURI_PRIVATE_KEY }}
     - uses: tauri-apps/tauri-action@v0
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
