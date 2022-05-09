@@ -214,19 +214,19 @@
     "@babel/helper-validator-identifier" "^7.16.7"
     to-fast-properties "^2.0.0"
 
-"@eslint/eslintrc@^1.2.2":
-  version "1.2.2"
-  resolved "https://registry.yarnpkg.com/@eslint/eslintrc/-/eslintrc-1.2.2.tgz#4989b9e8c0216747ee7cca314ae73791bb281aae"
-  integrity sha512-lTVWHs7O2hjBFZunXTZYnYqtB9GakA1lnxIf+gKq2nY5gxkkNi/lQvveW6t8gFdOHTg6nG50Xs95PrLqVpcaLg==
+"@eslint/eslintrc@^1.2.3":
+  version "1.2.3"
+  resolved "https://registry.yarnpkg.com/@eslint/eslintrc/-/eslintrc-1.2.3.tgz#fcaa2bcef39e13d6e9e7f6271f4cc7cae1174886"
+  integrity sha512-uGo44hIwoLGNyduRpjdEpovcbMdd+Nv7amtmJxnKmI8xj6yd5LncmSwDa5NgX/41lIFJtkjD6YdVfgEzPfJ5UA==
   dependencies:
     ajv "^6.12.4"
     debug "^4.3.2"
-    espree "^9.3.1"
+    espree "^9.3.2"
     globals "^13.9.0"
     ignore "^5.2.0"
     import-fresh "^3.2.1"
     js-yaml "^4.1.0"
-    minimatch "^3.0.4"
+    minimatch "^3.1.2"
     strip-json-comments "^3.1.1"
 
 "@hapi/address@2.x.x":
@@ -414,90 +414,45 @@
   dependencies:
     type-fest "2.12.2"
 
-"@tauri-apps/cli-darwin-arm64@1.0.0-rc.10":
-  version "1.0.0-rc.10"
-  resolved "https://registry.yarnpkg.com/@tauri-apps/cli-darwin-arm64/-/cli-darwin-arm64-1.0.0-rc.10.tgz#bea999bfecb88ef38b5459fff1e3d29fd41f6226"
-  integrity sha512-KwnAAsR+H/U9NPF2P3UvZ0orfh/e8ng639GCvQoN/7b/EYzkLXYWGFd1sddTSSu8BM4OvIVXK1B86pn1xFohyg==
-
 "@tauri-apps/cli-darwin-arm64@1.0.0-rc.9":
   version "1.0.0-rc.9"
   resolved "https://registry.yarnpkg.com/@tauri-apps/cli-darwin-arm64/-/cli-darwin-arm64-1.0.0-rc.9.tgz#8786ce2eacbad4b69eaa8e4e0b7ae16819923b11"
   integrity sha512-cpcSRyVOh3n5GsCdKtVQpLJ36yx7h+KY868l7KhPnM5EL1cQbFwYzD/VHlzFvfrpS19YvPBB/AHln4rll5iWvw==
-
-"@tauri-apps/cli-darwin-x64@1.0.0-rc.10":
-  version "1.0.0-rc.10"
-  resolved "https://registry.yarnpkg.com/@tauri-apps/cli-darwin-x64/-/cli-darwin-x64-1.0.0-rc.10.tgz#9b0de84671d22dc9a13b890278ccf406cc94969a"
-  integrity sha512-xIH+UnZPofpx4n3aphu2SD45uPXtX3rlsI5aO0ANsDWN/esuAAwRnh+JR+NlmJXPKwy1BNz9pewczE5JO5BdqA==
 
 "@tauri-apps/cli-darwin-x64@1.0.0-rc.9":
   version "1.0.0-rc.9"
   resolved "https://registry.yarnpkg.com/@tauri-apps/cli-darwin-x64/-/cli-darwin-x64-1.0.0-rc.9.tgz#b4aa98ebf26018b3e9013ea4ce16a294f2cb8c4f"
   integrity sha512-ku8QpMNrfqyCk2adLdVB+zzaCb7T0/RgVvaqEZqK54WW4blUxkeKHbKqZ/SKRdxTkghHbgJIoBtlk1A5GUbAwg==
 
-"@tauri-apps/cli-linux-arm-gnueabihf@1.0.0-rc.10":
-  version "1.0.0-rc.10"
-  resolved "https://registry.yarnpkg.com/@tauri-apps/cli-linux-arm-gnueabihf/-/cli-linux-arm-gnueabihf-1.0.0-rc.10.tgz#6b9e9081d434855d940e78b4b364c2b1bb2752a8"
-  integrity sha512-j0cVDcP7MPyOh8mC6pTiOnsGgxMc4GFlQGBUvriRkWFCrUbZPbq1Pxt/eTcroVGsT/ItCXvnYd9jEQ+e50LI3A==
-
 "@tauri-apps/cli-linux-arm-gnueabihf@1.0.0-rc.9":
   version "1.0.0-rc.9"
   resolved "https://registry.yarnpkg.com/@tauri-apps/cli-linux-arm-gnueabihf/-/cli-linux-arm-gnueabihf-1.0.0-rc.9.tgz#d77c329168eaa2a5d66b9648deda8d98783d781d"
   integrity sha512-Qlwm4eWo0uCeL3kmowfaLghPehYTYvnM4fH6cRZndzs6/abqsFdghmEmhP5mn34/RAnHXAUANItqlgk6L7C4iw==
-
-"@tauri-apps/cli-linux-arm64-gnu@1.0.0-rc.10":
-  version "1.0.0-rc.10"
-  resolved "https://registry.yarnpkg.com/@tauri-apps/cli-linux-arm64-gnu/-/cli-linux-arm64-gnu-1.0.0-rc.10.tgz#634b3caf3cb39191551280932fe5b3d0ff8270c0"
-  integrity sha512-usdftJI/Jx0Z6TK8YJaHp2BtcNlvHeIUOnh3SmThbbYzDSFDqEW2E/McbxEhJJ13FPLVMLiIZYPpH26gE3vQxw==
 
 "@tauri-apps/cli-linux-arm64-gnu@1.0.0-rc.9":
   version "1.0.0-rc.9"
   resolved "https://registry.yarnpkg.com/@tauri-apps/cli-linux-arm64-gnu/-/cli-linux-arm64-gnu-1.0.0-rc.9.tgz#ecf229e8176b55046d64c2fab9c831fa0fe39a77"
   integrity sha512-Rr4S902dYjRnDCu141f5Cz3JxwKxX/ax7LiMhSifQu5o2wSiezmZ20VRHBwW1UuZxvGV+hxTuZVnfD6NKQdWdA==
 
-"@tauri-apps/cli-linux-arm64-musl@1.0.0-rc.10":
-  version "1.0.0-rc.10"
-  resolved "https://registry.yarnpkg.com/@tauri-apps/cli-linux-arm64-musl/-/cli-linux-arm64-musl-1.0.0-rc.10.tgz#3c356fae0e4f7eb2966297fddb1e800b0279726e"
-  integrity sha512-zsOhkc477mbe5wSkNuLv+D6RmQvDiaV8rHTaur+B/pxk9F0SrCYoO0Slf6x08bIiSkjyL/gN0PxnOBbEBA0u4A==
-
 "@tauri-apps/cli-linux-arm64-musl@1.0.0-rc.9":
   version "1.0.0-rc.9"
   resolved "https://registry.yarnpkg.com/@tauri-apps/cli-linux-arm64-musl/-/cli-linux-arm64-musl-1.0.0-rc.9.tgz#10a6052d9a6bd720da5ffb1a98bc862564d7a93f"
   integrity sha512-MxqjspY2aS/nxtvBMT8TExZfDWDEsUvQRHHY/2KoBYpqpzucW6WXRGmeOvS1GeA3vnub2/Kq5i32jGRDT1tvrA==
-
-"@tauri-apps/cli-linux-x64-gnu@1.0.0-rc.10":
-  version "1.0.0-rc.10"
-  resolved "https://registry.yarnpkg.com/@tauri-apps/cli-linux-x64-gnu/-/cli-linux-x64-gnu-1.0.0-rc.10.tgz#15d59c03eacc79fd4373421c42412a5191be5199"
-  integrity sha512-ongWuhXieKwW+xaYPshw/59xYbZVH6JNw+KRb/054VFnfZe/ZDYbN86mCJIlegOq9WAkdc0XSm1EEDx3i9FYCg==
 
 "@tauri-apps/cli-linux-x64-gnu@1.0.0-rc.9":
   version "1.0.0-rc.9"
   resolved "https://registry.yarnpkg.com/@tauri-apps/cli-linux-x64-gnu/-/cli-linux-x64-gnu-1.0.0-rc.9.tgz#34891286ffe0eba1c0602baaa5c3f198f5247a0a"
   integrity sha512-LD7KnJuH1mYFwQfcALPttBnaSG6pgO87Z6nY3xXJjo+A4ttPHcmIBaNdXCTjAmib/umD0nD8k95Hw9iJFYTuiA==
 
-"@tauri-apps/cli-linux-x64-musl@1.0.0-rc.10":
-  version "1.0.0-rc.10"
-  resolved "https://registry.yarnpkg.com/@tauri-apps/cli-linux-x64-musl/-/cli-linux-x64-musl-1.0.0-rc.10.tgz#36fbfae8760e8aa9a62ab92a06ac871fa1a56a19"
-  integrity sha512-3AXJEdhFlX/erLBXmBkRG+oWfFLMMaJALSnxvzerteSNWiaEzTngy9Mo1yeAT51FhvJ+dbYQv0BWvPPFRYzpTQ==
-
 "@tauri-apps/cli-linux-x64-musl@1.0.0-rc.9":
   version "1.0.0-rc.9"
   resolved "https://registry.yarnpkg.com/@tauri-apps/cli-linux-x64-musl/-/cli-linux-x64-musl-1.0.0-rc.9.tgz#32e6550964e559b158d4b9c83b3a7e3c3d58abee"
   integrity sha512-ifocAxBYhk7qrO5x1mizxx/yABvkmyia0kw9eXUn7d5a30HoBcl/A9t+w+7c4B/n/D+gxEMSr6CPaIZv7KnTog==
 
-"@tauri-apps/cli-win32-ia32-msvc@1.0.0-rc.10":
-  version "1.0.0-rc.10"
-  resolved "https://registry.yarnpkg.com/@tauri-apps/cli-win32-ia32-msvc/-/cli-win32-ia32-msvc-1.0.0-rc.10.tgz#eb789d79ab207ef73263fc4468564da4901c58ef"
-  integrity sha512-2SvSk9z51AfCsbch2fvX4GNo3s0b8TO/Kd9B6rDIZ7TUxwnGShJNup2+KGvBovKqFAPmgyrSbgyEMKhKc1B4iA==
-
 "@tauri-apps/cli-win32-ia32-msvc@1.0.0-rc.9":
   version "1.0.0-rc.9"
   resolved "https://registry.yarnpkg.com/@tauri-apps/cli-win32-ia32-msvc/-/cli-win32-ia32-msvc-1.0.0-rc.9.tgz#01f5c7f1f9a359ea7f6d203dd03d8b98cf8bdcb6"
   integrity sha512-ClDYF4CstoccPMVkIHyvy1jzlWXIYZX2mjKB6z18MdJ0O7Je8TC115K30lqXtSdPuKX35xWDcWU2b/gllcUUzA==
-
-"@tauri-apps/cli-win32-x64-msvc@1.0.0-rc.10":
-  version "1.0.0-rc.10"
-  resolved "https://registry.yarnpkg.com/@tauri-apps/cli-win32-x64-msvc/-/cli-win32-x64-msvc-1.0.0-rc.10.tgz#e8a315a71d9589f236f25e55178bdcfbfed83234"
-  integrity sha512-mijSjeQGBGh6rvpkrqsSiTB4vwGprAXoDCmnIxliZ1Md4GgLMh8jzIug1UKAUmmIW1nOaQ9C9xu4wQXyoRqWHg==
 
 "@tauri-apps/cli-win32-x64-msvc@1.0.0-rc.9":
   version "1.0.0-rc.9"
@@ -518,21 +473,6 @@
     "@tauri-apps/cli-linux-x64-musl" "1.0.0-rc.9"
     "@tauri-apps/cli-win32-ia32-msvc" "1.0.0-rc.9"
     "@tauri-apps/cli-win32-x64-msvc" "1.0.0-rc.9"
-
-"@tauri-apps/cli@^1.0.0-rc.10":
-  version "1.0.0-rc.10"
-  resolved "https://registry.yarnpkg.com/@tauri-apps/cli/-/cli-1.0.0-rc.10.tgz#95faac0ca838a8ee9b162a60918ffdd29d3df183"
-  integrity sha512-njDei3F3mlnotnujUF0jWteZC39RCm6JNAxZpzTFvWKFI/650DoA9hHTMa6onbazVgmOWdrbMHYWU/xBC/jUTw==
-  optionalDependencies:
-    "@tauri-apps/cli-darwin-arm64" "1.0.0-rc.10"
-    "@tauri-apps/cli-darwin-x64" "1.0.0-rc.10"
-    "@tauri-apps/cli-linux-arm-gnueabihf" "1.0.0-rc.10"
-    "@tauri-apps/cli-linux-arm64-gnu" "1.0.0-rc.10"
-    "@tauri-apps/cli-linux-arm64-musl" "1.0.0-rc.10"
-    "@tauri-apps/cli-linux-x64-gnu" "1.0.0-rc.10"
-    "@tauri-apps/cli-linux-x64-musl" "1.0.0-rc.10"
-    "@tauri-apps/cli-win32-ia32-msvc" "1.0.0-rc.10"
-    "@tauri-apps/cli-win32-x64-msvc" "1.0.0-rc.10"
 
 "@tauri-apps/tauri@0.0.1-utility.19":
   version "0.0.1-utility.19"
@@ -1026,7 +966,7 @@ acorn-import-assertions@^1.7.6:
   resolved "https://registry.yarnpkg.com/acorn-import-assertions/-/acorn-import-assertions-1.8.0.tgz#ba2b5939ce62c238db6d93d81c9b111b29b855e9"
   integrity sha512-m7VZ3jwz4eK6A4Vtt8Ew1/mNbP24u0FhdyfA7fSvnJR6LMdfOYnmuIrrJAgrYfYJ10F/otaHTtrtrtmHdMNzEw==
 
-acorn-jsx@^5.3.1:
+acorn-jsx@^5.3.2:
   version "5.3.2"
   resolved "https://registry.yarnpkg.com/acorn-jsx/-/acorn-jsx-5.3.2.tgz#7ed5bb55908b3b2f1bc55c6af1653bada7f07937"
   integrity sha512-rq9s+JNhf0IChjtDXxllJ7g41oZk5SlXtp0LHwyA5cejwn7vKmKp4pPri6YEePv2PU65sAsegbXtIinmDFDXgQ==
@@ -1036,7 +976,7 @@ acorn-walk@^8.0.0, acorn-walk@^8.0.2:
   resolved "https://registry.yarnpkg.com/acorn-walk/-/acorn-walk-8.2.0.tgz#741210f2e2426454508853a2f44d0ab83b7f69c1"
   integrity sha512-k+iyHEuPgSw6SbuDpGQM+06HQUa04DZ3o+F6CSzXMvvI5KMvnaEqXe+YVe555R9nn6GPt404fos4wcgpw12SDA==
 
-acorn@^8.0.4, acorn@^8.0.5, acorn@^8.4.1, acorn@^8.5.0, acorn@^8.7.0:
+acorn@^8.0.4, acorn@^8.0.5, acorn@^8.4.1, acorn@^8.5.0, acorn@^8.7.1:
   version "8.7.1"
   resolved "https://registry.yarnpkg.com/acorn/-/acorn-8.7.1.tgz#0197122c843d1bf6d0a5e83220a788f278f63c30"
   integrity sha512-Xx54uLJQZ19lKygFXOWsscKUbsBZW0CPykPhVQdhIeIwrbPmJzqeASDInc8nKBnp/JT6igTs82qPXz069H8I/A==
@@ -2525,12 +2465,12 @@ eslint-visitor-keys@^3.1.0, eslint-visitor-keys@^3.3.0:
   resolved "https://registry.yarnpkg.com/eslint-visitor-keys/-/eslint-visitor-keys-3.3.0.tgz#f6480fa6b1f30efe2d1968aa8ac745b862469826"
   integrity sha512-mQ+suqKJVyeuwGYHAdjMFqjCyfl8+Ldnxuyp3ldiMBFKkvytrXUZWaiPCEav8qDHKty44bD+qV1IP4T+w+xXRA==
 
-eslint@^8.14.0:
-  version "8.14.0"
-  resolved "https://registry.yarnpkg.com/eslint/-/eslint-8.14.0.tgz#62741f159d9eb4a79695b28ec4989fcdec623239"
-  integrity sha512-3/CE4aJX7LNEiE3i6FeodHmI/38GZtWCsAtsymScmzYapx8q1nVVb+eLcLSzATmCPXw5pT4TqVs1E0OmxAd9tw==
+eslint@^8.15.0:
+  version "8.15.0"
+  resolved "https://registry.yarnpkg.com/eslint/-/eslint-8.15.0.tgz#fea1d55a7062da48d82600d2e0974c55612a11e9"
+  integrity sha512-GG5USZ1jhCu8HJkzGgeK8/+RGnHaNYZGrGDzUtigK3BsGESW/rs2az23XqE0WVwDxy1VRvvjSSGu5nB0Bu+6SA==
   dependencies:
-    "@eslint/eslintrc" "^1.2.2"
+    "@eslint/eslintrc" "^1.2.3"
     "@humanwhocodes/config-array" "^0.9.2"
     ajv "^6.10.0"
     chalk "^4.0.0"
@@ -2541,7 +2481,7 @@ eslint@^8.14.0:
     eslint-scope "^7.1.1"
     eslint-utils "^3.0.0"
     eslint-visitor-keys "^3.3.0"
-    espree "^9.3.1"
+    espree "^9.3.2"
     esquery "^1.4.0"
     esutils "^2.0.2"
     fast-deep-equal "^3.1.3"
@@ -2557,7 +2497,7 @@ eslint@^8.14.0:
     json-stable-stringify-without-jsonify "^1.0.1"
     levn "^0.4.1"
     lodash.merge "^4.6.2"
-    minimatch "^3.0.4"
+    minimatch "^3.1.2"
     natural-compare "^1.4.0"
     optionator "^0.9.1"
     regexpp "^3.2.0"
@@ -2566,13 +2506,13 @@ eslint@^8.14.0:
     text-table "^0.2.0"
     v8-compile-cache "^2.0.3"
 
-espree@^9.0.0, espree@^9.3.1:
-  version "9.3.1"
-  resolved "https://registry.yarnpkg.com/espree/-/espree-9.3.1.tgz#8793b4bc27ea4c778c19908e0719e7b8f4115bcd"
-  integrity sha512-bvdyLmJMfwkV3NCRl5ZhJf22zBFo1y8bYh3VYb+bfzqNB4Je68P2sSuXyuFquzWLebHpNd2/d5uv7yoP9ISnGQ==
+espree@^9.0.0, espree@^9.3.2:
+  version "9.3.2"
+  resolved "https://registry.yarnpkg.com/espree/-/espree-9.3.2.tgz#f58f77bd334731182801ced3380a8cc859091596"
+  integrity sha512-D211tC7ZwouTIuY5x9XnS0E9sWNChB7IYKX/Xp5eQj3nFXhqmiUDB9q27y76oFl8jTg3pXcQx/bpxMfs3CIZbA==
   dependencies:
-    acorn "^8.7.0"
-    acorn-jsx "^5.3.1"
+    acorn "^8.7.1"
+    acorn-jsx "^5.3.2"
     eslint-visitor-keys "^3.3.0"
 
 esquery@^1.4.0:
@@ -4301,7 +4241,7 @@ minimalistic-assert@^1.0.0:
   resolved "https://registry.yarnpkg.com/minimalistic-assert/-/minimalistic-assert-1.0.1.tgz#2e194de044626d4a10e7f7fbc00ce73e83e4d5c7"
   integrity sha512-UtJcAD4yEaGtjPezWuO9wC4nwUnVH/8/Im3yEHQP4b67cXlD/Qr9hdITCU1xDbSEXg2XKNaP8jsReV7vQd00/A==
 
-minimatch@^3.0.4:
+minimatch@^3.0.4, minimatch@^3.1.2:
   version "3.1.2"
   resolved "https://registry.yarnpkg.com/minimatch/-/minimatch-3.1.2.tgz#19cd194bfd3e428f049a70817c038d89ab4be35b"
   integrity sha512-J7p63hRiAjw1NDEww1W7i37+ByIrOWO5XQQAzZ3VOcL0PNybwpfmV/N05zFAzwQ9USyEcX6t3UO+K5aqBQOIHw==
