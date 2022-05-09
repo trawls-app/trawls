@@ -769,7 +769,7 @@ checksum = "bd0c93bb4b0c6d9b77f4435b0ae98c24d17f1c45b2ff844c6151a07256ca923b"
 [[package]]
 name = "dng-rs"
 version = "0.1.0"
-source = "git+https://github.com/Silberschleier/libdng-rust?rev=00208854c25c06d39a260f2f224804d913234748#00208854c25c06d39a260f2f224804d913234748"
+source = "git+https://github.com/trawls-app/libdng-rust?rev=00208854c25c06d39a260f2f224804d913234748#00208854c25c06d39a260f2f224804d913234748"
 dependencies = [
  "arrayvec",
  "cmake",
