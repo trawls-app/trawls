@@ -35,6 +35,7 @@ jobs:
       - name: Disable updater
         run: |
           cat src-tauri/tauri.conf.json | jq .tauri.updater.active=false > tauri.conf.json.tmp
+          rm src-tauri/tauri.conf.json
           mv -v tauri.conf.json.tmp src-tauri/tauri.conf.json
       - name: install app dependencies and build it
         run: yarn && yarn tauri:build
