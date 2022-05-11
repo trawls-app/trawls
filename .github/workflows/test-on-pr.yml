@@ -50,4 +50,4 @@ jobs:
           path: |
             src-tauri/target/release/bundle/msi/trawls*.msi
             src-tauri/target/release/bundle/appimage/trawls*.AppImage
-            src-tauri/target/release/bundle/macos/trawls.app
+            src-tauri/target/release/bundle/dmg/trawls*.dmg
