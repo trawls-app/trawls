@@ -131,7 +131,14 @@ export default {
   methods: {
     choose_output: function () {
       let parent = this
-      save({filter: "*.dng"}).then(function (res) {
+      save({
+        filters: [
+            {name: "*.dng", extensions: ["dng"]}
+        ]
+      }).then(function (res) {
+        if (!res.endsWith(".dng")) {
+          res = res + ".dng"
+        }
         parent.output_path = res
       })
     },
