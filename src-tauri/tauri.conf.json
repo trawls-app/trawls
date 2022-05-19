@@ -30,6 +30,7 @@
       "windows": {
         "certificateThumbprint": null,
         "digestAlgorithm": "sha256",
+        "tsp": false,
         "timestampUrl": ""
       }
     },
