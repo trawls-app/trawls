@@ -3300,6 +3300,7 @@ dependencies = [
  "tauri",
  "tauri-build",
  "tempfile",
+ "version",
 ]
 
 [[package]]

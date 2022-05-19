@@ -40,6 +40,9 @@
           </b-tab>
         </b-tabs>
       </b-card>
+      <div class="d-flex justify-content-center">
+        <small class="text-muted"><a href="https://github.com/trawls-app/trawls" target="_blank">Trawls v{{ version_string }}</a></small>
+      </div>
     </div>
 
 
@@ -76,8 +79,12 @@ export default {
   data: function () {
     return {
       lightframes_ready: false,
-      output_path_ready: false
+      output_path_ready: false,
+      version_string: "Unknown"
     }
+  },
+  created: function () {
+    this.get_app_version()
   },
   methods: {
     run_processing: function () {
@@ -101,6 +108,11 @@ export default {
         parent.$refs.preview.preview = preview
         parent.$refs.tab_preview.activate()
       }).catch(error => { alert(error)})
+    },
+    get_app_version: function() {
+      invoke("get_app_version").then(ver => {
+        this.version_string = ver
+      })
     }
   }
 }
@@ -115,6 +127,6 @@ export default {
 @import '../node_modules/bootstrap-vue/src/index.scss';
 
 .stretch {
-  min-height: 99.5vh;
+  min-height: 98.0vh;
 }
 </style>

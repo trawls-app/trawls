@@ -24,6 +24,7 @@ dng-rs = { git = "https://github.com/trawls-app/libdng-rust", rev="00208854c25c0
 tempfile = "3.2.0"
 base64 = "0.13.0"
 itertools = "0.10.3"
+version = "3.0.0"
 
 [build-dependencies]
 tauri-build = { version = "1.0.0-rc.9", features = [] }
