@@ -75,11 +75,7 @@ async fn run_merge(
 fn main() {
     println!("Running Trawls v{}", version!());
     tauri::Builder::new()
-        .invoke_handler(tauri::generate_handler![
-            get_app_version,
-            load_images,
-            run_merge
-        ])
+        .invoke_handler(tauri::generate_handler![get_app_version, load_images, run_merge])
         .run(tauri::generate_context!())
         .unwrap();
 }

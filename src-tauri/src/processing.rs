@@ -111,28 +111,14 @@ pub fn run_merge(
     );
 
     // Start workers
-    let thread_handles_lights = spawn_workers(
-        num_threads,
-        Arc::clone(&queue_lights),
-        Maximize,
-        state.clone(),
-    );
-    let thread_handles_darks = spawn_workers(
-        num_threads,
-        Arc::clone(&queue_darks),
-        WeightedAverage,
-        state.clone(),
-    );
+    let thread_handles_lights =
+        spawn_workers(num_threads, Arc::clone(&queue_lights), Maximize, state.clone());
+    let thread_handles_darks =
+        spawn_workers(num_threads, Arc::clone(&queue_darks), WeightedAverage, state.clone());
 
     // Load light- and darkframes
     tasks.par_iter().for_each(|t| {
-        load_image(
-            t,
-            Arc::clone(&queue_lights),
-            Arc::clone(&queue_darks),
-            mode,
-            state.clone(),
-        )
+        load_image(t, Arc::clone(&queue_lights), Arc::clone(&queue_darks), mode, state.clone())
     });
 
     for t in chain(thread_handles_lights, thread_handles_darks) {
@@ -161,11 +147,7 @@ pub fn run_merge(
     let result_path = dir.path().join("result.dng");
     writer.write_dng(&result_path);
 
-    println!(
-        "Copying from '{}' to '{}'",
-        result_path.display(),
-        out_path.display()
-    );
+    println!("Copying from '{}' to '{}'", result_path.display(), out_path.display());
     fs::copy(result_path, out_path).unwrap();
 
     // Create a preview to show in the UI
@@ -230,13 +212,9 @@ fn load_image(
     state.start_loading();
 
     match task.frame_type {
-        FrameType::Lightframe(index) => load_lightframe(
-            task.path.as_path(),
-            queue_lights,
-            index,
-            state.count_lights,
-            comets,
-        ),
+        FrameType::Lightframe(index) => {
+            load_lightframe(task.path.as_path(), queue_lights, index, state.count_lights, comets)
+        }
         FrameType::Darkframe => load_darkframe(task.path.as_path(), queue_darks),
     }
 
