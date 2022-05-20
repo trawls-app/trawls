@@ -1,7 +1,4 @@
-#![cfg_attr(
-    all(not(debug_assertions), target_os = "windows"),
-    windows_subsystem = "windows"
-)]
+#![cfg_attr(all(not(debug_assertions), target_os = "windows"), windows_subsystem = "windows")]
 #![allow(non_upper_case_globals)]
 
 #[macro_use]
@@ -49,14 +46,10 @@ async fn run_merge(
     out_path: String,
 ) -> Result<serde_json::Value, String> {
     let state = Status::new(lightframes.len(), darkframes.len(), window);
-    let paths_light = lightframes
-        .into_iter()
-        .map(|x| Path::new(&x).to_path_buf())
-        .collect();
-    let paths_dark = darkframes
-        .into_iter()
-        .map(|x| Path::new(&x).to_path_buf())
-        .collect();
+
+    let paths_light = lightframes.into_iter().map(|x| Path::new(&x).to_path_buf()).collect();
+    let paths_dark = darkframes.into_iter().map(|x| Path::new(&x).to_path_buf()).collect();
+
     let output = Path::new(&out_path).to_path_buf();
     let mode = match mode_str.as_str() {
         "falling" => processing::Comets::Falling,

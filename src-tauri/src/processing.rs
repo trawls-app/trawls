@@ -11,9 +11,7 @@ use tempfile::tempdir;
 
 use crate::processing::image::MergeMode::{Maximize, WeightedAverage};
 use crate::processing::image::{Image, Mergable, MergeMode};
-use libdng::bindings::{
-    ExifTag_Photo_ExposureTime, ExifTag_Photo_FNumber, ExifTag_Photo_ISOSpeedRatings,
-};
+use libdng::bindings::{ExifTag_Photo_ExposureTime, ExifTag_Photo_FNumber, ExifTag_Photo_ISOSpeedRatings};
 use libdng::exif::ExifExtractable;
 use libdng::image_info::DNGWriting;
 
@@ -58,9 +56,7 @@ impl RenderedPreview {
         let isospeed = exif.get_uint(ExifTag_Photo_ISOSpeedRatings, 0).unwrap_or(0);
 
         let aperture = *aperture_ratio.numer() as f32 / *aperture_ratio.denom() as f32;
-        let exposure = time::Duration::from_secs_f64(
-            *exposure_ratio.numer() as f64 / *exposure_ratio.denom() as f64,
-        );
+        let exposure = time::Duration::from_secs_f64(*exposure_ratio.numer() as f64 / *exposure_ratio.denom() as f64);
 
         let seconds = exposure.as_secs() % 60;
         let minutes = (exposure.as_secs() / 60) % 60;
@@ -111,15 +107,13 @@ pub fn run_merge(
     );
 
     // Start workers
-    let thread_handles_lights =
-        spawn_workers(num_threads, Arc::clone(&queue_lights), Maximize, state.clone());
-    let thread_handles_darks =
-        spawn_workers(num_threads, Arc::clone(&queue_darks), WeightedAverage, state.clone());
+    let thread_handles_lights = spawn_workers(num_threads, Arc::clone(&queue_lights), Maximize, state.clone());
+    let thread_handles_darks = spawn_workers(num_threads, Arc::clone(&queue_darks), WeightedAverage, state.clone());
 
     // Load light- and darkframes
-    tasks.par_iter().for_each(|t| {
-        load_image(t, Arc::clone(&queue_lights), Arc::clone(&queue_darks), mode, state.clone())
-    });
+    tasks
+        .par_iter()
+        .for_each(|t| load_image(t, Arc::clone(&queue_lights), Arc::clone(&queue_darks), mode, state.clone()));
 
     for t in chain(thread_handles_lights, thread_handles_darks) {
         t.join().unwrap_or(());
@@ -221,13 +215,7 @@ fn load_image(
     state.finish_loading();
 }
 
-fn load_lightframe(
-    entry: &Path,
-    queue: Arc<Mutex<Vec<Image>>>,
-    index: usize,
-    num_images: usize,
-    comets: Comets,
-) {
+fn load_lightframe(entry: &Path, queue: Arc<Mutex<Vec<Image>>>, index: usize, num_images: usize, comets: Comets) {
     let intensity = match comets {
         Comets::Falling => 1.0 - index as f32 / num_images as f32,
         Comets::Raising => index as f32 / num_images as f32,

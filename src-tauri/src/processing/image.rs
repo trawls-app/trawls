@@ -21,13 +21,7 @@ pub trait Mergable<Rhs = Self> {
     type Container;
 
     fn load_from_raw(path: &Path, intensity: f32) -> Result<Self::Container, &str>;
-    fn weighted_merge(
-        self,
-        other: Rhs,
-        weight_self: f32,
-        weight_other: f32,
-        mode: MergeMode,
-    ) -> Rhs;
+    fn weighted_merge(self, other: Rhs, weight_self: f32, weight_other: f32, mode: MergeMode) -> Rhs;
     fn merge(self, other: Rhs, mode: MergeMode) -> Rhs;
 }
 
@@ -41,8 +35,7 @@ impl Image {
     pub fn apply_darkframe(self, darkframe: Image) -> Image {
         let light = self.get_image_data();
         let dark = darkframe.get_image_data();
-        let avg_black =
-            (dark.iter().fold(0u64, |acc, x| acc + *x as u64) / dark.len() as u64) as i16;
+        let avg_black = (dark.iter().fold(0u64, |acc, x| acc + *x as u64) / dark.len() as u64) as i16;
 
         let res = light
             .iter()
@@ -86,23 +79,12 @@ impl Mergable for Image {
         })
     }
 
-    fn weighted_merge(
-        self,
-        other: Self,
-        weight_self: f32,
-        weight_other: f32,
-        mode: MergeMode,
-    ) -> Self {
+    fn weighted_merge(self, other: Self, weight_self: f32, weight_other: f32, mode: MergeMode) -> Self {
         Image {
-            raw_image: self.raw_image.weighted_merge(
-                other.raw_image,
-                weight_self,
-                weight_other,
-                mode,
-            ),
-            exif: self
-                .exif
-                .weighted_merge(other.exif, weight_self, weight_other, mode),
+            raw_image: self
+                .raw_image
+                .weighted_merge(other.raw_image, weight_self, weight_other, mode),
+            exif: self.exif.weighted_merge(other.exif, weight_self, weight_other, mode),
             num_images: self.num_images + other.num_images,
         }
     }
@@ -112,9 +94,7 @@ impl Mergable for Image {
         let weight_other = other.num_images as f32;
         match mode {
             MergeMode::Maximize => self.weighted_merge(other, 1.0, 1.0, mode),
-            MergeMode::WeightedAverage => {
-                self.weighted_merge(other, weight_self, weight_other, mode)
-            }
+            MergeMode::WeightedAverage => self.weighted_merge(other, weight_self, weight_other, mode),
         }
     }
 }
@@ -131,18 +111,8 @@ impl RawSavableImage for Image {
     }
 
     fn get_info_container(&self) -> ImageInfoContainer {
-        let black_levels: ArrayVec<_, 4> = self
-            .raw_image
-            .blacklevels
-            .iter()
-            .map(|x| *x as f64)
-            .collect();
-        let white_levels: ArrayVec<_, 4> = self
-            .raw_image
-            .whitelevels
-            .iter()
-            .map(|x| *x as f64)
-            .collect();
+        let black_levels: ArrayVec<_, 4> = self.raw_image.blacklevels.iter().map(|x| *x as f64).collect();
+        let white_levels: ArrayVec<_, 4> = self.raw_image.whitelevels.iter().map(|x| *x as f64).collect();
         let neutrals: ArrayVec<_, 3> = self.raw_image.wb_coeffs[0..3]
             .iter()
             .map(|x| 1.0 / (*x as f64))
@@ -182,25 +152,17 @@ impl Mergable for RawImage {
 
         if (intensity - 1.0).abs() > 0.001 {
             raw_image.data = match raw_image.data {
-                RawImageData::Integer(d) => RawImageData::Integer(
-                    d.iter().map(|x| (*x as f32 * intensity) as u16).collect(),
-                ),
-                RawImageData::Float(d) => {
-                    RawImageData::Float(d.iter().map(|x| (*x as f32 * intensity)).collect())
+                RawImageData::Integer(d) => {
+                    RawImageData::Integer(d.iter().map(|x| (*x as f32 * intensity) as u16).collect())
                 }
+                RawImageData::Float(d) => RawImageData::Float(d.iter().map(|x| (*x as f32 * intensity)).collect()),
             };
         }
 
         Ok(raw_image)
     }
 
-    fn weighted_merge(
-        self,
-        other: Self,
-        weight_self: f32,
-        weight_other: f32,
-        mode: MergeMode,
-    ) -> Self {
+    fn weighted_merge(self, other: Self, weight_self: f32, weight_other: f32, mode: MergeMode) -> Self {
         if self.width != other.width || self.height != other.height || self.cpp != other.cpp {
             panic!("Images to merge have different dimensions");
         }
@@ -221,8 +183,7 @@ impl Mergable for RawImage {
             .map(|(x, y)| match mode {
                 MergeMode::Maximize => max(*x, y),
                 MergeMode::WeightedAverage => {
-                    ((*x as f32 * weight_self + y as f32 * weight_other)
-                        / (weight_self + weight_other)) as u16
+                    ((*x as f32 * weight_self + y as f32 * weight_other) / (weight_self + weight_other)) as u16
                 }
             })
             .collect();
@@ -259,13 +220,7 @@ impl Mergable for ExifContainer {
         Ok(ExifContainer::from_file(path).unwrap())
     }
 
-    fn weighted_merge(
-        self,
-        other: Self,
-        _weight_self: f32,
-        _weight_other: f32,
-        _mode: MergeMode,
-    ) -> Self {
+    fn weighted_merge(self, other: Self, _weight_self: f32, _weight_other: f32, _mode: MergeMode) -> Self {
         let mut res = HashMap::new();
         for (key, self_entry) in self.all_entries.iter() {
             if !other.all_entries.contains_key(key) {

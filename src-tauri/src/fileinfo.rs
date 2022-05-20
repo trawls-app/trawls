@@ -56,11 +56,7 @@ impl ExifContainer {
     }
 
     pub fn from_rexif_data(data: rexif::ExifData) -> ExifContainer {
-        let all = data
-            .entries
-            .iter()
-            .map(|x| (x.ifd.tag, x.clone()))
-            .collect();
+        let all = data.entries.iter().map(|x| (x.ifd.tag, x.clone())).collect();
 
         ExifContainer {
             mapped_entries: ExifContainer::get_known_map(&all),
@@ -68,9 +64,7 @@ impl ExifContainer {
         }
     }
 
-    pub fn get_known_map(
-        map: &HashMap<u16, rexif::ExifEntry>,
-    ) -> HashMap<rexif::ExifTag, rexif::ExifEntry> {
+    pub fn get_known_map(map: &HashMap<u16, rexif::ExifEntry>) -> HashMap<rexif::ExifTag, rexif::ExifEntry> {
         map.values()
             .into_iter()
             .filter(|x| x.tag != rexif::ExifTag::UnknownToMe)
@@ -92,10 +86,7 @@ impl ExifContainer {
             if entry.tag == rexif::ExifTag::MakerNote {
                 continue;
             }
-            println!(
-                "\t{}\t{}: {} ({})",
-                entry.ifd.tag, entry.tag, entry.value, entry.value_more_readable
-            );
+            println!("\t{}\t{}: {} ({})", entry.ifd.tag, entry.tag, entry.value, entry.value_more_readable);
         }
     }
 
