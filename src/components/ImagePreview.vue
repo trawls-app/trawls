@@ -29,7 +29,7 @@ export default {
 
 .preview-fluid {
   max-width: 100%;
-  max-height: 92vh;
+  max-height: 89vh;
   height: auto;
 }
 </style>

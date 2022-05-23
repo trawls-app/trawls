@@ -4,6 +4,9 @@
 )]
 #![allow(non_upper_case_globals)]
 
+#[macro_use]
+extern crate version;
+
 mod fileinfo;
 mod processing;
 
@@ -13,6 +16,11 @@ use std::path::Path;
 use std::time::Instant;
 
 use rayon::prelude::*;
+
+#[tauri::command]
+fn get_app_version() -> String {
+  version!().to_string()
+}
 
 #[tauri::command]
 async fn load_images(paths: Vec<String>) -> Result<serde_json::Value, String> {
@@ -65,8 +73,13 @@ async fn run_merge(
 }
 
 fn main() {
+  println!("Running Trawls v{}", version!());
   tauri::Builder::new()
-    .invoke_handler(tauri::generate_handler![load_images, run_merge])
+    .invoke_handler(tauri::generate_handler![
+      get_app_version,
+      load_images,
+      run_merge
+    ])
     .run(tauri::generate_context!())
     .unwrap();
 }
