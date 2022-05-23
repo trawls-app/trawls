@@ -20,7 +20,7 @@ rexif = "0.7.3"
 rawloader = "0.37.0"
 num_cpus = "1.13.1"
 rayon = "1.5.3"
-dng-rs = { git = "https://github.com/trawls-app/libdng-rust", rev="00208854c25c06d39a260f2f224804d913234748" }
+dng-rs = { git = "https://github.com/trawls-app/libdng-rust", rev="9400e105b2ec1d09b35f28a1be383ad091ba2952" }
 tempfile = "3.2.0"
 base64 = "0.13.0"
 itertools = "0.10.3"
