@@ -30,6 +30,7 @@
       "windows": {
         "certificateThumbprint": null,
         "digestAlgorithm": "sha256",
+        "tsp": false,
         "timestampUrl": ""
       }
     },
@@ -50,7 +51,8 @@
         "width": 1350,
         "height": 1000,
         "resizable": true,
-        "fullscreen": false
+        "fullscreen": false,
+        "theme": "Dark"
       }
     ],
     "security": {

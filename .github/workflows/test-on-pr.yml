@@ -32,11 +32,22 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y libgtk-3-dev webkit2gtk-4.0 libappindicator3-dev librsvg2-dev patchelf
+      - name: Disable updater
+        run: |
+          cat src-tauri/tauri.conf.json | jq .tauri.updater.active=false > tauri.conf.json.tmp
+          rm src-tauri/tauri.conf.json
+          mv -v tauri.conf.json.tmp src-tauri/tauri.conf.json
       - name: install app dependencies and build it
         run: yarn && yarn tauri:build
         env:
           CXXFLAGS: --std=c++14
-          TAURI_PRIVATE_KEY: ${{ secrets.TAURI_PRIVATE_KEY }}
       - uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - uses: actions/upload-artifact@v3
+        with:
+          name: bundle
+          path: |
+            src-tauri/target/release/bundle/msi/trawls*.msi
+            src-tauri/target/release/bundle/appimage/trawls*.AppImage
+            src-tauri/target/release/bundle/dmg/trawls*.dmg
