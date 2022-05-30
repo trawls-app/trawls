@@ -27,7 +27,7 @@ itertools = "0.10.3"
 version = "3.0.0"
 
 [build-dependencies]
-tauri-build = { version = "1.0.0-rc.11", features = [] }
+tauri-build = { version = "1.0.0-rc.12", features = [] }
 
 [features]
 custom-protocol = [ "tauri/custom-protocol" ]
