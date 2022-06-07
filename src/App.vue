@@ -6,12 +6,12 @@
           <b-tab active>
             <template v-slot:title>
               1. Add Lightframes
-              <b-badge variant="light" v-if="$refs.lightframes.loading_exif === false">{{ $refs.lightframes.numImages }}</b-badge>
-              <b-spinner type="border" small v-if="$refs.lightframes.loading_exif === true"></b-spinner>
+              <b-badge variant="light" v-if="$refs.lightframes.loading_exif === 0">{{ $refs.lightframes.numImages }}</b-badge>
+              <b-spinner type="border" small v-if="$refs.lightframes.loading_exif > 0"></b-spinner>
             </template>
             <b-card-text>
               <StepDescription>Select the lightframes in this step.</StepDescription><br/>
-              <ImageSelection ref="lightframes"/>
+              <ImageSelection ref="lightframes" name="lights" />
             </b-card-text>
           </b-tab>
           <b-tab>
@@ -24,7 +24,7 @@
               <StepDescription>
                 (Optional) Select darkframes, shot with the same settings as the lightframes, to reduce the noise of the resulting image.
               </StepDescription><br/>
-              <ImageSelection ref="darkframes"/>
+              <ImageSelection ref="darkframes" name="darks" />
             </b-card-text>
           </b-tab>
           <b-tab title="3. Process images">

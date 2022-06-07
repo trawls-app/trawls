@@ -3,15 +3,18 @@
 
 #[macro_use]
 extern crate version;
+extern crate anyhow;
 
 mod fileinfo;
 mod processing;
 
-use crate::processing::status::Status;
+use crate::processing::status::ProcessingStatus;
 use std::fs;
-use std::path::Path;
+use std::path::{Path, PathBuf};
+use std::sync::Mutex;
 use std::time::Instant;
 
+use fileinfo::ImageCandidate;
 use rayon::prelude::*;
 
 #[tauri::command]
@@ -19,22 +22,41 @@ fn get_app_version() -> String {
     version!().to_string()
 }
 
+fn fetch_exif(path: PathBuf) -> anyhow::Result<ImageCandidate> {
+    let metadata = fs::metadata(&path)?;
+    anyhow::ensure!(metadata.is_file());
+
+    // Todo: Refactor to remove unwrap
+    let candidate = fileinfo::ImageCandidate::load(&path).unwrap();
+    Ok(candidate)
+}
+
 #[tauri::command]
-async fn load_images(paths: Vec<String>) -> Result<serde_json::Value, String> {
+async fn load_image_infos(
+    window: tauri::Window,
+    paths: Vec<String>,
+    selector_reference: String,
+) -> Result<serde_json::Value, String> {
     println!("Loading exifs");
-    let res: Vec<serde_json::Value> = paths
-        .par_iter()
-        .map(|x| {
-            let p = Path::new(x);
-            let metadata = fs::metadata(p).unwrap();
-            assert!(metadata.is_file());
+    let window = Mutex::new(window);
 
-            let candidate = fileinfo::ImageCandidate::load(p).unwrap();
-            candidate.json()
-        })
-        .collect();
+    paths.par_iter().for_each(|x| {
+        let p = Path::new(x).to_path_buf();
+        let candidate = fetch_exif(p);
 
-    Ok(serde_json::json!(res))
+        match candidate {
+            Ok(c) => {
+                let reference = format!("loaded_image_info_{}", selector_reference);
+                window.lock().unwrap().emit(reference.as_str(), c.json()).unwrap();
+                println!("{}", x);
+            }
+            Err(_err) => todo!(),
+        }
+    });
+
+    println!("Finished loading exifs");
+
+    Ok(serde_json::json!({}))
 }
 
 #[tauri::command]
@@ -45,7 +67,8 @@ async fn run_merge(
     mode_str: String,
     out_path: String,
 ) -> Result<serde_json::Value, String> {
-    let state = Status::new(lightframes.len(), darkframes.len(), window);
+    let state =
+        ProcessingStatus::new(lightframes.len(), darkframes.len(), String::from("processing_state_change"), window);
 
     let paths_light = lightframes.into_iter().map(|x| Path::new(&x).to_path_buf()).collect();
     let paths_dark = darkframes.into_iter().map(|x| Path::new(&x).to_path_buf()).collect();
@@ -68,7 +91,7 @@ async fn run_merge(
 fn main() {
     println!("Running Trawls v{}", version!());
     tauri::Builder::new()
-        .invoke_handler(tauri::generate_handler![get_app_version, load_images, run_merge])
+        .invoke_handler(tauri::generate_handler![get_app_version, load_image_infos, run_merge])
         .run(tauri::generate_context!())
         .unwrap();
 }

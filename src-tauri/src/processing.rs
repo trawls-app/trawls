@@ -76,7 +76,7 @@ pub fn run_merge(
     darkframe_files: Vec<PathBuf>,
     out_path: PathBuf,
     mode: Comets,
-    state: status::Status,
+    state: Arc<Mutex<status::ProcessingStatus>>,
 ) -> RenderedPreview {
     let num_threads = num_cpus::get();
     println!(
@@ -129,7 +129,6 @@ pub fn run_merge(
         lightframe.apply_darkframe(darkframe)
     };
 
-    state.update_status(true);
     println!("Processing done");
     raw_image.exif.print_all();
 
@@ -155,7 +154,7 @@ fn spawn_workers(
     num_threads: usize,
     queue: Arc<Mutex<Vec<Image>>>,
     merge_mode: MergeMode,
-    state: status::Status,
+    state: Arc<Mutex<status::ProcessingStatus>>,
 ) -> Vec<JoinHandle<()>> {
     let mut thread_handles = vec![];
 
@@ -170,12 +169,11 @@ fn spawn_workers(
     thread_handles
 }
 
-fn queue_worker(queue: Arc<Mutex<Vec<Image>>>, merge_mode: MergeMode, state: status::Status) {
+fn queue_worker(queue: Arc<Mutex<Vec<Image>>>, merge_mode: MergeMode, state: Arc<Mutex<status::ProcessingStatus>>) {
     loop {
         let mut q = queue.lock().unwrap();
         if q.len() <= 1 {
-            if state.loading_done() {
-                state.update_status(true);
+            if state.lock().unwrap().loading_done() {
                 return;
             } else {
                 // Queue is empty but work is not done yet => Wait.
@@ -184,7 +182,7 @@ fn queue_worker(queue: Arc<Mutex<Vec<Image>>>, merge_mode: MergeMode, state: sta
                 continue;
             }
         }
-        state.start_merging();
+        state.lock().unwrap().start_merging();
 
         let v1 = q.pop().unwrap();
         let v2 = q.pop().unwrap();
@@ -192,7 +190,7 @@ fn queue_worker(queue: Arc<Mutex<Vec<Image>>>, merge_mode: MergeMode, state: sta
 
         let res = v1.merge(v2, merge_mode);
         queue.lock().unwrap().push(res);
-        state.finish_merging();
+        state.lock().unwrap().finish_merging();
     }
 }
 
@@ -201,18 +199,17 @@ fn load_image(
     queue_lights: Arc<Mutex<Vec<Image>>>,
     queue_darks: Arc<Mutex<Vec<Image>>>,
     comets: Comets,
-    state: status::Status,
+    state: Arc<Mutex<status::ProcessingStatus>>,
 ) {
-    state.start_loading();
+    let count_lights = state.lock().unwrap().count_lights;
+    state.lock().unwrap().start_loading();
 
     match task.frame_type {
-        FrameType::Lightframe(index) => {
-            load_lightframe(task.path.as_path(), queue_lights, index, state.count_lights, comets)
-        }
+        FrameType::Lightframe(index) => load_lightframe(task.path.as_path(), queue_lights, index, count_lights, comets),
         FrameType::Darkframe => load_darkframe(task.path.as_path(), queue_darks),
     }
 
-    state.finish_loading();
+    state.lock().unwrap().finish_loading();
 }
 
 fn load_lightframe(entry: &Path, queue: Arc<Mutex<Vec<Image>>>, index: usize, num_images: usize, comets: Comets) {
