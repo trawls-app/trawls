@@ -148,7 +148,7 @@ export default {
   },
 }
 
-listen('state_change', payload => { vue.update_state(payload) })
+listen('processing_state_change', payload => { vue.update_state(payload) })
 </script>
 
 <style scoped>

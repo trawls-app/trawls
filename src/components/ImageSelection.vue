@@ -6,6 +6,12 @@
       <div class="p-2"><b-form-select v-model="sortkey" :options="available_sortkeys"></b-form-select></div>
     </div>
 
+    <b-progress class="mt-2" :max="numImages" v-if="loading_exif">
+      <b-progress-bar :value="count_loaded" variant="success">
+        <span><strong>{{ count_loaded }} / {{ numImages }}</strong></span>
+      </b-progress-bar>
+    </b-progress>
+
     <div class="table-responsive">
       <table class="table" v-if="sortedImages.length > 0">
         <thead>
@@ -18,12 +24,16 @@
         </tr>
         </thead>
         <tbody>
-        <tr v-for="(image, path) in sortedImages" :key="path">
+        <tr v-for="(image, path) in sortedImages" :key="path" :class="{ 'bg-danger': image.error }">
           <td>{{ image.filename}}</td>
-          <td class="text-center">f{{ image.aperture }}</td>
-          <td class="text-center">{{ image.exposure_seconds }}s</td>
-          <td class="text-center">{{ image.iso }}</td>
-          <td class="text-center">{{ image.creation_time}}</td>
+          <td colspan="4" v-if="image.error">
+            <b-icon icon="patch-exclamation"></b-icon>
+            {{ image.error }}
+          </td>
+          <td class="text-center" v-if="!image.error">f{{ image.aperture }}</td>
+          <td class="text-center" v-if="!image.error">{{ image.exposure_seconds }}s</td>
+          <td class="text-center" v-if="!image.error">{{ image.iso }}</td>
+          <td class="text-center" v-if="!image.error">{{ image.creation_time}}</td>
         </tr>
         </tbody>
       </table>
@@ -34,6 +44,9 @@
 <script>
 import { open } from '@tauri-apps/api/dialog'
 import { invoke } from '@tauri-apps/api/tauri'
+import { listen } from '@tauri-apps/api/event'
+
+let vue = undefined
 
 export default {
   name: "ImageSelection",
@@ -41,6 +54,7 @@ export default {
     return {
       images: {},
       loading_exif: false,
+      count_loaded: 0,
       sortkey: 'creation_time',
       available_sortkeys: [
           { value: 'creation_time', text: 'Time' },
@@ -48,10 +62,17 @@ export default {
       ]
     }
   },
+  created() {
+    listen('loaded_image_info_' + this._uid, payload => { this.set_image_infos(payload.payload) })
+  },
   computed: {
     sortedImages: function () {
       let sorted = [...Object.values(this.images)]
-      return sorted.sort((a, b) => (a[this.sortkey] > b[this.sortkey]) ? 1 : -1)
+      return sorted.sort((a, b) => {
+        if (a.error) return -1
+        if (b.error) return 1
+        return (a[this.sortkey] > b[this.sortkey]) ? 1 : -1
+      })
     },
     numImages: function () {
       return Object.keys(this.images).length
@@ -63,8 +84,10 @@ export default {
   methods: {
     clear_list: function () {
       this.images = {}
+      this.count_loaded = 0
     },
     choose_image_dialog: function (event) {
+      console.log(this._uid)
       let parent = this
       if (event) {
         open({multiple: true}).then(function (res) {
@@ -75,15 +98,22 @@ export default {
             parent.$set(parent.images, image, {"filename": image.split("/").pop()})
           }
 
-          invoke("load_images",{
-            paths: res
-          }).then(function (resp) {
-            for (let r of resp) {
-              parent.$set(parent.images, r.path, r)
-            }
-            parent.loading_exif = false
+          invoke("load_image_infos",{
+            paths: res,
+            selectorReference: parent._uid.toString()
           }).catch(error => { alert(error) })
         })
+      }
+    },
+    set_image_infos: function (infos) {
+      this.count_loaded += Object.keys(infos.image_infos).length
+
+      for (let [path, info] of Object.entries(infos.image_infos)) {
+        this.$set(this.images, path, info)
+      }
+
+      if (infos.count_loaded === infos.count_total) {
+        this.loading_exif = false
       }
     }
   }
