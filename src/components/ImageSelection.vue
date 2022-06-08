@@ -6,9 +6,9 @@
       <div class="p-2"><b-form-select v-model="sortkey" :options="available_sortkeys"></b-form-select></div>
     </div>
 
-    <b-progress class="mt-2" :max="sortedImages.length">
-      <b-progress-bar :value="images.length - loading_exif" variant="success">
-        <span><strong>{{ images.length - loading_exif }} / {{ sortedImages.length }}</strong></span>
+    <b-progress class="mt-2" :max="numImages" v-if="loading_exif">
+      <b-progress-bar :value="count_loaded" variant="success">
+        <span><strong>{{ count_loaded }} / {{ numImages }}</strong></span>
       </b-progress-bar>
     </b-progress>
 
@@ -24,7 +24,7 @@
         </tr>
         </thead>
         <tbody>
-        <tr v-for="(image, path) in images" :key="path">
+        <tr v-for="(image, path) in sortedImages" :key="path">
           <td>{{ image.filename}}</td>
           <td class="text-center">f{{ image.aperture }}</td>
           <td class="text-center">{{ image.exposure_seconds }}s</td>
@@ -49,7 +49,8 @@ export default {
   data: function () {
     return {
       images: {},
-      loading_exif: 0,
+      loading_exif: false,
+      count_loaded: 0,
       sortkey: 'creation_time',
       available_sortkeys: [
           { value: 'creation_time', text: 'Time' },
@@ -58,7 +59,7 @@ export default {
     }
   },
   created() {
-    listen('loaded_image_info_' + this._uid, payload => { this.set_image_info(payload) })
+    listen('loaded_image_info_' + this._uid, payload => { this.set_image_infos(payload.payload) })
   },
   computed: {
     sortedImages: function () {
@@ -75,13 +76,14 @@ export default {
   methods: {
     clear_list: function () {
       this.images = {}
+      this.count_loaded = 0
     },
     choose_image_dialog: function (event) {
       console.log(this._uid)
       let parent = this
       if (event) {
         open({multiple: true}).then(function (res) {
-          parent.loading_exif = res.length
+          parent.loading_exif = true
 
           // Show images immediately
           for (let image of res) {
@@ -95,11 +97,16 @@ export default {
         })
       }
     },
-    set_image_info: function (info) {
-      this.$set(this.images, info.payload.path, info.payload)
-      this.loading_exif -= 1
-      console.log(this.loading_exif)
-      //this.$forceUpdate()
+    set_image_infos: function (infos) {
+      this.count_loaded += Object.keys(infos.image_infos).length
+
+      for (let [path, info] of Object.entries(infos.image_infos)) {
+        this.$set(this.images, path, info)
+      }
+
+      if (infos.count_loaded === infos.count_total) {
+        this.loading_exif = false
+      }
     }
   }
 }

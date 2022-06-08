@@ -1,4 +1,4 @@
-use serde_json::json;
+use serde_json::{json, Map};
 use std::cmp::max;
 use std::sync::atomic::AtomicUsize;
 use std::sync::atomic::Ordering::Relaxed;
@@ -41,14 +41,78 @@ impl<T: Status> StatusEmitter<T> {
             if self.status.lock().unwrap().finished() {
                 break;
             }
-            thread::sleep(Duration::from_millis(200))
+            thread::sleep(Duration::from_millis(500))
         }
 
         println!("Stopped update emitter for '{}'", self.callback_event.as_str());
     }
 }
 
-#[derive(Clone)]
+pub struct InfoLoadingStatus {
+    count_total: usize,
+    count_loaded: Arc<AtomicUsize>,
+    image_infos: Arc<Mutex<serde_json::Map<String, serde_json::Value>>>,
+}
+
+impl Status for InfoLoadingStatus {
+    fn json(&self) -> serde_json::Value {
+        let mut infos = self.image_infos.lock().unwrap();
+
+        let json_value = json!({
+            "count_total": self.count_total,
+            "count_loaded": self.count_loaded.load(Relaxed),
+            "image_infos": infos.clone(),
+        });
+
+        infos.clear();
+        json_value
+    }
+
+    fn finished(&self) -> bool {
+        self.count_total == self.count_loaded.load(Relaxed)
+    }
+
+    fn start_update_emitter(status: Arc<Mutex<Self>>, callback_event: String, window: Window) {
+        let emitter = StatusEmitter::new(status, callback_event.clone(), window);
+
+        thread::spawn(move || {
+            emitter.run_update_worker();
+        });
+    }
+}
+
+impl InfoLoadingStatus {
+    pub fn new(paths: Vec<String>, callback_event: String, window: Window) -> Arc<Mutex<Self>> {
+        let status = Arc::new(Mutex::new(InfoLoadingStatus {
+            count_total: paths.len(),
+            count_loaded: Arc::new(AtomicUsize::new(0)),
+            image_infos: Arc::new(Mutex::new(Map::new())),
+        }));
+
+        Self::start_update_emitter(status.clone(), callback_event, window);
+        status
+    }
+
+    pub fn add_image_info(&self, image: String, info: serde_json::Value) {
+        println!("Successfully loaded info of '{}'", image);
+
+        self.count_loaded.fetch_add(1, Relaxed);
+        self.image_infos.lock().unwrap().insert(image, info);
+    }
+
+    pub fn add_loading_error(&self, image: String, error: anyhow::Error) {
+        println!("Could not load info of '{}'", image);
+
+        self.count_loaded.fetch_add(1, Relaxed);
+        self.image_infos.lock().unwrap().insert(
+            image,
+            json!({
+                "error": error.to_string(),
+            }),
+        );
+    }
+}
+
 pub struct ProcessingStatus {
     pub count_lights: usize,
     pub count_darks: usize,

@@ -6,8 +6,8 @@
           <b-tab active>
             <template v-slot:title>
               1. Add Lightframes
-              <b-badge variant="light" v-if="$refs.lightframes.loading_exif === 0">{{ $refs.lightframes.numImages }}</b-badge>
-              <b-spinner type="border" small v-if="$refs.lightframes.loading_exif > 0"></b-spinner>
+              <b-badge variant="light" v-if="$refs.lightframes.loading_exif === false">{{ $refs.lightframes.numImages }}</b-badge>
+              <b-spinner type="border" small v-if="$refs.lightframes.loading_exif === true"></b-spinner>
             </template>
             <b-card-text>
               <StepDescription>Select the lightframes in this step.</StepDescription><br/>

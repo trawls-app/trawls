@@ -8,10 +8,9 @@ extern crate anyhow;
 mod fileinfo;
 mod processing;
 
-use crate::processing::status::ProcessingStatus;
+use crate::processing::status::{InfoLoadingStatus, ProcessingStatus};
 use std::fs;
 use std::path::{Path, PathBuf};
-use std::sync::Mutex;
 use std::time::Instant;
 
 use fileinfo::ImageCandidate;
@@ -37,20 +36,21 @@ async fn load_image_infos(
     paths: Vec<String>,
     selector_reference: String,
 ) -> Result<serde_json::Value, String> {
-    println!("Loading exifs");
-    let window = Mutex::new(window);
+    let reference = format!("loaded_image_info_{}", selector_reference);
+    let state = InfoLoadingStatus::new(paths.clone(), reference, window);
 
+    println!("Loading exifs");
     paths.par_iter().for_each(|x| {
         let p = Path::new(x).to_path_buf();
         let candidate = fetch_exif(p);
 
         match candidate {
             Ok(c) => {
-                let reference = format!("loaded_image_info_{}", selector_reference);
-                window.lock().unwrap().emit(reference.as_str(), c.json()).unwrap();
-                println!("{}", x);
+                state.lock().unwrap().add_image_info(x.to_string(), c.json());
             }
-            Err(_err) => todo!(),
+            Err(error) => {
+                state.lock().unwrap().add_loading_error(x.to_string(), error);
+            }
         }
     });
 
