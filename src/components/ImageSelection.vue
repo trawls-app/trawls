@@ -21,6 +21,7 @@
           <td class="text-center">Exposure</td>
           <td class="text-center">ISO</td>
           <td class="text-center">Time</td>
+          <td></td>
         </tr>
         </thead>
         <tbody>
@@ -34,6 +35,9 @@
           <td class="text-center" v-if="!image.error">{{ image.exposure_seconds }}s</td>
           <td class="text-center" v-if="!image.error">{{ image.iso }}</td>
           <td class="text-center" v-if="!image.error">{{ image.creation_time}}</td>
+          <td>
+            <b-icon class="clickable-icon" icon="x-circle" v-on:click="remove_image(image.path)"></b-icon>
+          </td>
         </tr>
         </tbody>
       </table>
@@ -86,8 +90,12 @@ export default {
       this.images = {}
       this.count_loaded = 0
     },
+    remove_image: function (path) {
+      console.log("Removing", path)
+      this.$delete(this.images, path)
+      this.count_loaded -= 1
+    },
     choose_image_dialog: function (event) {
-      console.log(this._uid)
       let parent = this
       if (event) {
         open({multiple: true}).then(function (res) {
@@ -128,5 +136,9 @@ table {
 
 thead {
   font-weight: bolder;
+}
+
+.clickable-icon {
+  cursor: pointer;
 }
 </style>
