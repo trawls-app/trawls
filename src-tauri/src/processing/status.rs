@@ -1,5 +1,6 @@
 use serde_json::{json, Map};
 use std::cmp::max;
+use std::path::PathBuf;
 use std::sync::atomic::AtomicUsize;
 use std::sync::atomic::Ordering::Relaxed;
 use std::sync::{Arc, Mutex};
@@ -93,21 +94,28 @@ impl InfoLoadingStatus {
         status
     }
 
-    pub fn add_image_info(&self, image: String, info: serde_json::Value) {
-        println!("Successfully loaded info of '{}'", image);
+    pub fn add_image_info(&self, image_path: String, info: serde_json::Value) {
+        println!("Successfully loaded info of '{}'", image_path);
 
         self.count_loaded.fetch_add(1, Relaxed);
-        self.image_infos.lock().unwrap().insert(image, info);
+        self.image_infos.lock().unwrap().insert(image_path, info);
     }
 
-    pub fn add_loading_error(&self, image: String, error: anyhow::Error) {
-        println!("Could not load info of '{}'", image);
+    pub fn add_loading_error(&self, image_path: String, error: anyhow::Error) {
+        println!("Could not load info of '{}':\n{:?}\n", image_path, error);
+
+        let filename = match PathBuf::from(&image_path).file_name() {
+            Some(x) => String::from(x.to_str().unwrap()),
+            None => image_path.clone(),
+        };
 
         self.count_loaded.fetch_add(1, Relaxed);
         self.image_infos.lock().unwrap().insert(
-            image,
+            image_path.clone(),
             json!({
-                "error": error.to_string(),
+                "path": image_path,
+                "filename": filename,
+                "error": format!("{:?}", error),
             }),
         );
     }

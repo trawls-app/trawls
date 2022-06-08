@@ -24,12 +24,16 @@
         </tr>
         </thead>
         <tbody>
-        <tr v-for="(image, path) in sortedImages" :key="path">
+        <tr v-for="(image, path) in sortedImages" :key="path" :class="{ 'bg-danger': image.error }">
           <td>{{ image.filename}}</td>
-          <td class="text-center">f{{ image.aperture }}</td>
-          <td class="text-center">{{ image.exposure_seconds }}s</td>
-          <td class="text-center">{{ image.iso }}</td>
-          <td class="text-center">{{ image.creation_time}}</td>
+          <td colspan="4" v-if="image.error">
+            <b-icon icon="patch-exclamation"></b-icon>
+            {{ image.error }}
+          </td>
+          <td class="text-center" v-if="!image.error">f{{ image.aperture }}</td>
+          <td class="text-center" v-if="!image.error">{{ image.exposure_seconds }}s</td>
+          <td class="text-center" v-if="!image.error">{{ image.iso }}</td>
+          <td class="text-center" v-if="!image.error">{{ image.creation_time}}</td>
         </tr>
         </tbody>
       </table>
@@ -64,7 +68,11 @@ export default {
   computed: {
     sortedImages: function () {
       let sorted = [...Object.values(this.images)]
-      return sorted.sort((a, b) => (a[this.sortkey] > b[this.sortkey]) ? 1 : -1)
+      return sorted.sort((a, b) => {
+        if (a.error) return -1
+        if (b.error) return 1
+        return (a[this.sortkey] > b[this.sortkey]) ? 1 : -1
+      })
     },
     numImages: function () {
       return Object.keys(this.images).length

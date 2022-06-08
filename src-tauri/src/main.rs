@@ -26,7 +26,7 @@ fn fetch_exif(path: PathBuf) -> anyhow::Result<ImageCandidate> {
     anyhow::ensure!(metadata.is_file());
 
     // Todo: Refactor to remove unwrap
-    let candidate = fileinfo::ImageCandidate::load(&path).unwrap();
+    let candidate = fileinfo::ImageCandidate::load(&path)?;
     Ok(candidate)
 }
 
@@ -41,7 +41,7 @@ async fn load_image_infos(
 
     println!("Loading exifs");
     paths.par_iter().for_each(|x| {
-        let p = Path::new(x).to_path_buf();
+        let p = PathBuf::from(x);
         let candidate = fetch_exif(p);
 
         match candidate {
