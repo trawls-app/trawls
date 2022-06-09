@@ -34,7 +34,7 @@
           </td>
           <td class="text-center" v-if="!image.error">{{ image.exposure_seconds }}s</td>
           <td class="text-center" v-if="!image.error && showInterval" :class="{ 'bg-warning': image.interval > interval_warning_threshold}">
-            <span v-if="image.interval">{{ image.interval }}s</span>
+            <span v-if="image.interval !== null">{{ image.interval }}s</span>
           </td>
           <td class="text-center" v-if="!image.error">f{{ image.aperture }}</td>
           <td class="text-center" v-if="!image.error">{{ image.iso }}</td>
