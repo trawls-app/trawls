@@ -18,7 +18,7 @@
         <tr>
           <td>Filename</td>
           <td class="text-center">Exposure</td>
-          <td class="text-center">Interval</td>
+          <td class="text-center" v-if="showInterval">Interval</td>
           <td class="text-center">Aperture</td>
           <td class="text-center">ISO</td>
           <td class="text-center">Time</td>
@@ -33,7 +33,7 @@
             {{ image.error }}
           </td>
           <td class="text-center" v-if="!image.error">{{ image.exposure_seconds }}s</td>
-          <td class="text-center" v-if="!image.error" :class="{ 'bg-warning': image.interval > interval_warning_threshold}">
+          <td class="text-center" v-if="!image.error && showInterval" :class="{ 'bg-warning': image.interval > interval_warning_threshold}">
             <span v-if="image.interval">{{ image.interval }}s</span>
           </td>
           <td class="text-center" v-if="!image.error">f{{ image.aperture }}</td>
@@ -54,10 +54,12 @@ import { open } from '@tauri-apps/api/dialog'
 import { invoke } from '@tauri-apps/api/tauri'
 import { listen } from '@tauri-apps/api/event'
 
-let vue = undefined
 
 export default {
   name: "ImageSelection",
+  props: {
+    showInterval: Boolean
+  },
   data: function () {
     return {
       images: {},
@@ -100,6 +102,7 @@ export default {
         dt_prev = dt_cur
       }
 
+      // Calculate a threshold to warn about long pauses between images
       if (sorted.length > 1) {
         this.interval_warning_threshold = interval_sum / (sorted.length - 1) + 1
         console.log("Set interval warning threshold", this.interval_warning_threshold)
