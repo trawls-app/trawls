@@ -1,8 +1,8 @@
+use chrono::naive::NaiveDateTime;
 use libdng::bindings::*;
 use libdng::exif::ExifExtractable;
 use num::rational::Ratio;
 use num::ToPrimitive;
-use chrono::naive::NaiveDateTime;
 use rexif::TagValue;
 use serde_json::json;
 use std::collections::HashMap;
