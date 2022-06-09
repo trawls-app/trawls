@@ -17,9 +17,9 @@
         <thead>
         <tr>
           <td>Filename</td>
-          <td class="text-center">Aperture</td>
           <td class="text-center">Exposure</td>
           <td class="text-center">Interval</td>
+          <td class="text-center">Aperture</td>
           <td class="text-center">ISO</td>
           <td class="text-center">Time</td>
           <td></td>
@@ -32,9 +32,11 @@
             <b-icon icon="patch-exclamation"></b-icon>
             {{ image.error }}
           </td>
-          <td class="text-center" v-if="!image.error">f{{ image.aperture }}</td>
           <td class="text-center" v-if="!image.error">{{ image.exposure_seconds }}s</td>
-          <td class="text-center" v-if="!image.error">{{ image.interval }}s</td>
+          <td class="text-center" v-if="!image.error" :class="{ 'bg-warning': image.interval > interval_warning_threshold}">
+            <span v-if="image.interval">{{ image.interval }}s</span>
+          </td>
+          <td class="text-center" v-if="!image.error">f{{ image.aperture }}</td>
           <td class="text-center" v-if="!image.error">{{ image.iso }}</td>
           <td class="text-center" v-if="!image.error">{{ image.creation_time}}</td>
           <td>
@@ -61,6 +63,7 @@ export default {
       images: {},
       loading_exif: false,
       count_loaded: 0,
+      interval_warning_threshold: 2,
       sortkey: 'creation_time',
       available_sortkeys: [
           { value: 'creation_time', text: 'Time' },
@@ -83,14 +86,23 @@ export default {
 
       // Calculate intervalls between images
       let dt_prev = null
+      let interval_sum = 0
       for (let cur of sorted) {
         let dt_cur = Date.parse(cur.creation_time)
 
         if (dt_prev !== null) {
           cur.interval = (dt_cur - dt_prev) / 1000 - cur.exposure_seconds
+          interval_sum += cur.interval
+        } else {
+          cur.interval = null
         }
 
         dt_prev = dt_cur
+      }
+
+      if (sorted.length > 1) {
+        this.interval_warning_threshold = interval_sum / (sorted.length - 1) + 1
+        console.log("Set interval warning threshold", this.interval_warning_threshold)
       }
 
       return sorted
