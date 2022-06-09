@@ -2,6 +2,7 @@ use libdng::bindings::*;
 use libdng::exif::ExifExtractable;
 use num::rational::Ratio;
 use num::ToPrimitive;
+use chrono::naive::NaiveDateTime;
 use rexif::TagValue;
 use serde_json::json;
 use std::collections::HashMap;
@@ -35,7 +36,7 @@ impl ImageCandidate {
         json!({
             "path": self.path.to_str(),
             "filename": self.path.file_name().unwrap().to_str().unwrap(),
-            "creation_time": exif.get_string(ExifTag_Photo_DateTimeOriginal),
+            "creation_time": exif.get_datetime(ExifTag_Photo_DateTimeOriginal),
             "exposure_seconds": exposure,
             "aperture": aperture,
             "iso": exif.get_uint(ExifTag_Photo_ISOSpeedRatings, 0),
@@ -143,6 +144,11 @@ impl ExifExtractable for ExifContainer {
     fn get_string(&self, tag: u32) -> Option<String> {
         let r_tag = map_external_tag_to_rexif(tag)?;
         self.mapped_entries.get(&r_tag).map(|x| x.value.to_string())
+    }
+
+    fn get_datetime(&self, tag: u32) -> Option<NaiveDateTime> {
+        let dt_string = self.get_string(tag)?;
+        Some(NaiveDateTime::parse_from_str(dt_string.as_str(), "%Y:%m:%d %H:%M:%S").ok()?)
     }
 }
 

@@ -19,6 +19,7 @@
           <td>Filename</td>
           <td class="text-center">Aperture</td>
           <td class="text-center">Exposure</td>
+          <td class="text-center">Interval</td>
           <td class="text-center">ISO</td>
           <td class="text-center">Time</td>
           <td></td>
@@ -27,12 +28,13 @@
         <tbody>
         <tr v-for="(image, path) in sortedImages" :key="path" :class="{ 'bg-danger': image.error }">
           <td>{{ image.filename}}</td>
-          <td colspan="4" v-if="image.error">
+          <td colspan="5" v-if="image.error">
             <b-icon icon="patch-exclamation"></b-icon>
             {{ image.error }}
           </td>
           <td class="text-center" v-if="!image.error">f{{ image.aperture }}</td>
           <td class="text-center" v-if="!image.error">{{ image.exposure_seconds }}s</td>
+          <td class="text-center" v-if="!image.error">{{ image.interval }}s</td>
           <td class="text-center" v-if="!image.error">{{ image.iso }}</td>
           <td class="text-center" v-if="!image.error">{{ image.creation_time}}</td>
           <td>
@@ -72,11 +74,26 @@ export default {
   computed: {
     sortedImages: function () {
       let sorted = [...Object.values(this.images)]
-      return sorted.sort((a, b) => {
+
+      sorted.sort((a, b) => {
         if (a.error) return -1
         if (b.error) return 1
         return (a[this.sortkey] > b[this.sortkey]) ? 1 : -1
       })
+
+      // Calculate intervalls between images
+      let dt_prev = null
+      for (let cur of sorted) {
+        let dt_cur = Date.parse(cur.creation_time)
+
+        if (dt_prev !== null) {
+          cur.interval = (dt_cur - dt_prev) / 1000 - cur.exposure_seconds
+        }
+
+        dt_prev = dt_cur
+      }
+
+      return sorted
     },
     numImages: function () {
       return Object.keys(this.images).length
