@@ -1,6 +1,6 @@
 <template>
   <div class="image-selection">
-    <WarningCard>
+    <WarningCard v-if="error_warning">
       The metadata of some files could not be loaded.
     </WarningCard>
     <br />
