@@ -111,7 +111,7 @@ export default {
       for (let cur of sorted) {
         let dt_cur = Date.parse(cur.creation_time)
 
-        if (dt_prev !== null) {
+        if (dt_prev !== null && !isNaN(dt_prev)) {
           cur.interval = (dt_cur - dt_prev) / 1000 - cur.exposure_seconds
           interval_sum += cur.interval
           max_interval = Math.max(Math.abs(cur.interval), max_interval)
