@@ -1,11 +1,11 @@
 <template>
   <div class="image-selection">
-    <WarningCard v-if="error_warning">
+    <WarningCard v-if="errorWarning">
       The metadata of some files could not be loaded.
     </WarningCard>
     <br />
 
-    <WarningCard v-if="interval_warning && showInterval">
+    <WarningCard v-if="intervalWarning">
       Between some images, the intervals are significantly larger than the average.
       Check whether the marked images really belong to the series and if the frames are sorted correctly.
     </WarningCard>
@@ -44,7 +44,7 @@
             {{ image.error }}
           </td>
           <td class="text-center" v-if="!image.error">{{ image.exposure_seconds }}s</td>
-          <td class="text-center" v-if="!image.error && showInterval" :class="{ 'bg-warning': Math.abs(image.interval) > interval_warning_threshold}">
+          <td class="text-center" v-if="!image.error && showInterval" :class="{ 'bg-warning': Math.abs(image.interval) > intervalWarningThreshold}">
             <span v-if="image.interval !== null">{{ image.interval }}s</span>
           </td>
           <td class="text-center" v-if="!image.error">f{{ image.aperture }}</td>
@@ -80,9 +80,7 @@ export default {
       images: {},
       loading_exif: false,
       count_loaded: 0,
-      interval_warning_threshold: 2,
       interval_warning: false,
-      error_warning: false,
       sortkey: 'creation_time',
       available_sortkeys: [
           { value: 'creation_time', text: 'Time' },
@@ -97,6 +95,7 @@ export default {
     sortedImages: function () {
       let sorted = [...Object.values(this.images)]
 
+      // Sort by key, while moving images with errors to the front
       sorted.sort((a, b) => {
         if (a.error) return -1
         if (b.error) return 1
@@ -105,38 +104,69 @@ export default {
 
       // Calculate intervalls between images
       let dt_prev = null
-      let interval_sum = 0
-      let max_interval = 0
-
       for (let cur of sorted) {
         let dt_cur = Date.parse(cur.creation_time)
 
         if (dt_prev !== null && !isNaN(dt_prev)) {
           cur.interval = (dt_cur - dt_prev) / 1000 - cur.exposure_seconds
-          interval_sum += cur.interval
-          max_interval = Math.max(Math.abs(cur.interval), max_interval)
         } else {
           cur.interval = null
-        }
-
-        if (cur.error !== undefined) {
-          this.error_warning = true
         }
 
         dt_prev = dt_cur
       }
 
-      // Calculate a threshold to warn about long pauses between images
-      if (sorted.length > 1) {
-        this.interval_warning_threshold = interval_sum / (sorted.length - 1) + 1
-        console.log("Set interval warning threshold", this.interval_warning_threshold)
-      }
-
-      // Check whether any image exceeded the max interval
-      this.interval_warning = max_interval > this.interval_warning_threshold
-
       return sorted
     },
+
+    /**
+     * Calculate a threshold to warn about long pauses between images.
+     * Returns the threshold or nothing if there are less than three images.
+     */
+    intervalWarningThreshold: function () {
+      let interval_sum = 0
+
+      for (let cur of this.sortedImages) {
+        if (cur.interval) {
+          interval_sum += cur.interval
+        }
+      }
+
+      if (this.sortedImages.length > 1) {
+        return interval_sum / (this.sortedImages.length - 1) + 1
+      }
+    },
+
+    /**
+     * Check whether the interval between two images is larger than the threshold.
+     * Returns false is showInterval is false.
+     */
+    intervalWarning: function () {
+      if (!this.showInterval) return false
+
+      for (let cur of this.sortedImages) {
+        if (cur.interval > this.intervalWarningThreshold) {
+          return true
+        }
+      }
+
+      return false
+    },
+
+    /**
+     * Check whether there are images in the list with an error.
+     * Returns true on errors, otherwise false
+     */
+    errorWarning: function () {
+      for (let cur of this.sortedImages) {
+        if (cur.error !== undefined) {
+          return true
+        }
+      }
+
+      return false
+    },
+
     numImages: function () {
       return Object.keys(this.images).length
     },
@@ -148,14 +178,11 @@ export default {
     clear_list: function () {
       this.images = {}
       this.count_loaded = 0
-      this.interval_warning = false
-      this.error_warning = false
     },
     remove_image: function (path) {
       console.log("Removing", path)
       this.$delete(this.images, path)
       this.count_loaded -= 1
-      this.error_warning = false
     },
     choose_image_dialog: function (event) {
       let parent = this
