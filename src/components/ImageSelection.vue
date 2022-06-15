@@ -3,19 +3,19 @@
     <WarningCard v-if="errorWarning">
       The metadata of some files could not be loaded.
     </WarningCard>
-    <br />
+    <br v-if="errorWarning" />
     
     <WarningCard v-if="cameraSettingWarning">
       The camera settings between some frames changed.
       Check whether the marked images really belong to the series.
     </WarningCard>
-    <br />
+    <br v-if="cameraSettingWarning" />
 
     <WarningCard v-if="intervalWarning">
       Between some images, the intervals are significantly larger than the average.
       Check whether the marked images really belong to the series and if the frames are sorted correctly.
     </WarningCard>
-    <br />
+    <br v-if="intervalWarning" />
 
     <div class="d-flex justify-content-center">
       <div class="p-2"><b-button variant="success" v-on:click="choose_image_dialog">Select images</b-button></div>
@@ -288,7 +288,6 @@ thead {
 }
 
 
-.bg-palette-0 {}
 .bg-palette-1 { background-color: indigo; }
 .bg-palette-2 { background-color: pink; }
 .bg-palette-3 { background-color: darkgreen; }
