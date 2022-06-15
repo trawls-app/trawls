@@ -4,6 +4,12 @@
       The metadata of some files could not be loaded.
     </WarningCard>
     <br />
+    
+    <WarningCard v-if="cameraSettingWarning">
+      The camera settings between some frames changed.
+      Check whether the marked images really belong to the series.
+    </WarningCard>
+    <br />
 
     <WarningCard v-if="intervalWarning">
       Between some images, the intervals are significantly larger than the average.
@@ -43,12 +49,12 @@
             <b-icon icon="patch-exclamation"></b-icon>
             {{ image.error }}
           </td>
-          <td class="text-center" v-if="!image.error">{{ image.exposure_seconds }}s</td>
+          <td class="text-center" :class="get_color_class('exposure', image.exposure_seconds)" v-if="!image.error">{{ image.exposure_seconds }}s</td>
           <td class="text-center" v-if="!image.error && showInterval" :class="{ 'bg-warning': Math.abs(image.interval) > intervalWarningThreshold}">
             <span v-if="image.interval !== null">{{ image.interval }}s</span>
           </td>
-          <td class="text-center" v-if="!image.error">f{{ image.aperture }}</td>
-          <td class="text-center" v-if="!image.error">{{ image.iso }}</td>
+          <td class="text-center" :class="get_color_class('aperture', image.aperture)" v-if="!image.error">f{{ image.aperture }}</td>
+          <td class="text-center" :class="get_color_class('iso', image.iso)" v-if="!image.error">{{ image.iso }}</td>
           <td class="text-center" v-if="!image.error">{{ image.creation_time}}</td>
           <td>
             <b-icon class="clickable-icon" icon="x-circle" v-on:click="remove_image(image.path)"></b-icon>
@@ -117,6 +123,50 @@ export default {
       }
 
       return sorted
+    },
+
+    /**
+     * Collects all occuring aperture, exposure time and iso values
+     */
+    occuringSettingValues: function () {
+      let data = {
+        aperture: new Set(),
+        exposure: new Set(),
+        iso: new Set(),
+      }
+
+      for (let cur of this.sortedImages) {
+        data.aperture.add(cur.aperture)
+        data.exposure.add(cur.exposure_seconds)
+        data.iso.add(cur.iso)
+      }
+
+      return data
+    },
+    
+    /**
+     * Maps each occuring setting value to a number from the color palette
+     */
+    valueColorMapping: function () {
+      let data = {}
+
+      let i = 0
+      for (let [key, settings] of Object.entries(this.occuringSettingValues)) {
+        data[key] = Object.fromEntries([...settings].map( setting => [setting, i++ % 8 + 1]))
+      }
+
+      return data
+    },
+
+    /**
+     * Check whether there are images which differ in aperture, exposure time or iso
+     */
+    cameraSettingWarning: function () {
+      let len_aperture = this.occuringSettingValues.aperture.size
+      let len_exposure = this.occuringSettingValues.exposure.size
+      let len_iso = this.occuringSettingValues.iso.size
+
+      return len_aperture > 1 || len_exposure > 1 || len_iso > 1
     },
 
     /**
@@ -212,12 +262,18 @@ export default {
       if (infos.count_loaded === infos.count_total) {
         this.loading_exif = false
       }
-    }
+    },
+    get_color_class: function (setting, value) {
+      if (this.occuringSettingValues[setting].size <= 1) return "bg-palette-0"
+
+      return "bg-palette-" + this.valueColorMapping[setting][value]
+    },
   }
 }
 </script>
 
-<style scoped>
+<style scoped lang="scss">
+@import '../assets/darkly.scss';
 table {
   margin: auto;
   width: calc(100% - 40px);
@@ -230,4 +286,15 @@ thead {
 .clickable-icon {
   cursor: pointer;
 }
+
+
+.bg-palette-0 {}
+.bg-palette-1 { background-color: indigo; }
+.bg-palette-2 { background-color: pink; }
+.bg-palette-3 { background-color: darkgreen; }
+.bg-palette-4 { background-color: darkcyan; }
+.bg-palette-5 { background-color: darkgoldenrod; }
+.bg-palette-6 { background-color: darkblue; }
+.bg-palette-7 { background-color: purple; }
+.bg-palette-8 { background-color: darkkhaki; }
 </style>
