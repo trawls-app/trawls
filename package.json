@@ -20,7 +20,7 @@
   },
   "devDependencies": {
     "@babel/polyfill": "^7.11.5",
-    "@vue/cli-service": "~5.0.6",
+    "@vue/cli-service": "~5.0.8",
     "babel-eslint": "^10.1.0",
     "bootstrap": "~4.6.0",
     "eslint": "^8.17.0",
@@ -31,8 +31,8 @@
     "sass": "^1.52.3",
     "sass-loader": "^13.0.0",
     "vue-cli-plugin-bootstrap-vue": "~0.8.2",
-    "vue-cli-plugin-tauri": "~1.0.0-rc.3",
-    "vue-template-compiler": "^2.7.4"
+    "vue-template-compiler": "^2.7.4",
+    "vue-cli-plugin-tauri": "~1.0.0"
   },
   "eslintConfig": {
     "root": true,
