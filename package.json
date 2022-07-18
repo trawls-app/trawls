@@ -15,7 +15,7 @@
     "@tauri-apps/tauri": "0.0.1-utility.19",
     "bootstrap-vue": "^2.22.0",
     "core-js": "^3.23.4",
-    "vue": "~2.7.4",
+    "vue": "~2.7.7",
     "vue-image-zoomer": "^1.4.0"
   },
   "devDependencies": {
@@ -31,7 +31,7 @@
     "sass": "^1.53.0",
     "sass-loader": "^13.0.2",
     "vue-cli-plugin-bootstrap-vue": "~0.8.2",
-    "vue-template-compiler": "^2.7.4",
+    "vue-template-compiler": "^2.7.7",
     "vue-cli-plugin-tauri": "~1.0.0"
   },
   "eslintConfig": {
