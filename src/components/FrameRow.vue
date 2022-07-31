@@ -1,24 +1,24 @@
 <template>
     <span>
-        <div class="d-flex flex-row border-bottom border-secondary bg-danger" v-if="image.error">
-            <div class="mr-auto p-2">{{ image.filename }}</div>
+        <div class="d-flex flex-row border-bottom border-secondary bg-danger" v-if="source.error">
+            <div class="mr-auto p-2">{{ source.filename }}</div>
             <div class="p-2 col-error">
                 <b-icon icon="patch-exclamation"></b-icon>
-                {{ image.error }}
+                {{ source.error }}
             </div>
             <div class="p-2 text-center col-small">
-                <b-icon class="clickable-icon" icon="x-circle" v-on:click="remove_image(image.path)"></b-icon>
+                <b-icon class="clickable-icon" icon="x-circle" v-on:click="remove_image(source.path)"></b-icon>
             </div>
         </div>
         <div class="d-flex flex-row border-bottom border-secondary" v-else>
-            <div class="mr-auto p-2">{{ image.filename }}</div>
-            <div class="p-2 text-center col-medium" :class="get_color_class('exposure', image.exposure_seconds)">{{ image.exposure_seconds }}s</div>
-            <div class="p-2 text-center col-medium" :class="{ 'bg-warning': Math.abs(image.interval) > interval_warning_threshold}" v-if="show_interval">{{ image.interval }}<span v-if="image.interval">s</span></div>
-            <div class="p-2 text-center col-medium" :class="get_color_class('aperture', image.aperture)">f{{ image.aperture }}</div>
-            <div class="p-2 text-center col-medium" :class="get_color_class('iso', image.iso)">{{ image.iso }}</div>
-            <div class="p-2 text-center col-large">{{ image.creation_time}}</div>
+            <div class="mr-auto p-2">{{ source.filename }}</div>
+            <div class="p-2 text-center col-medium" :class="get_color_class('exposure', source.exposure_seconds)">{{ source.exposure_seconds }}s</div>
+            <div class="p-2 text-center col-medium" :class="{ 'bg-warning': Math.abs(source.interval) > interval_warning_threshold}" v-if="show_interval">{{ source.interval }}<span v-if="source.interval">s</span></div>
+            <div class="p-2 text-center col-medium" :class="get_color_class('aperture', source.aperture)">f{{ source.aperture }}</div>
+            <div class="p-2 text-center col-medium" :class="get_color_class('iso', source.iso)">{{ source.iso }}</div>
+            <div class="p-2 text-center col-large">{{ source.creation_time}}</div>
             <div class="p-2 text-center col-small">
-                <b-icon class="clickable-icon" icon="x-circle" v-on:click="remove_image(image.path)"></b-icon>
+                <b-icon class="clickable-icon" icon="x-circle" v-on:click="remove_image(source.path)"></b-icon>
             </div>
         </div>
     </span>
@@ -28,7 +28,7 @@
 <script>
 export default {
   name: "FrameRow",
-  props: ['image', 'setting_values', 'color_mapping', 'show_interval', 'interval_warning_threshold', 'remove_image'],
+  props: ['index', 'source', 'setting_values', 'color_mapping', 'show_interval', 'interval_warning_threshold', 'remove_image'],
   methods: {
     get_color_class: function (setting, value) {
       if (this.setting_values[setting].size <= 1) return "bg-palette-0"

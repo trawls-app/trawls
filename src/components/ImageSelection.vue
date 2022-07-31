@@ -5,17 +5,17 @@
     </WarningCard>
     <br v-if="errorWarning" />
     
-    <WarningCard v-if="cameraSettingWarning">
+    <WarningCard v-if="cameraSettingWarning && !loading_exif">
       The camera settings between some frames changed.
       Check whether the marked images really belong to the series.
     </WarningCard>
-    <br v-if="cameraSettingWarning" />
+    <br v-if="cameraSettingWarning && !loading_exif" />
 
-    <WarningCard v-if="intervalWarning">
+    <WarningCard v-if="intervalWarning && !loading_exif">
       Between some images, the intervals are significantly larger than the average.
       Check whether the marked images really belong to the series and if the frames are sorted correctly.
     </WarningCard>
-    <br v-if="intervalWarning" />
+    <br v-if="intervalWarning && !loading_exif" />
 
     <div class="d-flex justify-content-center">
       <div class="p-2"><b-button variant="success" v-on:click="choose_image_dialog">Select images</b-button></div>
@@ -39,14 +39,18 @@
       <div class="p-2 col-small"></div>
     </div>
 
-    <FrameRow
-      v-for="image in sortedImages"
-      :image="image"
-      :setting_values="occuringSettingValues"
-      :color_mapping="valueColorMapping"
-      :show_interval="showInterval"
-      :interval_warning_threshold="intervalWarningThreshold"
-      :remove_image="remove_image"
+    <VirtualList style="height: 70vh; overflow-y: auto;"
+      :data-key="'path'"
+      :data-sources="sortedImages"
+      :data-component="rowComponent"
+      :extra-props="{
+        setting_values: occuringSettingValues,
+        color_mapping: valueColorMapping,
+        show_interval: showInterval,
+        interval_warning_threshold: intervalWarningThreshold,
+        remove_image: remove_image
+      }"
+      :keeps="60"
     />
   </div>
 </template>
@@ -55,6 +59,8 @@
 import { open } from '@tauri-apps/api/dialog'
 import { invoke } from '@tauri-apps/api/tauri'
 import { listen } from '@tauri-apps/api/event'
+import VirtualList from 'vue-virtual-scroll-list'
+
 import WarningCard from './WarningCard.vue'
 import FrameRow from './FrameRow.vue'
 
@@ -64,12 +70,14 @@ export default {
   components: {
     WarningCard,
     FrameRow,
+    VirtualList,
   },
   props: {
     showInterval: Boolean
   },
   data: function () {
     return {
+      rowComponent: FrameRow,
       images: {},
       loading_exif: false,
       count_loaded: 0,
@@ -229,7 +237,7 @@ export default {
 
           // Show images immediately
           for (let image of res) {
-            parent.$set(parent.images, image, {"filename": image.split("/").pop()})
+            parent.$set(parent.images, image, {"filename": image.split("/").pop(), "path": image})
           }
 
           invoke("load_image_infos",{

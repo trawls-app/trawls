@@ -16,7 +16,8 @@
     "bootstrap-vue": "^2.22.0",
     "core-js": "^3.23.1",
     "vue": "~2.6.14",
-    "vue-image-zoomer": "^1.4.0"
+    "vue-image-zoomer": "^1.4.0",
+    "vue-virtual-scroll-list": "^2.3.3"
   },
   "devDependencies": {
     "@babel/polyfill": "^7.11.5",
