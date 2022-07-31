@@ -6617,7 +6617,7 @@ vue-virtual-scroll-list@^2.3.3:
   resolved "https://registry.yarnpkg.com/vue-virtual-scroll-list/-/vue-virtual-scroll-list-2.3.3.tgz#290f0d04be814b93585f2ef232097b671141e5b1"
   integrity sha512-heuwlZ+lEdcVSp66CpVXnyNdsiHl/XU1cvqJb0yUHGlLv6DGK8OX16FH8I3w/wKNXtHSPF9itdBBGJFrXkyHeg==
 
-vue@^2.6.12:
+vue@^2.6.12, vue@~2.6.14:
   version "2.6.14"
   resolved "https://registry.yarnpkg.com/vue/-/vue-2.6.14.tgz#e51aa5250250d569a3fbad3a8a5a687d6036e235"
   integrity sha512-x2284lgYvjOMj3Za7kqzRcUSxBboHqtgRE2zlos1qWaOye5yUmHn42LB1250NJBLRwEcdrB0JRwyPTEPhfQjiQ==
