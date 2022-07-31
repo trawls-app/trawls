@@ -5,17 +5,17 @@
     </WarningCard>
     <br v-if="errorWarning" />
     
-    <WarningCard v-if="cameraSettingWarning">
+    <WarningCard v-if="cameraSettingWarning && !loading_exif">
       The camera settings between some frames changed.
       Check whether the marked images really belong to the series.
     </WarningCard>
-    <br v-if="cameraSettingWarning" />
+    <br v-if="cameraSettingWarning && !loading_exif" />
 
-    <WarningCard v-if="intervalWarning">
+    <WarningCard v-if="intervalWarning && !loading_exif">
       Between some images, the intervals are significantly larger than the average.
       Check whether the marked images really belong to the series and if the frames are sorted correctly.
     </WarningCard>
-    <br v-if="intervalWarning" />
+    <br v-if="intervalWarning && !loading_exif" />
 
     <div class="d-flex justify-content-center">
       <div class="p-2"><b-button variant="success" v-on:click="choose_image_dialog">Select images</b-button></div>
@@ -29,40 +29,29 @@
       </b-progress-bar>
     </b-progress>
 
-    <div class="table-responsive">
-      <table class="table" v-if="sortedImages.length > 0">
-        <thead>
-        <tr>
-          <td>Filename</td>
-          <td class="text-center">Exposure</td>
-          <td class="text-center" v-if="showInterval">Interval</td>
-          <td class="text-center">Aperture</td>
-          <td class="text-center">ISO</td>
-          <td class="text-center">Time</td>
-          <td></td>
-        </tr>
-        </thead>
-        <tbody>
-        <tr v-for="(image, path) in sortedImages" :key="path" :class="{ 'bg-danger': image.error }">
-          <td v-b-tooltip.hover="image.path">{{ image.filename}}</td>
-          <td colspan="5" v-if="image.error">
-            <b-icon icon="patch-exclamation"></b-icon>
-            {{ image.error }}
-          </td>
-          <td class="text-center" :class="get_color_class('exposure', image.exposure_seconds)" v-if="!image.error">{{ image.exposure_seconds }}s</td>
-          <td class="text-center" v-if="!image.error && showInterval" :class="{ 'bg-warning': Math.abs(image.interval) > intervalWarningThreshold}">
-            <span v-if="image.interval !== null">{{ image.interval }}s</span>
-          </td>
-          <td class="text-center" :class="get_color_class('aperture', image.aperture)" v-if="!image.error">f{{ image.aperture }}</td>
-          <td class="text-center" :class="get_color_class('iso', image.iso)" v-if="!image.error">{{ image.iso }}</td>
-          <td class="text-center" v-if="!image.error">{{ image.creation_time}}</td>
-          <td>
-            <b-icon class="clickable-icon" icon="x-circle" v-on:click="remove_image(image.path)"></b-icon>
-          </td>
-        </tr>
-        </tbody>
-      </table>
+    <div class="d-flex flex-row border-bottom border-light thead">
+      <div class="mr-auto p-2">Filename</div>
+      <div class="p-2 text-center col-medium">Exposure</div>
+      <div class="p-2 text-center col-medium" v-if="showInterval">Interval</div>
+      <div class="p-2 text-center col-medium">Aperture</div>
+      <div class="p-2 text-center col-medium">ISO</div>
+      <div class="p-2 text-center col-large">Time</div>
+      <div class="p-2 col-small"></div>
     </div>
+
+    <VirtualList style="height: 70vh; overflow-y: auto;"
+      :data-key="'path'"
+      :data-sources="sortedImages"
+      :data-component="rowComponent"
+      :extra-props="{
+        setting_values: occuringSettingValues,
+        color_mapping: valueColorMapping,
+        show_interval: showInterval,
+        interval_warning_threshold: intervalWarningThreshold,
+        remove_image: remove_image
+      }"
+      :keeps="60"
+    />
   </div>
 </template>
 
@@ -70,19 +59,25 @@
 import { open } from '@tauri-apps/api/dialog'
 import { invoke } from '@tauri-apps/api/tauri'
 import { listen } from '@tauri-apps/api/event'
+import VirtualList from 'vue-virtual-scroll-list'
+
 import WarningCard from './WarningCard.vue'
+import FrameRow from './FrameRow.vue'
 
 
 export default {
   name: "ImageSelection",
   components: {
     WarningCard,
+    FrameRow,
+    VirtualList,
   },
   props: {
     showInterval: Boolean
   },
   data: function () {
     return {
+      rowComponent: FrameRow,
       images: {},
       loading_exif: false,
       count_loaded: 0,
@@ -195,7 +190,7 @@ export default {
       if (!this.showInterval) return false
 
       for (let cur of this.sortedImages) {
-        if (cur.interval > this.intervalWarningThreshold) {
+        if (Math.abs(cur.interval) > this.intervalWarningThreshold) {
           return true
         }
       }
@@ -242,7 +237,7 @@ export default {
 
           // Show images immediately
           for (let image of res) {
-            parent.$set(parent.images, image, {"filename": image.split("/").pop()})
+            parent.$set(parent.images, image, {"filename": image.split("/").pop(), "path": image})
           }
 
           invoke("load_image_infos",{
@@ -279,21 +274,27 @@ table {
   width: calc(100% - 40px);
 }
 
-thead {
+.col-small {
+  min-width: 2em;
+  max-width: 2em;
+  text-align: center;
+}
+
+.col-medium {
+  min-width: 5.5em;
+  max-width: 5.5em;
+  text-align: center;
+}
+
+.col-large {
+  min-width: 12em;
+  max-width: 12em;
+  text-align: center;
+}
+
+.thead {
   font-weight: bolder;
 }
 
-.clickable-icon {
-  cursor: pointer;
-}
 
-
-.bg-palette-1 { background-color: indigo; }
-.bg-palette-2 { background-color: pink; }
-.bg-palette-3 { background-color: darkgreen; }
-.bg-palette-4 { background-color: darkcyan; }
-.bg-palette-5 { background-color: darkgoldenrod; }
-.bg-palette-6 { background-color: darkblue; }
-.bg-palette-7 { background-color: purple; }
-.bg-palette-8 { background-color: darkkhaki; }
 </style>
