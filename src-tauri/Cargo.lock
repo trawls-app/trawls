@@ -3,29 +3,6 @@
 version = 3
 
 [[package]]
-name = "Trawls"
-version = "0.2.1"
-dependencies = [
- "anyhow",
- "arrayvec",
- "base64",
- "chrono",
- "dng-rs",
- "itertools",
- "num",
- "num_cpus",
- "rawloader",
- "rayon",
- "rexif",
- "serde",
- "serde_json",
- "tauri",
- "tauri-build",
- "tempfile",
- "version",
-]
-
-[[package]]
 name = "adler"
 version = "1.0.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3268,6 +3245,29 @@ dependencies = [
  "tracing",
  "tracing-core",
  "tracing-log",
+]
+
+[[package]]
+name = "trawls"
+version = "0.2.1"
+dependencies = [
+ "anyhow",
+ "arrayvec",
+ "base64",
+ "chrono",
+ "dng-rs",
+ "itertools",
+ "num",
+ "num_cpus",
+ "rawloader",
+ "rayon",
+ "rexif",
+ "serde",
+ "serde_json",
+ "tauri",
+ "tauri-build",
+ "tempfile",
+ "version",
 ]
 
 [[package]]
