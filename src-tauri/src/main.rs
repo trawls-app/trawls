@@ -1,85 +1,97 @@
-#![cfg_attr(
-  all(not(debug_assertions), target_os = "windows"),
-  windows_subsystem = "windows"
-)]
+#![cfg_attr(all(not(debug_assertions), target_os = "windows"), windows_subsystem = "windows")]
 #![allow(non_upper_case_globals)]
 
 #[macro_use]
 extern crate version;
+extern crate anyhow;
 
 mod fileinfo;
 mod processing;
 
-use crate::processing::status::Status;
+use crate::processing::status::{InfoLoadingStatus, ProcessingStatus};
 use std::fs;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::time::Instant;
 
+use fileinfo::ImageCandidate;
 use rayon::prelude::*;
 
 #[tauri::command]
 fn get_app_version() -> String {
-  version!().to_string()
+    version!().to_string()
+}
+
+fn fetch_exif(path: PathBuf) -> anyhow::Result<ImageCandidate> {
+    let metadata = fs::metadata(&path)?;
+    anyhow::ensure!(metadata.is_file());
+
+    // Todo: Refactor to remove unwrap
+    let candidate = fileinfo::ImageCandidate::load(&path)?;
+    Ok(candidate)
 }
 
 #[tauri::command]
-async fn load_images(paths: Vec<String>) -> Result<serde_json::Value, String> {
-  println!("Loading exifs");
-  let res: Vec<serde_json::Value> = paths
-    .par_iter()
-    .map(|x| {
-      let p = Path::new(x);
-      let metadata = fs::metadata(p).unwrap();
-      assert!(metadata.is_file());
+async fn load_image_infos(
+    window: tauri::Window,
+    paths: Vec<String>,
+    selector_reference: String,
+) -> Result<serde_json::Value, String> {
+    let reference = format!("loaded_image_info_{}", selector_reference);
+    let state = InfoLoadingStatus::new(paths.clone(), reference, window);
 
-      let candidate = fileinfo::ImageCandidate::load(p).unwrap();
-      candidate.json()
-    })
-    .collect();
+    println!("Loading exifs");
+    paths.par_iter().for_each(|x| {
+        let p = PathBuf::from(x);
+        let candidate = fetch_exif(p);
 
-  Ok(serde_json::json!(res))
+        match candidate {
+            Ok(c) => {
+                state.lock().unwrap().add_image_info(x.to_string(), c.json());
+            }
+            Err(error) => {
+                state.lock().unwrap().add_loading_error(x.to_string(), error);
+            }
+        }
+    });
+
+    println!("Finished loading exifs");
+
+    Ok(serde_json::json!({}))
 }
 
 #[tauri::command]
 async fn run_merge(
-  window: tauri::Window,
-  lightframes: Vec<String>,
-  darkframes: Vec<String>,
-  mode_str: String,
-  out_path: String,
+    window: tauri::Window,
+    lightframes: Vec<String>,
+    darkframes: Vec<String>,
+    mode_str: String,
+    out_path: String,
 ) -> Result<serde_json::Value, String> {
-  let state = Status::new(lightframes.len(), darkframes.len(), window);
-  let paths_light = lightframes
-    .into_iter()
-    .map(|x| Path::new(&x).to_path_buf())
-    .collect();
-  let paths_dark = darkframes
-    .into_iter()
-    .map(|x| Path::new(&x).to_path_buf())
-    .collect();
-  let output = Path::new(&out_path).to_path_buf();
-  let mode = match mode_str.as_str() {
-    "falling" => processing::Comets::Falling,
-    "raising" => processing::Comets::Raising,
-    _ => processing::Comets::Normal,
-  };
-  println!("Running merge in '{}' mode.", mode_str);
+    let state =
+        ProcessingStatus::new(lightframes.len(), darkframes.len(), String::from("processing_state_change"), window);
 
-  let start = Instant::now();
-  let preview = processing::run_merge(paths_light, paths_dark, output, mode, state);
+    let paths_light = lightframes.into_iter().map(|x| Path::new(&x).to_path_buf()).collect();
+    let paths_dark = darkframes.into_iter().map(|x| Path::new(&x).to_path_buf()).collect();
 
-  println!("Processing took {} seconds.", start.elapsed().as_secs());
-  Ok(serde_json::json!(preview))
+    let output = Path::new(&out_path).to_path_buf();
+    let mode = match mode_str.as_str() {
+        "falling" => processing::Comets::Falling,
+        "raising" => processing::Comets::Raising,
+        _ => processing::Comets::Normal,
+    };
+    println!("Running merge in '{}' mode.", mode_str);
+
+    let start = Instant::now();
+    let preview = processing::run_merge(paths_light, paths_dark, output, mode, state);
+
+    println!("Processing took {} seconds.", start.elapsed().as_secs());
+    Ok(serde_json::json!(preview))
 }
 
 fn main() {
-  println!("Running Trawls v{}", version!());
-  tauri::Builder::new()
-    .invoke_handler(tauri::generate_handler![
-      get_app_version,
-      load_images,
-      run_merge
-    ])
-    .run(tauri::generate_context!())
-    .unwrap();
+    println!("Running Trawls v{}", version!());
+    tauri::Builder::new()
+        .invoke_handler(tauri::generate_handler![get_app_version, load_image_infos, run_merge])
+        .run(tauri::generate_context!())
+        .unwrap();
 }

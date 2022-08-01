@@ -14,7 +14,7 @@ Trawls is based on [Tauri](https://tauri.studio/en/) and uses [Vue](https://vuej
 Tauri is integrated using a vue-cli plugin, such that setup, compilation and building of the Rust parts can be controlled through `yarn`.
 
 ```
-yarn install
+CXXFLAGS="--std=c++14" yarn install
 ```
 
 ### Compiles and hot-reloads for development

@@ -1,18 +1,19 @@
 [package]
 name = "trawls"
-version = "0.2.1"
+version = "0.3.0"
 description = "Trawls - RAW based startrail processing"
 authors = [ "Christopher Schmidt" ]
 license = ""
-repository = ""
+repository = "https://github.com/trawls-app/trawls"
 default-run = "trawls"
 edition = "2018"
 build = "src/build.rs"
 
 [dependencies]
+anyhow = "1.0.58"
 serde_json = "1.0"
 serde = { version = "1.0", features = [ "derive" ] }
-tauri = {version = "1.0.0-rc.11",features = ["api-all", "updater"] }
+tauri = {version = "1.0.5",features = ["api-all", "updater"] }
 chrono = { version = "0.4", features = [ "serde" ] }
 arrayvec = "0.7.2"
 num = "0.4.0"
@@ -20,14 +21,14 @@ rexif = "0.7.3"
 rawloader = "0.37.0"
 num_cpus = "1.13.1"
 rayon = "1.5.3"
-dng-rs = { git = "https://github.com/trawls-app/libdng-rust", rev="9400e105b2ec1d09b35f28a1be383ad091ba2952" }
+dng-rs = { git = "https://github.com/trawls-app/libdng-rust", rev="ad6a5c95d0d10f298a63b18f5ec0e4f99fedd43b" }
 tempfile = "3.2.0"
 base64 = "0.13.0"
 itertools = "0.10.3"
 version = "3.0.0"
 
 [build-dependencies]
-tauri-build = { version = "1.0.0-rc.9", features = [] }
+tauri-build = { version = "1.0.4", features = [] }
 
 [features]
 custom-protocol = [ "tauri/custom-protocol" ]

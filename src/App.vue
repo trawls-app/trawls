@@ -11,7 +11,7 @@
             </template>
             <b-card-text>
               <StepDescription>Select the lightframes in this step.</StepDescription><br/>
-              <ImageSelection ref="lightframes"/>
+              <ImageSelection ref="lightframes" name="lights" :showInterval="true" />
             </b-card-text>
           </b-tab>
           <b-tab>
@@ -24,7 +24,7 @@
               <StepDescription>
                 (Optional) Select darkframes, shot with the same settings as the lightframes, to reduce the noise of the resulting image.
               </StepDescription><br/>
-              <ImageSelection ref="darkframes"/>
+              <ImageSelection ref="darkframes" name="darks" :showInterval="false" />
             </b-card-text>
           </b-tab>
           <b-tab title="3. Process images">
