@@ -4,8 +4,8 @@ use std::thread::JoinHandle;
 use std::{fs, thread, time};
 
 use anyhow::{self, Context};
-use log::{error, info};
 use itertools::chain;
+use log::{error, info};
 use num::rational::Ratio;
 use rayon::prelude::*;
 use serde::Serialize;

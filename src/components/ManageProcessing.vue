@@ -144,6 +144,9 @@ export default {
     },
     update_state: function (updated_state) {
       this.state = updated_state.payload
+    },
+    set_failed: function() {
+      this.state = {}
     }
   },
 }

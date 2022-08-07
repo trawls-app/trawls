@@ -1,15 +1,12 @@
 #![cfg_attr(all(not(debug_assertions), target_os = "windows"), windows_subsystem = "windows")]
 #![allow(non_upper_case_globals)]
 
-
 extern crate pretty_env_logger;
 
 #[macro_use]
 extern crate version;
 extern crate anyhow;
 extern crate log;
-
-
 
 mod fileinfo;
 mod processing;
@@ -19,8 +16,8 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use std::time::Instant;
 
-use log::{info, error};
 use fileinfo::ImageCandidate;
+use log::{error, info};
 use rayon::prelude::*;
 use serde_json::json;
 
@@ -96,9 +93,9 @@ async fn run_merge(
     match preview {
         Ok(x) => Ok(json!(x)),
         Err(err) => {
-            error!("Merging failed\n\n{:?}", err);
+            error!("Merging failed\n\n-----------------\n{:?}\n-----------------\n", err);
             Err(json!({ "message": err.to_string(), "trace": format!("{:?}", err) }))
-        },
+        }
     }
 }
 

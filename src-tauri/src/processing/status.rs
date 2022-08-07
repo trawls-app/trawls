@@ -1,3 +1,4 @@
+use log::{debug, warn};
 use serde_json::{json, Map};
 use std::cmp::max;
 use std::path::PathBuf;
@@ -6,7 +7,6 @@ use std::sync::atomic::{AtomicBool, AtomicUsize};
 use std::sync::{Arc, Mutex};
 use std::thread;
 use std::time::Duration;
-use log::{debug, warn};
 use tauri::Window;
 
 pub struct StatusEmitter<T: Status> {
@@ -35,6 +35,10 @@ impl<T: Status> StatusEmitter<T> {
         debug!("Starting update emitter for '{}'", self.callback_event.as_str());
 
         loop {
+            if self.status.lock().unwrap().aborted() {
+                break;
+            }
+
             self.window
                 .lock()
                 .unwrap()

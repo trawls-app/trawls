@@ -123,7 +123,10 @@ export default {
         console.log("Finished merge")
         parent.$refs.preview.preview = preview
         parent.$refs.tab_preview.activate()
-      }).catch(error => { this.show_error(error.message, error.trace) })
+      }).catch(error => {
+        this.show_error(error.message, error.trace)
+        parent.$refs.settings.set_failed()
+      })
     },
     get_app_version: function() {
       invoke("get_app_version").then(ver => {
