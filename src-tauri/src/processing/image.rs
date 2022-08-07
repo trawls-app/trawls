@@ -236,7 +236,7 @@ impl Mergable for ExifContainer {
             if !other.all_entries.contains_key(key) {
                 continue;
             }
-            
+
             let other_entry = other.all_entries.get(key).unwrap();
             let mapped_key = self_entry.tag;
 

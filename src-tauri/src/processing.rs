@@ -16,6 +16,8 @@ use libdng::bindings::{ExifTag_Photo_ExposureTime, ExifTag_Photo_FNumber, ExifTa
 use libdng::exif::ExifExtractable;
 use libdng::image_info::DNGWriting;
 
+use self::status::Status;
+
 mod image;
 pub mod status;
 
@@ -114,7 +116,17 @@ pub fn run_merge(
     // Load light- and darkframes
     tasks
         .par_iter()
-        .map(|t| load_image(t, Arc::clone(&queue_lights), Arc::clone(&queue_darks), mode, state.clone()))
+        .map(|t| {
+            if state.lock().unwrap().aborted() {
+                return Ok(());
+            }
+            if let Err(e) = load_image(t, Arc::clone(&queue_lights), Arc::clone(&queue_darks), mode, state.clone()) {
+                state.lock().unwrap().abort();
+                return Err(e);
+            }
+
+            Ok(())
+        })
         .collect::<anyhow::Result<()>>()?;
 
     for t in chain(thread_handles_lights, thread_handles_darks) {
@@ -178,6 +190,11 @@ fn queue_worker(
     state: Arc<Mutex<status::ProcessingStatus>>,
 ) -> anyhow::Result<()> {
     loop {
+        // Stop if any other thread exited preliminary
+        if state.lock().unwrap().aborted() {
+            return Ok(());
+        }
+
         let mut q = queue.lock().unwrap();
         if q.len() <= 1 {
             if state.lock().unwrap().loading_done() {
@@ -195,7 +212,15 @@ fn queue_worker(
         let v2 = q.pop().unwrap();
         drop(q);
 
-        let res = v1.merge(v2, merge_mode).with_context(|| "Failed to merge images.")?;
+        let res = match v1.merge(v2, merge_mode).with_context(|| "Failed to merge images.") {
+            Ok(x) => x,
+            Err(err) => {
+                println!("{:?}", err);
+                state.lock().unwrap().abort();
+                return Err(err);
+            }
+        };
+
         queue.lock().unwrap().push(res);
         state.lock().unwrap().finish_merging();
     }
