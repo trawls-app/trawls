@@ -1,4 +1,5 @@
 use crate::fileinfo::ExifContainer;
+use anyhow;
 use arrayvec::ArrayVec;
 use libdng::bindings::{Area, ImageInfoContainer};
 use libdng::exif::ExifBox;
@@ -9,7 +10,6 @@ use rexif::{ExifTag, TagValue};
 use std::cmp::max;
 use std::collections::HashMap;
 use std::path::Path;
-use std::unimplemented;
 
 #[derive(Copy, Clone)]
 pub enum MergeMode {
@@ -20,9 +20,9 @@ pub enum MergeMode {
 pub trait Mergable<Rhs = Self> {
     type Container;
 
-    fn load_from_raw(path: &Path, intensity: f32) -> Result<Self::Container, &str>;
-    fn weighted_merge(self, other: Rhs, weight_self: f32, weight_other: f32, mode: MergeMode) -> Rhs;
-    fn merge(self, other: Rhs, mode: MergeMode) -> Rhs;
+    fn load_from_raw(path: &Path, intensity: f32) -> anyhow::Result<Self::Container>;
+    fn weighted_merge(self, other: Rhs, weight_self: f32, weight_other: f32, mode: MergeMode) -> anyhow::Result<Rhs>;
+    fn merge(self, other: Rhs, mode: MergeMode) -> anyhow::Result<Rhs>;
 }
 
 pub struct Image {
@@ -32,9 +32,9 @@ pub struct Image {
 }
 
 impl Image {
-    pub fn apply_darkframe(self, darkframe: Image) -> Image {
-        let light = self.get_image_data();
-        let dark = darkframe.get_image_data();
+    pub fn apply_darkframe(self, darkframe: Image) -> anyhow::Result<Image> {
+        let light = self.get_image_data()?;
+        let dark = darkframe.get_image_data()?;
         let avg_black = (dark.iter().fold(0u64, |acc, x| acc + *x as u64) / dark.len() as u64) as i16;
 
         let res = light
@@ -43,7 +43,7 @@ impl Image {
             .map(|(x, y)| max(0, *x as i16 - (y as i16 - avg_black)) as u16)
             .collect();
 
-        Image {
+        Ok(Image {
             raw_image: RawImage {
                 make: self.raw_image.make,
                 model: self.raw_image.model,
@@ -64,14 +64,14 @@ impl Image {
             },
             exif: self.exif,
             num_images: self.num_images,
-        }
+        })
     }
 }
 
 impl Mergable for Image {
     type Container = Image;
 
-    fn load_from_raw(path: &Path, intensity: f32) -> Result<Self::Container, &str> {
+    fn load_from_raw(path: &Path, intensity: f32) -> anyhow::Result<Self::Container> {
         Ok(Image {
             raw_image: RawImage::load_from_raw(path, intensity)?,
             exif: ExifContainer::load_from_raw(path, intensity)?,
@@ -79,17 +79,19 @@ impl Mergable for Image {
         })
     }
 
-    fn weighted_merge(self, other: Self, weight_self: f32, weight_other: f32, mode: MergeMode) -> Self {
-        Image {
+    fn weighted_merge(self, other: Self, weight_self: f32, weight_other: f32, mode: MergeMode) -> anyhow::Result<Self> {
+        let img = Image {
             raw_image: self
                 .raw_image
-                .weighted_merge(other.raw_image, weight_self, weight_other, mode),
-            exif: self.exif.weighted_merge(other.exif, weight_self, weight_other, mode),
+                .weighted_merge(other.raw_image, weight_self, weight_other, mode)?,
+            exif: self.exif.weighted_merge(other.exif, weight_self, weight_other, mode)?,
             num_images: self.num_images + other.num_images,
-        }
+        };
+
+        Ok(img)
     }
 
-    fn merge(self, other: Self, mode: MergeMode) -> Self {
+    fn merge(self, other: Self, mode: MergeMode) -> anyhow::Result<Self> {
         let weight_self = self.num_images as f32;
         let weight_other = other.num_images as f32;
         match mode {
@@ -135,11 +137,11 @@ impl RawSavableImage for Image {
         }
     }
 
-    fn get_image_data(&self) -> Vec<u16> {
+    fn get_image_data(&self) -> anyhow::Result<Vec<u16>> {
         if let rawloader::RawImageData::Integer(data) = &self.raw_image.data {
-            data.clone()
+            Ok(data.clone())
         } else {
-            unimplemented!("Can't parse RAWs with non-integer data, yet.");
+            anyhow::bail!("Can't parse RAWs with non-integer data, yet.");
         }
     }
 }
@@ -147,8 +149,8 @@ impl RawSavableImage for Image {
 impl Mergable for RawImage {
     type Container = RawImage;
 
-    fn load_from_raw(path: &Path, intensity: f32) -> Result<Self::Container, &str> {
-        let mut raw_image = rawloader::decode_file(path).unwrap();
+    fn load_from_raw(path: &Path, intensity: f32) -> anyhow::Result<Self::Container> {
+        let mut raw_image = rawloader::decode_file(path)?;
 
         if (intensity - 1.0).abs() > 0.001 {
             raw_image.data = match raw_image.data {
@@ -162,19 +164,20 @@ impl Mergable for RawImage {
         Ok(raw_image)
     }
 
-    fn weighted_merge(self, other: Self, weight_self: f32, weight_other: f32, mode: MergeMode) -> Self {
-        if self.width != other.width || self.height != other.height || self.cpp != other.cpp {
-            panic!("Images to merge have different dimensions");
-        }
+    fn weighted_merge(self, other: Self, weight_self: f32, weight_other: f32, mode: MergeMode) -> anyhow::Result<Self> {
+        anyhow::ensure!(
+            self.width == other.width && self.height == other.height && self.cpp == other.cpp,
+            "Images to merge have different dimensions"
+        );
 
         let data_self = match self.data {
             RawImageData::Integer(d) => d,
-            RawImageData::Float(_) => unimplemented!("Floating point RAWs are not supported."),
+            RawImageData::Float(_) => anyhow::bail!("Floating point RAWs are not supported."),
         };
 
         let data_other = match other.data {
             RawImageData::Integer(d) => d,
-            RawImageData::Float(_) => unimplemented!("Floating point RAWs are not supported."),
+            RawImageData::Float(_) => anyhow::bail!("Floating point RAWs are not supported."),
         };
 
         let res = data_self
@@ -188,7 +191,7 @@ impl Mergable for RawImage {
             })
             .collect();
 
-        RawImage {
+        Ok(RawImage {
             make: self.make,
             model: self.model,
             clean_make: self.clean_make,
@@ -205,10 +208,10 @@ impl Mergable for RawImage {
             blackareas: self.blackareas,
             orientation: self.orientation,
             data: RawImageData::Integer(res),
-        }
+        })
     }
 
-    fn merge(self, other: Self, mode: MergeMode) -> Self {
+    fn merge(self, other: Self, mode: MergeMode) -> anyhow::Result<Self> {
         self.weighted_merge(other, 1., 1., mode)
     }
 }
@@ -216,16 +219,24 @@ impl Mergable for RawImage {
 impl Mergable for ExifContainer {
     type Container = ExifContainer;
 
-    fn load_from_raw(path: &Path, _intensity: f32) -> Result<Self::Container, &str> {
-        Ok(ExifContainer::from_file(path).unwrap())
+    fn load_from_raw(path: &Path, _intensity: f32) -> anyhow::Result<Self::Container> {
+        Ok(ExifContainer::from_file(path)?)
     }
 
-    fn weighted_merge(self, other: Self, _weight_self: f32, _weight_other: f32, _mode: MergeMode) -> Self {
+    fn weighted_merge(
+        self,
+        other: Self,
+        _weight_self: f32,
+        _weight_other: f32,
+        _mode: MergeMode,
+    ) -> anyhow::Result<Self> {
         let mut res = HashMap::new();
         for (key, self_entry) in self.all_entries.iter() {
+            // Skip keys that appear in only one image
             if !other.all_entries.contains_key(key) {
                 continue;
             }
+            
             let other_entry = other.all_entries.get(key).unwrap();
             let mapped_key = self_entry.tag;
 
@@ -259,13 +270,13 @@ impl Mergable for ExifContainer {
             }
         }
 
-        ExifContainer {
+        Ok(ExifContainer {
             mapped_entries: ExifContainer::get_known_map(&res),
             all_entries: res,
-        }
+        })
     }
 
-    fn merge(self, other: Self, mode: MergeMode) -> Self {
+    fn merge(self, other: Self, mode: MergeMode) -> anyhow::Result<Self> {
         self.weighted_merge(other, 0., 0., mode)
     }
 }

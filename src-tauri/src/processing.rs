@@ -3,6 +3,7 @@ use std::sync::{Arc, Mutex};
 use std::thread::JoinHandle;
 use std::{fs, thread, time};
 
+use anyhow::{self, Context};
 use itertools::chain;
 use num::rational::Ratio;
 use rayon::prelude::*;
@@ -77,7 +78,7 @@ pub fn run_merge(
     out_path: PathBuf,
     mode: Comets,
     state: Arc<Mutex<status::ProcessingStatus>>,
-) -> RenderedPreview {
+) -> anyhow::Result<RenderedPreview> {
     let num_threads = num_cpus::get();
     println!(
         "System has {} cores and {} threads. Using {} worker threads.",
@@ -113,10 +114,11 @@ pub fn run_merge(
     // Load light- and darkframes
     tasks
         .par_iter()
-        .for_each(|t| load_image(t, Arc::clone(&queue_lights), Arc::clone(&queue_darks), mode, state.clone()));
+        .map(|t| load_image(t, Arc::clone(&queue_lights), Arc::clone(&queue_darks), mode, state.clone()))
+        .collect::<anyhow::Result<()>>()?;
 
     for t in chain(thread_handles_lights, thread_handles_darks) {
-        t.join().unwrap_or(());
+        t.join().unwrap()?;
     }
 
     let lightframe = queue_lights.lock().unwrap().pop().unwrap();
@@ -126,28 +128,31 @@ pub fn run_merge(
     } else {
         println!("Subtracting averaged darkframe");
         let darkframe = queue_darks.lock().unwrap().pop().unwrap();
-        lightframe.apply_darkframe(darkframe)
+        lightframe.apply_darkframe(darkframe)?
     };
 
     println!("Processing done");
     raw_image.exif.print_all();
 
     // Create a temporary directory to store the result and preview for further handling
-    let dir = tempdir().unwrap();
+    let dir =
+        tempdir().with_context(|| "A temporary directory to store the preliminary results could not be created.")?;
 
     // Write the result
-    let writer = raw_image.get_dng_writer();
+    let writer = raw_image.get_dng_writer()?;
     let result_path = dir.path().join("result.dng");
     writer.write_dng(&result_path);
 
     println!("Copying from '{}' to '{}'", result_path.display(), out_path.display());
-    fs::copy(result_path, out_path).unwrap();
+    fs::copy(result_path.clone(), out_path.clone()).with_context(|| {
+        format!("Could not copy resulting file from '{}' to '{}'.", result_path.display(), out_path.display())
+    })?;
 
     // Create a preview to show in the UI
     let preview_path = dir.path().join("preview.jpg");
     writer.write_jpg(preview_path.as_path());
 
-    RenderedPreview::new(preview_path.as_path(), Box::new(raw_image.exif))
+    Ok(RenderedPreview::new(preview_path.as_path(), Box::new(raw_image.exif)))
 }
 
 fn spawn_workers(
@@ -155,26 +160,28 @@ fn spawn_workers(
     queue: Arc<Mutex<Vec<Image>>>,
     merge_mode: MergeMode,
     state: Arc<Mutex<status::ProcessingStatus>>,
-) -> Vec<JoinHandle<()>> {
+) -> Vec<JoinHandle<anyhow::Result<()>>> {
     let mut thread_handles = vec![];
 
     for _ in 0..num_threads {
         let q = Arc::clone(&queue);
         let s = state.clone();
-        thread_handles.push(thread::spawn(move || {
-            queue_worker(q, merge_mode, s);
-        }));
+        thread_handles.push(thread::spawn(move || -> anyhow::Result<()> { queue_worker(q, merge_mode, s) }));
     }
 
     thread_handles
 }
 
-fn queue_worker(queue: Arc<Mutex<Vec<Image>>>, merge_mode: MergeMode, state: Arc<Mutex<status::ProcessingStatus>>) {
+fn queue_worker(
+    queue: Arc<Mutex<Vec<Image>>>,
+    merge_mode: MergeMode,
+    state: Arc<Mutex<status::ProcessingStatus>>,
+) -> anyhow::Result<()> {
     loop {
         let mut q = queue.lock().unwrap();
         if q.len() <= 1 {
             if state.lock().unwrap().loading_done() {
-                return;
+                return Ok(());
             } else {
                 // Queue is empty but work is not done yet => Wait.
                 drop(q);
@@ -188,7 +195,7 @@ fn queue_worker(queue: Arc<Mutex<Vec<Image>>>, merge_mode: MergeMode, state: Arc
         let v2 = q.pop().unwrap();
         drop(q);
 
-        let res = v1.merge(v2, merge_mode);
+        let res = v1.merge(v2, merge_mode).with_context(|| "Failed to merge images.")?;
         queue.lock().unwrap().push(res);
         state.lock().unwrap().finish_merging();
     }
@@ -200,30 +207,41 @@ fn load_image(
     queue_darks: Arc<Mutex<Vec<Image>>>,
     comets: Comets,
     state: Arc<Mutex<status::ProcessingStatus>>,
-) {
+) -> anyhow::Result<()> {
     let count_lights = state.lock().unwrap().count_lights;
     state.lock().unwrap().start_loading();
 
     match task.frame_type {
-        FrameType::Lightframe(index) => load_lightframe(task.path.as_path(), queue_lights, index, count_lights, comets),
-        FrameType::Darkframe => load_darkframe(task.path.as_path(), queue_darks),
+        FrameType::Lightframe(index) => load_lightframe(task.path.as_path(), queue_lights, index, count_lights, comets)
+            .with_context(|| format!("Could not load lightframe '{}'", task.path.display()))?,
+        FrameType::Darkframe => load_darkframe(task.path.as_path(), queue_darks)
+            .with_context(|| format!("Could not load darkframe '{}'", task.path.display()))?,
     }
 
     state.lock().unwrap().finish_loading();
+    Ok(())
 }
 
-fn load_lightframe(entry: &Path, queue: Arc<Mutex<Vec<Image>>>, index: usize, num_images: usize, comets: Comets) {
+fn load_lightframe(
+    entry: &Path,
+    queue: Arc<Mutex<Vec<Image>>>,
+    index: usize,
+    num_images: usize,
+    comets: Comets,
+) -> anyhow::Result<()> {
     let intensity = match comets {
         Comets::Falling => 1.0 - index as f32 / num_images as f32,
         Comets::Raising => index as f32 / num_images as f32,
         Comets::Normal => 1.0,
     };
 
-    let img = Image::load_from_raw(entry, intensity).unwrap();
+    let img = Image::load_from_raw(entry, intensity)?;
     queue.lock().unwrap().push(img);
+    Ok(())
 }
 
-fn load_darkframe(entry: &Path, queue: Arc<Mutex<Vec<Image>>>) {
-    let img = Image::load_from_raw(entry, 1.0).unwrap();
+fn load_darkframe(entry: &Path, queue: Arc<Mutex<Vec<Image>>>) -> anyhow::Result<()> {
+    let img = Image::load_from_raw(entry, 1.0)?;
     queue.lock().unwrap().push(img);
+    Ok(())
 }

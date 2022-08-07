@@ -49,9 +49,9 @@ dependencies = [
 
 [[package]]
 name = "anyhow"
-version = "1.0.58"
+version = "1.0.60"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bb07d2053ccdbe10e2af2995a2f116c1330396493dc1269f6a91d0ae82e19704"
+checksum = "c794e162a5eff65c72ef524dfe393eb923c354e350bb78b9c7383df13f3bc142"
 
 [[package]]
 name = "arrayvec"
@@ -621,8 +621,9 @@ checksum = "bd0c93bb4b0c6d9b77f4435b0ae98c24d17f1c45b2ff844c6151a07256ca923b"
 [[package]]
 name = "dng-rs"
 version = "0.1.0"
-source = "git+https://github.com/trawls-app/libdng-rust?rev=ad6a5c95d0d10f298a63b18f5ec0e4f99fedd43b#ad6a5c95d0d10f298a63b18f5ec0e4f99fedd43b"
+source = "git+https://github.com/trawls-app/libdng-rust?rev=cd21ed94352ce3151a100b05cc36c63ca20bc91e#cd21ed94352ce3151a100b05cc36c63ca20bc91e"
 dependencies = [
+ "anyhow",
  "arrayvec",
  "chrono",
  "cmake",

@@ -15,6 +15,7 @@ use std::time::Instant;
 
 use fileinfo::ImageCandidate;
 use rayon::prelude::*;
+use serde_json::json;
 
 #[tauri::command]
 fn get_app_version() -> String {
@@ -25,7 +26,6 @@ fn fetch_exif(path: PathBuf) -> anyhow::Result<ImageCandidate> {
     let metadata = fs::metadata(&path)?;
     anyhow::ensure!(metadata.is_file());
 
-    // Todo: Refactor to remove unwrap
     let candidate = fileinfo::ImageCandidate::load(&path)?;
     Ok(candidate)
 }
@@ -66,7 +66,7 @@ async fn run_merge(
     darkframes: Vec<String>,
     mode_str: String,
     out_path: String,
-) -> Result<serde_json::Value, String> {
+) -> Result<serde_json::Value, serde_json::Value> {
     let state =
         ProcessingStatus::new(lightframes.len(), darkframes.len(), String::from("processing_state_change"), window);
 
@@ -85,7 +85,11 @@ async fn run_merge(
     let preview = processing::run_merge(paths_light, paths_dark, output, mode, state);
 
     println!("Processing took {} seconds.", start.elapsed().as_secs());
-    Ok(serde_json::json!(preview))
+
+    match preview {
+        Ok(x) => Ok(json!(x)),
+        Err(err) => Err(json!({ "message": err.to_string(), "trace": format!("{:?}", err) })),
+    }
 }
 
 fn main() {

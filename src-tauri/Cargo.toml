@@ -10,7 +10,7 @@ edition = "2018"
 build = "src/build.rs"
 
 [dependencies]
-anyhow = "1.0.58"
+anyhow = "1.0.60"
 serde_json = "1.0"
 serde = { version = "1.0", features = [ "derive" ] }
 tauri = {version = "1.0.5",features = ["api-all", "updater"] }
@@ -21,7 +21,7 @@ rexif = "0.7.3"
 rawloader = "0.37.0"
 num_cpus = "1.13.1"
 rayon = "1.5.3"
-dng-rs = { git = "https://github.com/trawls-app/libdng-rust", rev="ad6a5c95d0d10f298a63b18f5ec0e4f99fedd43b" }
+dng-rs = { git = "https://github.com/trawls-app/libdng-rust", rev="cd21ed94352ce3151a100b05cc36c63ca20bc91e" }
 tempfile = "3.2.0"
 base64 = "0.13.0"
 itertools = "0.10.3"

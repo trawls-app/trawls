@@ -57,6 +57,20 @@
         <li v-if="!output_path_ready">No output path is specified</li>
       </ul>
     </b-modal>
+
+    <b-modal id="modal-error" hide-footer size="lg">
+      <template v-slot:modal-title>
+        <b-icon icon="bug-fill" variant="danger"></b-icon>
+        Processing failed
+      </template>
+
+      <b-form-textarea
+      v-model="error_trace"
+      class="bg-dark text-white"
+      max-rows="15"
+      disabled
+    ></b-form-textarea>
+    </b-modal>
   </div>
 </template>
 
@@ -80,7 +94,9 @@ export default {
     return {
       lightframes_ready: false,
       output_path_ready: false,
-      version_string: "Unknown"
+      version_string: "Unknown",
+      error_title: "",
+      error_trace: ""
     }
   },
   created: function () {
@@ -107,12 +123,17 @@ export default {
         console.log("Finished merge")
         parent.$refs.preview.preview = preview
         parent.$refs.tab_preview.activate()
-      }).catch(error => { alert(error)})
+      }).catch(error => { this.show_error(error.message, error.trace) })
     },
     get_app_version: function() {
       invoke("get_app_version").then(ver => {
         this.version_string = ver
       })
+    },
+    show_error: function(message, trace) {
+      this.error_title = message
+      this.error_trace = trace
+      this.$bvModal.show("modal-error")
     }
   }
 }
