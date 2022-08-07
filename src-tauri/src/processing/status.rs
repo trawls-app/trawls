@@ -6,6 +6,7 @@ use std::sync::atomic::{AtomicBool, AtomicUsize};
 use std::sync::{Arc, Mutex};
 use std::thread;
 use std::time::Duration;
+use log::{debug, warn};
 use tauri::Window;
 
 pub struct StatusEmitter<T: Status> {
@@ -31,7 +32,7 @@ impl<T: Status> StatusEmitter<T> {
     }
 
     fn run_update_worker(&self) {
-        println!("Starting update emitter for '{}'", self.callback_event.as_str());
+        debug!("Starting update emitter for '{}'", self.callback_event.as_str());
 
         loop {
             self.window
@@ -46,7 +47,7 @@ impl<T: Status> StatusEmitter<T> {
             thread::sleep(Duration::from_millis(500))
         }
 
-        println!("Stopped update emitter for '{}'", self.callback_event.as_str());
+        debug!("Stopped update emitter for '{}'", self.callback_event.as_str());
     }
 }
 
@@ -100,14 +101,14 @@ impl InfoLoadingStatus {
     }
 
     pub fn add_image_info(&self, image_path: String, info: serde_json::Value) {
-        println!("Successfully loaded info of '{}'", image_path);
+        debug!("Successfully loaded info of '{}'", image_path);
 
         self.count_loaded.fetch_add(1, Relaxed);
         self.image_infos.lock().unwrap().insert(image_path, info);
     }
 
     pub fn add_loading_error(&self, image_path: String, error: anyhow::Error) {
-        println!("Could not load info of '{}':\n{:?}\n", image_path, error);
+        warn!("Could not load info of '{}':\n{:?}\n", image_path, error);
 
         let filename = match PathBuf::from(&image_path).file_name() {
             Some(x) => String::from(x.to_str().unwrap()),
@@ -184,7 +185,7 @@ impl ProcessingStatus {
     }
 
     pub fn abort(&self) {
-        println!("Aborting processing");
+        warn!("Aborting processing");
         self.aborted_status.store(true, Relaxed)
     }
 
@@ -220,7 +221,7 @@ impl ProcessingStatus {
     }
 
     fn print_status(&self) {
-        println!(
+        debug!(
             "Total {}, Loaded {}, Loading {}, Merged {}, Merging {}, loading_done = {}, merging_done = {}",
             self.count_lights,
             self.count_loaded_lights.load(Relaxed),

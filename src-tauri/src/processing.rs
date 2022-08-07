@@ -4,6 +4,7 @@ use std::thread::JoinHandle;
 use std::{fs, thread, time};
 
 use anyhow::{self, Context};
+use log::{error, info};
 use itertools::chain;
 use num::rational::Ratio;
 use rayon::prelude::*;
@@ -82,7 +83,7 @@ pub fn run_merge(
     state: Arc<Mutex<status::ProcessingStatus>>,
 ) -> anyhow::Result<RenderedPreview> {
     let num_threads = num_cpus::get();
-    println!(
+    info!(
         "System has {} cores and {} threads. Using {} worker threads.",
         num_cpus::get_physical(),
         num_threads,
@@ -135,15 +136,15 @@ pub fn run_merge(
 
     let lightframe = queue_lights.lock().unwrap().pop().unwrap();
     let raw_image = if darkframe_files.is_empty() {
-        println!("No darkframes selected");
+        info!("No darkframes selected");
         lightframe
     } else {
-        println!("Subtracting averaged darkframe");
+        info!("Subtracting averaged darkframe");
         let darkframe = queue_darks.lock().unwrap().pop().unwrap();
         lightframe.apply_darkframe(darkframe)?
     };
 
-    println!("Processing done");
+    info!("Processing done");
     raw_image.exif.print_all();
 
     // Create a temporary directory to store the result and preview for further handling
@@ -155,7 +156,7 @@ pub fn run_merge(
     let result_path = dir.path().join("result.dng");
     writer.write_dng(&result_path);
 
-    println!("Copying from '{}' to '{}'", result_path.display(), out_path.display());
+    info!("Copying from '{}' to '{}'", result_path.display(), out_path.display());
     fs::copy(result_path.clone(), out_path.clone()).with_context(|| {
         format!("Could not copy resulting file from '{}' to '{}'.", result_path.display(), out_path.display())
     })?;
@@ -215,7 +216,7 @@ fn queue_worker(
         let res = match v1.merge(v2, merge_mode).with_context(|| "Failed to merge images.") {
             Ok(x) => x,
             Err(err) => {
-                println!("{:?}", err);
+                error!("{:?}", err);
                 state.lock().unwrap().abort();
                 return Err(err);
             }
