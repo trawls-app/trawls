@@ -1,6 +1,7 @@
 use chrono::naive::NaiveDateTime;
 use libdng::bindings::*;
 use libdng::exif::ExifExtractable;
+use log::trace;
 use num::rational::Ratio;
 use num::ToPrimitive;
 use rexif::TagValue;
@@ -75,10 +76,10 @@ impl ExifContainer {
 
     #[allow(dead_code)]
     pub fn print_all(&self) {
-        println!("\n\nMAPPED EXIF ENTRIES");
+        trace!("\n\nMAPPED EXIF ENTRIES");
         self.print_mapped();
 
-        println!("\n\nALL EXIF ENTRIES");
+        trace!("\n\nALL EXIF ENTRIES");
         self.print_unknown();
     }
 
@@ -87,13 +88,13 @@ impl ExifContainer {
             if entry.tag == rexif::ExifTag::MakerNote {
                 continue;
             }
-            println!("\t{}\t{}: {} ({})", entry.ifd.tag, entry.tag, entry.value, entry.value_more_readable);
+            trace!("\t{}\t{}: {} ({})", entry.ifd.tag, entry.tag, entry.value, entry.value_more_readable);
         }
     }
 
     pub fn print_unknown(&self) {
         for (ifd_tag, entry) in &self.all_entries {
-            println!("\t{}\t{}: {}", ifd_tag, entry.tag, entry.value);
+            trace!("\t{}\t{}: {}", ifd_tag, entry.tag, entry.value);
         }
     }
 }

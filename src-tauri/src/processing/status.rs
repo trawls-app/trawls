@@ -1,8 +1,9 @@
+use log::{debug, warn};
 use serde_json::{json, Map};
 use std::cmp::max;
 use std::path::PathBuf;
-use std::sync::atomic::AtomicUsize;
 use std::sync::atomic::Ordering::Relaxed;
+use std::sync::atomic::{AtomicBool, AtomicUsize};
 use std::sync::{Arc, Mutex};
 use std::thread;
 use std::time::Duration;
@@ -16,6 +17,7 @@ pub struct StatusEmitter<T: Status> {
 
 pub trait Status {
     fn json(&self) -> serde_json::Value;
+    fn aborted(&self) -> bool;
     fn finished(&self) -> bool;
     fn start_update_emitter(status: Arc<Mutex<Self>>, callback_event: String, window: Window);
 }
@@ -30,9 +32,13 @@ impl<T: Status> StatusEmitter<T> {
     }
 
     fn run_update_worker(&self) {
-        println!("Starting update emitter for '{}'", self.callback_event.as_str());
+        debug!("Starting update emitter for '{}'", self.callback_event.as_str());
 
         loop {
+            if self.status.lock().unwrap().aborted() {
+                break;
+            }
+
             self.window
                 .lock()
                 .unwrap()
@@ -45,7 +51,7 @@ impl<T: Status> StatusEmitter<T> {
             thread::sleep(Duration::from_millis(500))
         }
 
-        println!("Stopped update emitter for '{}'", self.callback_event.as_str());
+        debug!("Stopped update emitter for '{}'", self.callback_event.as_str());
     }
 }
 
@@ -67,6 +73,10 @@ impl Status for InfoLoadingStatus {
 
         infos.clear();
         json_value
+    }
+
+    fn aborted(&self) -> bool {
+        false
     }
 
     fn finished(&self) -> bool {
@@ -95,14 +105,14 @@ impl InfoLoadingStatus {
     }
 
     pub fn add_image_info(&self, image_path: String, info: serde_json::Value) {
-        println!("Successfully loaded info of '{}'", image_path);
+        debug!("Successfully loaded info of '{}'", image_path);
 
         self.count_loaded.fetch_add(1, Relaxed);
         self.image_infos.lock().unwrap().insert(image_path, info);
     }
 
     pub fn add_loading_error(&self, image_path: String, error: anyhow::Error) {
-        println!("Could not load info of '{}':\n{:?}\n", image_path, error);
+        warn!("Could not load info of '{}':\n{:?}\n", image_path, error);
 
         let filename = match PathBuf::from(&image_path).file_name() {
             Some(x) => String::from(x.to_str().unwrap()),
@@ -124,6 +134,7 @@ impl InfoLoadingStatus {
 pub struct ProcessingStatus {
     pub count_lights: usize,
     pub count_darks: usize,
+    aborted_status: Arc<AtomicBool>,
     count_loaded_lights: Arc<AtomicUsize>,
     count_loading_lights: Arc<AtomicUsize>,
     count_merge_completed: Arc<AtomicUsize>,
@@ -144,8 +155,12 @@ impl Status for ProcessingStatus {
         })
     }
 
+    fn aborted(&self) -> bool {
+        self.aborted_status.load(Relaxed)
+    }
+
     fn finished(&self) -> bool {
-        self.loading_done() && self.merging_done()
+        self.loading_done() && self.merging_done() || self.aborted()
     }
 
     fn start_update_emitter(status: Arc<Mutex<Self>>, callback_event: String, window: Window) {
@@ -162,6 +177,7 @@ impl ProcessingStatus {
         let status = Arc::new(Mutex::new(ProcessingStatus {
             count_lights,
             count_darks,
+            aborted_status: Arc::new(AtomicBool::new(false)),
             count_loaded_lights: Arc::new(AtomicUsize::new(0)),
             count_loading_lights: Arc::new(AtomicUsize::new(0)),
             count_merge_completed: Arc::new(AtomicUsize::new(0)),
@@ -170,6 +186,11 @@ impl ProcessingStatus {
 
         Self::start_update_emitter(status.clone(), callback_event, window);
         status
+    }
+
+    pub fn abort(&self) {
+        warn!("Aborting processing");
+        self.aborted_status.store(true, Relaxed)
     }
 
     pub fn loading_done(&self) -> bool {
@@ -204,7 +225,7 @@ impl ProcessingStatus {
     }
 
     fn print_status(&self) {
-        println!(
+        debug!(
             "Total {}, Loaded {}, Loading {}, Merged {}, Merging {}, loading_done = {}, merging_done = {}",
             self.count_lights,
             self.count_loaded_lights.load(Relaxed),
