@@ -53,7 +53,8 @@
       </template>
 
       <ul>
-        <li v-if="!lightframes_ready">No lightframes are selected</li>
+        <li v-if="!no_errors">The metadata of some files could not be loaded</li>
+        <li v-if="!lightframes_ready">Less than two lightframes are selected</li>
         <li v-if="!output_path_ready">No output path is specified</li>
       </ul>
     </b-modal>
@@ -108,8 +109,9 @@ export default {
       console.log('run', parent.$refs.settings.merge_mode, parent.$refs.settings.output_path)
       this.lightframes_ready = parent.$refs.lightframes.numImages > 1
       this.output_path_ready = parent.$refs.settings.output_path !== null
+      this.no_errors = !parent.$refs.lightframes.errorWarning && !parent.$refs.darkframes.errorWarning
 
-      if (!this.output_path_ready || !this.lightframes_ready) {
+      if (!this.output_path_ready || !this.lightframes_ready || !this.no_errors) {
         this.$bvModal.show("modal-readiness")
         return
       }
