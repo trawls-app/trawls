@@ -14,7 +14,7 @@
     "@tauri-apps/api": "^1.0.2",
     "@tauri-apps/tauri": "0.0.1-utility.19",
     "bootstrap-vue": "^2.22.0",
-    "core-js": "^3.24.1",
+    "core-js": "^3.25.0",
     "vue": "~2.7.8",
     "vue-image-zoomer": "^1.4.0",
     "vue-virtual-scroll-list": "^2.3.3"
