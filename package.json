@@ -11,7 +11,7 @@
     "tauri:serve": "vue-cli-service tauri:serve"
   },
   "dependencies": {
-    "@tauri-apps/api": "^1.0.2",
+    "@tauri-apps/api": "^1.1.0",
     "@tauri-apps/tauri": "0.0.1-utility.19",
     "bootstrap-vue": "^2.22.0",
     "core-js": "^3.24.1",
