@@ -14,25 +14,25 @@
     "@tauri-apps/api": "^1.1.0",
     "@tauri-apps/tauri": "0.0.1-utility.19",
     "bootstrap-vue": "^2.22.0",
-    "core-js": "^3.24.1",
-    "vue": "~2.7.8",
+    "core-js": "^3.25.1",
+    "vue": "~2.7.10",
     "vue-image-zoomer": "^1.4.0",
-    "vue-virtual-scroll-list": "^2.3.3"
+    "vue-virtual-scroll-list": "^2.3.4"
   },
   "devDependencies": {
     "@babel/polyfill": "^7.11.5",
     "@vue/cli-service": "~5.0.8",
     "babel-eslint": "^10.1.0",
     "bootstrap": "~4.6.0",
-    "eslint": "^8.21.0",
-    "eslint-plugin-vue": "^9.3.0",
+    "eslint": "^8.23.1",
+    "eslint-plugin-vue": "^9.4.0",
     "mutationobserver-shim": "^0.3.7",
     "popper.js": "^1.16.1",
     "portal-vue": "^2.1.7",
-    "sass": "^1.54.3",
+    "sass": "^1.54.9",
     "sass-loader": "^13.0.2",
     "vue-cli-plugin-bootstrap-vue": "~0.8.2",
-    "vue-template-compiler": "^2.7.8",
+    "vue-template-compiler": "^2.7.10",
     "vue-cli-plugin-tauri": "~1.0.0"
   },
   "eslintConfig": {

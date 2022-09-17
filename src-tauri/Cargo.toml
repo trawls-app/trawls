@@ -10,7 +10,7 @@ edition = "2018"
 build = "src/build.rs"
 
 [dependencies]
-anyhow = "1.0.60"
+anyhow = "1.0.65"
 serde_json = "1.0"
 serde = { version = "1.0", features = [ "derive" ] }
 tauri = {version = "1.1.1",features = ["api-all", "updater"] }
@@ -24,13 +24,13 @@ rayon = "1.5.3"
 dng-rs = { git = "https://github.com/trawls-app/libdng-rust", rev="b63e866f02742cf5e449f49506c8562c60fe4e18" }
 tempfile = "3.2.0"
 base64 = "0.13.0"
-itertools = "0.10.3"
+itertools = "0.10.4"
 version = "3.0.0"
 log = "0.4.17"
 pretty_env_logger = "0.4.0"
 
 [build-dependencies]
-tauri-build = { version = "1.0.4", features = [] }
+tauri-build = { version = "1.1.1", features = [] }
 
 [features]
 custom-protocol = [ "tauri/custom-protocol" ]
