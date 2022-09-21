@@ -24,7 +24,7 @@ rayon = "1.5.3"
 dng-rs = { git = "https://github.com/trawls-app/libdng-rust", rev="b63e866f02742cf5e449f49506c8562c60fe4e18" }
 tempfile = "3.2.0"
 base64 = "0.13.0"
-itertools = "0.10.4"
+itertools = "0.10.5"
 version = "3.0.0"
 log = "0.4.17"
 pretty_env_logger = "0.4.0"
