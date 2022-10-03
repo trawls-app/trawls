@@ -6625,10 +6625,10 @@ vue-hot-reload-api@^2.3.0:
   resolved "https://registry.yarnpkg.com/vue-hot-reload-api/-/vue-hot-reload-api-2.3.4.tgz#532955cc1eb208a3d990b3a9f9a70574657e08f2"
   integrity sha512-BXq3jwIagosjgNVae6tkHzzIk6a8MHFtzAdwhnV5VlvPTFxDCvIttgSiHWjdGoTJvXtmRu5HacExfdarRcFhog==
 
-vue-image-zoomer@^1.4.0:
-  version "1.4.0"
-  resolved "https://registry.yarnpkg.com/vue-image-zoomer/-/vue-image-zoomer-1.4.0.tgz#f49ce8d325f111270d701e8c37bd96a22368c382"
-  integrity sha512-Q9Gu6i8B1NWVmiLGKspdEqLHc5XdusKpKiFkdvIC657BVHfPbamt40cMk9tBQK/dtgJS1JReyTrrRQP1QTw/Hg==
+vue-image-zoomer@^1.5.0:
+  version "1.5.0"
+  resolved "https://registry.yarnpkg.com/vue-image-zoomer/-/vue-image-zoomer-1.5.0.tgz#3e03642d0f1ee5eb38f1678bfb77f47c23273990"
+  integrity sha512-DKm2eHmEw/3diWVKDmr+Mlpu6PCYi+gLB0DtIVYK5kNYZ1ornrGMX9fO1ZDr0X9fkqMlmSJIT59FmNiI/1c6/A==
   dependencies:
     lazysizes "^5.2.2"
     vue "^2.6.12"

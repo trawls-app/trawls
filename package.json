@@ -16,7 +16,7 @@
     "bootstrap-vue": "^2.22.0",
     "core-js": "^3.25.1",
     "vue": "~2.7.10",
-    "vue-image-zoomer": "^1.4.0",
+    "vue-image-zoomer": "^1.5.0",
     "vue-virtual-scroll-list": "^2.3.4"
   },
   "devDependencies": {
