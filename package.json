@@ -24,7 +24,7 @@
     "@vue/cli-service": "~5.0.8",
     "babel-eslint": "^10.1.0",
     "bootstrap": "~4.6.0",
-    "eslint": "^8.23.1",
+    "eslint": "^8.25.0",
     "eslint-plugin-vue": "^9.4.0",
     "mutationobserver-shim": "^0.3.7",
     "popper.js": "^1.16.1",
