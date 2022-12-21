@@ -19,7 +19,7 @@ arrayvec = "0.7.2"
 num = "0.4.0"
 rexif = "0.7.3"
 rawloader = "0.37.0"
-num_cpus = "1.13.1"
+num_cpus = "1.15.0"
 rayon = "1.5.3"
 dng-rs = { git = "https://github.com/trawls-app/libdng-rust", rev="b63e866f02742cf5e449f49506c8562c60fe4e18" }
 tempfile = "3.2.0"
