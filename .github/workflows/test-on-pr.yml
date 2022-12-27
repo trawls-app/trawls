@@ -36,7 +36,7 @@ jobs:
           rm src-tauri/tauri.conf.json
           mv -v tauri.conf.json.tmp src-tauri/tauri.conf.json
       - name: install app dependencies and build it
-        run: yarn && yarn tauri:build
+        run: yarn
         env:
           CXXFLAGS: --std=c++14
       - uses: tauri-apps/tauri-action@v0
