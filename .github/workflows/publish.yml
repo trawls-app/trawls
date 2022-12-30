@@ -19,26 +19,34 @@ jobs:
       uses: actions/setup-node@v1
       with:
         node-version: 16
-    - name: install Rust stable
+    - name: install Rust stable for default architecture
       uses: actions-rs/toolchain@v1
       with:
+        profile: minimal
         toolchain: stable
+    - name: install Rust stable for aarch64-apple-darwin
+      if: matrix.platform == 'macos-latest'
+      uses: actions-rs/toolchain@v1
+      with:
+        profile: minimal
+        toolchain: stable
+        target: aarch64-apple-darwin
     - name: install dependencies (ubuntu only)
       if: matrix.platform == 'ubuntu-latest'
       run: |
         sudo apt-get update
         sudo apt-get install -y libgtk-3-dev webkit2gtk-4.0 libappindicator3-dev librsvg2-dev patchelf
-    - name: install app dependencies and build it
-      # If using the Vue CLI plugin, tauri:build will be run automatically by tauri-action
-      # and you can remove `&& yarn build` from this command
-      run: yarn && yarn tauri:build
+    - name: install app dependencies
+      run: yarn
       env:
         CXXFLAGS: --std=c++14
-        TAURI_PRIVATE_KEY: ${{ secrets.TAURI_PRIVATE_KEY }}
-    - uses: tauri-apps/tauri-action@v0
+    - uses: tauri-apps/tauri-action@dev
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        CXXFLAGS: --std=c++14
+        TAURI_PRIVATE_KEY: ${{ secrets.TAURI_PRIVATE_KEY }}
       with:
+        args: ${{ matrix.platform == 'macos-latest' && '--target universal-apple-darwin' || '' }}
         tagName: trawls-v__VERSION__ # the action automatically replaces \_\_VERSION\_\_ with the app version
         releaseName: "Trawls v__VERSION__"
         releaseBody: "See the assets to download this version and install."
