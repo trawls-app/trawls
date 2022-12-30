@@ -13,10 +13,10 @@
   "dependencies": {
     "@tauri-apps/api": "^1.2.0",
     "@tauri-apps/tauri": "0.0.1-utility.19",
-    "bootstrap-vue": "^2.22.0",
-    "core-js": "^3.25.1",
-    "vue": "~2.7.10",
-    "vue-image-zoomer": "^1.4.0",
+    "bootstrap-vue": "^2.23.1",
+    "core-js": "^3.27.1",
+    "vue": "~2.7.14",
+    "vue-image-zoomer": "^1.5.0",
     "vue-virtual-scroll-list": "^2.3.4"
   },
   "devDependencies": {
@@ -24,16 +24,16 @@
     "@vue/cli-service": "~5.0.8",
     "babel-eslint": "^10.1.0",
     "bootstrap": "~4.6.0",
-    "eslint": "^8.23.1",
-    "eslint-plugin-vue": "^9.4.0",
+    "eslint": "^8.30.0",
+    "eslint-plugin-vue": "^9.8.0",
     "mutationobserver-shim": "^0.3.7",
     "popper.js": "^1.16.1",
-    "portal-vue": "^2.1.7",
-    "sass": "^1.54.9",
-    "sass-loader": "^13.0.2",
+    "portal-vue": "^3.0.0",
+    "sass": "^1.57.1",
+    "sass-loader": "^13.2.0",
     "vue-cli-plugin-bootstrap-vue": "~0.8.2",
-    "vue-template-compiler": "^2.7.10",
-    "vue-cli-plugin-tauri": "~1.0.0"
+    "vue-cli-plugin-tauri": "~1.0.0",
+    "vue-template-compiler": "^2.7.14"
   },
   "eslintConfig": {
     "root": true,
