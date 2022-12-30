@@ -16,11 +16,18 @@ jobs:
         with:
           node-version: 16
           cache: 'yarn'
-      - name: install Rust stable
+      - name: install Rust stable for default architecture
         uses: actions-rs/toolchain@v1
         with:
           profile: minimal
           toolchain: stable
+      - name: install Rust stable for aarch64-apple-darwin
+        if: matrix.platform == 'macos-latest'
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: stable
+          target: aarch64-apple-darwin
       - name: Use Rust cache
         uses: Swatinem/rust-cache@v1
         with:
@@ -35,17 +42,20 @@ jobs:
           cat src-tauri/tauri.conf.json | jq .tauri.updater.active=false > tauri.conf.json.tmp
           rm src-tauri/tauri.conf.json
           mv -v tauri.conf.json.tmp src-tauri/tauri.conf.json
-      - name: install app dependencies and build it
-        run: yarn && yarn tauri:build
+      - name: install app dependencies
+        run: yarn
         env:
           CXXFLAGS: --std=c++14
-      - uses: tauri-apps/tauri-action@v0
+      - uses: tauri-apps/tauri-action@dev
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CXXFLAGS: --std=c++14
+        with:
+          args: ${{ matrix.platform == 'macos-latest' && '--target universal-apple-darwin' || '' }}
       - uses: actions/upload-artifact@v3
         with:
           name: bundle
           path: |
             src-tauri/target/release/bundle/msi/trawls*.msi
             src-tauri/target/release/bundle/appimage/trawls*.AppImage
-            src-tauri/target/release/bundle/dmg/trawls*.dmg
+            src-tauri/target/universal-apple-darwin/release/bundle/dmg/trawls*.dmg
