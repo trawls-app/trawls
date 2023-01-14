@@ -14,9 +14,6 @@ use tempfile::tempdir;
 
 use crate::processing::image::MergeMode::{Maximize, WeightedAverage};
 use crate::processing::image::{Image, Mergable, MergeMode};
-use libdng::bindings::{ExifTag_Photo_ExposureTime, ExifTag_Photo_FNumber, ExifTag_Photo_ISOSpeedRatings};
-use libdng::exif::ExifExtractable;
-use libdng::image_info::DNGWriting;
 
 use self::status::Status;
 
@@ -50,16 +47,12 @@ pub struct RenderedPreview {
 }
 
 impl RenderedPreview {
-    fn new(image_path: &Path, exif: Box<dyn ExifExtractable>) -> RenderedPreview {
+    fn new(image_path: &Path) -> RenderedPreview {
         let image_bytes = fs::read(image_path).unwrap();
         let encoded = base64::encode(image_bytes);
-        let aperture_ratio = exif
-            .get_urational(ExifTag_Photo_FNumber, 0)
-            .unwrap_or_else(|| Ratio::new(0, 1));
-        let exposure_ratio = exif
-            .get_urational(ExifTag_Photo_ExposureTime, 0)
-            .unwrap_or_else(|| Ratio::new(0, 1));
-        let isospeed = exif.get_uint(ExifTag_Photo_ISOSpeedRatings, 0).unwrap_or(0);
+        let aperture_ratio = Ratio::new(0, 1);
+        let exposure_ratio = Ratio::new(0, 1);
+        let isospeed = 0;
 
         let aperture = *aperture_ratio.numer() as f32 / *aperture_ratio.denom() as f32;
         let exposure = time::Duration::from_secs_f64(*exposure_ratio.numer() as f64 / *exposure_ratio.denom() as f64);
@@ -147,27 +140,20 @@ pub fn run_merge(
     };
 
     info!("Processing done");
-    raw_image.exif.print_all();
+    //raw_image.exif.print_all();
 
     // Create a temporary directory to store the result and preview for further handling
     let dir =
         tempdir().with_context(|| "A temporary directory to store the preliminary results could not be created.")?;
 
     // Write the result
-    let writer = raw_image.get_dng_writer()?;
-    let result_path = dir.path().join("result.dng");
-    writer.write_dng(&result_path);
-
-    info!("Copying from '{}' to '{}'", result_path.display(), out_path.display());
-    fs::copy(result_path.clone(), out_path.clone()).with_context(|| {
-        format!("Could not copy resulting file from '{}' to '{}'.", result_path.display(), out_path.display())
-    })?;
+    raw_image.write_dng(out_path)?;
 
     // Create a preview to show in the UI
     let preview_path = dir.path().join("preview.jpg");
-    writer.write_jpg(preview_path.as_path());
+    //writer.write_jpg(preview_path.as_path());
 
-    Ok(RenderedPreview::new(preview_path.as_path(), Box::new(raw_image.exif)))
+    Ok(RenderedPreview::new(preview_path.as_path()))
 }
 
 fn spawn_workers(
@@ -263,13 +249,13 @@ fn load_lightframe(
         Comets::Normal => 1.0,
     };
 
-    let img = Image::load_from_raw(entry, intensity)?;
+    let img = Image::from_raw_file(entry, intensity)?;
     queue.lock().unwrap().push(img);
     Ok(())
 }
 
 fn load_darkframe(entry: &Path, queue: Arc<Mutex<Vec<Image>>>) -> anyhow::Result<()> {
-    let img = Image::load_from_raw(entry, 1.0)?;
+    let img = Image::from_raw_file(entry, 1.0)?;
     queue.lock().unwrap().push(img);
     Ok(())
 }

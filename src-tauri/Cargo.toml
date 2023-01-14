@@ -18,10 +18,10 @@ chrono = { version = "0.4", features = [ "serde" ] }
 arrayvec = "0.7.2"
 num = "0.4.0"
 rexif = "0.7.3"
-rawloader = "0.37.0"
 num_cpus = "1.15.0"
 rayon = "1.6.1"
 dng-rs = { git = "https://github.com/trawls-app/libdng-rust", rev="dcb9293b6828346db72ff9b22941d69a72b83ead" }
+rawler = { git = "https://github.com/dnglab/dnglab" }
 tempfile = "3.2.0"
 base64 = "0.20.0"
 itertools = "0.10.5"
