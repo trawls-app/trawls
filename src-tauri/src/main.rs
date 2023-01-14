@@ -16,8 +16,10 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use std::time::Instant;
 
+use clap::{Args, Parser, Subcommand};
 use fileinfo::ImageCandidate;
 use log::{error, info};
+use processing::Comets;
 use rayon::prelude::*;
 use serde_json::json;
 
@@ -41,7 +43,7 @@ async fn load_image_infos(
     selector_reference: String,
 ) -> Result<serde_json::Value, String> {
     let reference = format!("loaded_image_info_{}", selector_reference);
-    let state = InfoLoadingStatus::new(paths.clone(), reference, window);
+    let state = InfoLoadingStatus::new(paths.clone(), reference, Some(window));
 
     info!("Start loading exifs of {} files", paths.len());
     paths.par_iter().for_each(|x| {
@@ -71,8 +73,12 @@ async fn run_merge(
     mode_str: String,
     out_path: String,
 ) -> Result<serde_json::Value, serde_json::Value> {
-    let state =
-        ProcessingStatus::new(lightframes.len(), darkframes.len(), String::from("processing_state_change"), window);
+    let state = ProcessingStatus::new(
+        lightframes.len(),
+        darkframes.len(),
+        String::from("processing_state_change"),
+        Some(window),
+    );
 
     let paths_light = lightframes.into_iter().map(|x| Path::new(&x).to_path_buf()).collect();
     let paths_dark = darkframes.into_iter().map(|x| Path::new(&x).to_path_buf()).collect();
@@ -99,12 +105,54 @@ async fn run_merge(
     }
 }
 
+#[derive(Parser)]
+#[command(author, version, about, long_about = None)]
+struct Cli {
+    #[command(subcommand)]
+    command: Option<Commands>,
+}
+
+#[derive(Subcommand)]
+enum Commands {
+    /// Runs the merge on the CLI
+    Merge(Merge),
+}
+
+#[derive(Args)]
+struct Merge {
+    /// RAW input files to merge
+    files: Vec<PathBuf>,
+
+    /// Save the resulting DNG file in this path
+    #[arg(short, long)]
+    out: PathBuf,
+
+    /// Save the preview JPEG of the result in this path
+    #[arg(short, long)]
+    preview: Option<PathBuf>,
+
+    /// The mode for merging
+    #[arg(short, long)]
+    mode: Comets,
+}
+
 fn main() {
     pretty_env_logger::init();
-    info!("Running Trawls v{}", version!());
+    let cli = Cli::parse();
 
-    tauri::Builder::new()
-        .invoke_handler(tauri::generate_handler![get_app_version, load_image_infos, run_merge])
-        .run(tauri::generate_context!())
-        .unwrap();
+    info!("Trawls v{}", version!());
+
+    match &cli.command {
+        Some(Commands::Merge(cmd)) => {
+            let state = ProcessingStatus::new(cmd.files.len(), 0, String::from("processing_state_change"), None);
+            let preview = processing::run_merge(cmd.files.clone(), vec![], cmd.out.clone(), cmd.mode, state);
+        }
+        None => {
+            info!("Called without parameters. Starting GUI");
+            tauri::Builder::new()
+                .invoke_handler(tauri::generate_handler![get_app_version, load_image_infos, run_merge])
+                .run(tauri::generate_context!())
+                .unwrap();
+        }
+    }
 }
