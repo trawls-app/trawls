@@ -93,14 +93,16 @@ impl Status for InfoLoadingStatus {
 }
 
 impl InfoLoadingStatus {
-    pub fn new(paths: Vec<String>, callback_event: String, window: Window) -> Arc<Mutex<Self>> {
+    pub fn new(paths: Vec<String>, callback_event: String, window: Option<Window>) -> Arc<Mutex<Self>> {
         let status = Arc::new(Mutex::new(InfoLoadingStatus {
             count_total: paths.len(),
             count_loaded: Arc::new(AtomicUsize::new(0)),
             image_infos: Arc::new(Mutex::new(Map::new())),
         }));
 
-        Self::start_update_emitter(status.clone(), callback_event, window);
+        if let Some(w) = window {
+            Self::start_update_emitter(status.clone(), callback_event, w);
+        }
         status
     }
 
@@ -173,7 +175,12 @@ impl Status for ProcessingStatus {
 }
 
 impl ProcessingStatus {
-    pub fn new(count_lights: usize, count_darks: usize, callback_event: String, window: Window) -> Arc<Mutex<Self>> {
+    pub fn new(
+        count_lights: usize,
+        count_darks: usize,
+        callback_event: String,
+        window: Option<Window>,
+    ) -> Arc<Mutex<Self>> {
         let status = Arc::new(Mutex::new(ProcessingStatus {
             count_lights,
             count_darks,
@@ -184,7 +191,9 @@ impl ProcessingStatus {
             count_merging: Arc::new(AtomicUsize::new(0)),
         }));
 
-        Self::start_update_emitter(status.clone(), callback_event, window);
+        if let Some(w) = window {
+            Self::start_update_emitter(status.clone(), callback_event, w);
+        }
         status
     }
 
