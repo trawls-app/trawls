@@ -20,6 +20,7 @@ use libdng::image_info::DNGWriting;
 
 use self::status::Status;
 
+pub mod cli_progress;
 mod image;
 pub mod status;
 
