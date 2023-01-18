@@ -9,6 +9,8 @@ use std::thread;
 use std::time::Duration;
 use tauri::Window;
 
+use crate::processing::cli_progress::ProcessingStatusCli;
+
 pub struct StatusEmitter<T: Status> {
     pub status: Arc<Mutex<T>>,
     window: Arc<Mutex<Window>>,
@@ -93,14 +95,16 @@ impl Status for InfoLoadingStatus {
 }
 
 impl InfoLoadingStatus {
-    pub fn new(paths: Vec<String>, callback_event: String, window: Window) -> Arc<Mutex<Self>> {
+    pub fn new(paths: Vec<String>, callback_event: String, window: Option<Window>) -> Arc<Mutex<Self>> {
         let status = Arc::new(Mutex::new(InfoLoadingStatus {
             count_total: paths.len(),
             count_loaded: Arc::new(AtomicUsize::new(0)),
             image_infos: Arc::new(Mutex::new(Map::new())),
         }));
 
-        Self::start_update_emitter(status.clone(), callback_event, window);
+        if let Some(w) = window {
+            Self::start_update_emitter(status.clone(), callback_event, w);
+        }
         status
     }
 
@@ -139,6 +143,7 @@ pub struct ProcessingStatus {
     count_loading_lights: Arc<AtomicUsize>,
     count_merge_completed: Arc<AtomicUsize>,
     count_merging: Arc<AtomicUsize>,
+    cli_progress: ProcessingStatusCli,
 }
 
 impl Status for ProcessingStatus {
@@ -173,7 +178,12 @@ impl Status for ProcessingStatus {
 }
 
 impl ProcessingStatus {
-    pub fn new(count_lights: usize, count_darks: usize, callback_event: String, window: Window) -> Arc<Mutex<Self>> {
+    pub fn new(
+        count_lights: usize,
+        count_darks: usize,
+        callback_event: String,
+        window: Option<Window>,
+    ) -> Arc<Mutex<Self>> {
         let status = Arc::new(Mutex::new(ProcessingStatus {
             count_lights,
             count_darks,
@@ -182,9 +192,12 @@ impl ProcessingStatus {
             count_loading_lights: Arc::new(AtomicUsize::new(0)),
             count_merge_completed: Arc::new(AtomicUsize::new(0)),
             count_merging: Arc::new(AtomicUsize::new(0)),
+            cli_progress: ProcessingStatusCli::new(count_lights as u64, count_darks as u64),
         }));
 
-        Self::start_update_emitter(status.clone(), callback_event, window);
+        if let Some(w) = window {
+            Self::start_update_emitter(status.clone(), callback_event, w);
+        }
         status
     }
 
@@ -225,15 +238,19 @@ impl ProcessingStatus {
     }
 
     fn print_status(&self) {
-        debug!(
-            "Total {}, Loaded {}, Loading {}, Merged {}, Merging {}, loading_done = {}, merging_done = {}",
-            self.count_lights,
-            self.count_loaded_lights.load(Relaxed),
-            self.count_loading_lights.load(Relaxed),
-            self.count_merge_completed.load(Relaxed),
-            self.count_merging.load(Relaxed),
-            self.loading_done(),
-            self.merging_done()
+        self.cli_progress.update(
+            self.count_loaded_lights.load(Relaxed) as u64,
+            self.count_merge_completed.load(Relaxed) as u64,
+            self.count_loading_lights.load(Relaxed) as u64,
+            self.count_merging.load(Relaxed) as u64,
         );
+
+        if self.loading_done() {
+            self.cli_progress.finish_loading();
+        }
+
+        if self.merging_done() {
+            self.cli_progress.finish_merging();
+        }
     }
 }

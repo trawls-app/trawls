@@ -4,6 +4,7 @@ use std::thread::JoinHandle;
 use std::{fs, thread, time};
 
 use anyhow::{self, Context};
+use clap::ValueEnum;
 use itertools::chain;
 use log::{error, info};
 use num::rational::Ratio;
@@ -19,10 +20,11 @@ use libdng::image_info::DNGWriting;
 
 use self::status::Status;
 
+pub mod cli_progress;
 mod image;
 pub mod status;
 
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, ValueEnum)]
 pub enum Comets {
     Falling,
     Raising,
