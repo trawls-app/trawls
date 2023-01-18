@@ -248,7 +248,7 @@ impl ProcessingStatus {
         if self.loading_done() {
             self.cli_progress.finish_loading();
         }
-        
+
         if self.merging_done() {
             self.cli_progress.finish_merging();
         }

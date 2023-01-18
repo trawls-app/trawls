@@ -9,9 +9,11 @@ pub struct ProcessingStatusCli {
 impl ProcessingStatusCli {
     pub fn new(count_lights: u64, count_darks: u64) -> ProcessingStatusCli {
         let bars = MultiProgress::new();
-        let style = ProgressStyle::with_template("{spinner:.green} [{elapsed_precise}] [{wide_bar:.cyan/blue}] {pos:>7}/{len:7} {msg} ({eta})")
-            .unwrap()
-            .progress_chars("#>-");
+        let style = ProgressStyle::with_template(
+            "{spinner:.green} [{elapsed_precise}] [{wide_bar:.cyan/blue}] {pos:>7}/{len:7} {msg} ({eta})",
+        )
+        .unwrap()
+        .progress_chars("#>-");
 
         let pb_loading = bars.add(ProgressBar::new(count_lights + count_darks));
         pb_loading.set_style(style.clone());
