@@ -92,7 +92,7 @@ async fn run_merge(
     info!("Running merge in '{}' mode", mode_str);
 
     let start = Instant::now();
-    let preview = processing::run_merge(paths_light, paths_dark, output, mode, state);
+    let preview = processing::run_merge(paths_light, paths_dark, Some(output), None, mode, state);
 
     info!("Processing took {} seconds", start.elapsed().as_secs());
 
@@ -136,16 +136,28 @@ struct Merge {
     mode: Comets,
 }
 
+fn program_description() -> String {
+    format!("{} v{}", env!("CARGO_PKG_NAME"), version!())
+}
+
 fn main() {
     pretty_env_logger::init();
     let cli = Cli::parse();
 
-    info!("Trawls v{}", version!());
+    info!("{}", program_description());
 
     match &cli.command {
         Some(Commands::Merge(cmd)) => {
             let state = ProcessingStatus::new(cmd.files.len(), 0, String::from("processing_state_change"), None);
-            let preview = processing::run_merge(cmd.files.clone(), vec![], cmd.out.clone(), cmd.mode, state);
+            let preview = processing::run_merge(
+                cmd.files.clone(),
+                vec![],
+                Some(cmd.out.clone()),
+                cmd.preview.clone(),
+                cmd.mode,
+                state,
+            )
+            .unwrap();
         }
         None => {
             info!("Called without parameters. Starting GUI");
