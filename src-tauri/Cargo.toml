@@ -20,8 +20,7 @@ num = "0.4.0"
 rexif = "0.7.3"
 num_cpus = "1.15.0"
 rayon = "1.6.1"
-dng-rs = { git = "https://github.com/trawls-app/libdng-rust", rev="dcb9293b6828346db72ff9b22941d69a72b83ead" }
-rawler = { git = "https://github.com/dnglab/dnglab" }
+rawler = { git = "https://github.com/trawls-app/dnglab" }
 tempfile = "3.2.0"
 base64 = "0.20.0"
 itertools = "0.10.5"
@@ -30,6 +29,7 @@ log = "0.4.17"
 pretty_env_logger = "0.4.0"
 clap = { version = "4.1.1", features = ["derive"] }
 indicatif = "0.17.3"
+image = "0.24.5"
 
 [build-dependencies]
 tauri-build = { version = "1.2.1", features = [] }

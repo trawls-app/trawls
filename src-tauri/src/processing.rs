@@ -1,7 +1,7 @@
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex};
 use std::thread::JoinHandle;
-use std::{fs, thread, time};
+use std::{thread, time};
 
 use anyhow::{self, Context};
 use clap::ValueEnum;
@@ -18,6 +18,7 @@ use crate::processing::image::{Image, Mergable, MergeMode};
 use self::status::Status;
 
 pub mod cli_progress;
+mod dng_writing;
 mod image;
 pub mod status;
 
@@ -48,7 +49,8 @@ pub struct RenderedPreview {
 
 impl RenderedPreview {
     fn new(image_path: &Path) -> RenderedPreview {
-        let image_bytes = fs::read(image_path).unwrap();
+        //let image_bytes = fs::read(image_path).unwrap();
+        let image_bytes = Vec::<u8>::new();
         let encoded = base64::encode(image_bytes);
         let aperture_ratio = Ratio::new(0, 1);
         let exposure_ratio = Ratio::new(0, 1);
@@ -73,7 +75,8 @@ impl RenderedPreview {
 pub fn run_merge(
     lightframe_files: Vec<PathBuf>,
     darkframe_files: Vec<PathBuf>,
-    out_path: PathBuf,
+    out_path_dng: Option<PathBuf>,
+    out_path_preview: Option<PathBuf>,
     mode: Comets,
     state: Arc<Mutex<status::ProcessingStatus>>,
 ) -> anyhow::Result<RenderedPreview> {
@@ -147,11 +150,18 @@ pub fn run_merge(
         tempdir().with_context(|| "A temporary directory to store the preliminary results could not be created.")?;
 
     // Write the result
-    raw_image.write_dng(out_path)?;
+    let writer = raw_image.get_image_writer()?;
+    if out_path_dng.is_some() {
+        writer.write_dng(out_path_dng.unwrap())?;
+    }
+
+    if out_path_preview.is_some() {
+        writer.write_preview_jpg(out_path_preview.unwrap())?;
+    }
 
     // Create a preview to show in the UI
     let preview_path = dir.path().join("preview.jpg");
-    //writer.write_jpg(preview_path.as_path());
+    //writer.write_preview_jpg(preview_path.as_path().to_path_buf())?;
 
     Ok(RenderedPreview::new(preview_path.as_path()))
 }
