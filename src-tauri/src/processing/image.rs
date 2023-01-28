@@ -7,7 +7,9 @@ use rawler::{exif::Exif, RawFile, RawImage, RawImageData};
 use std::cmp::max;
 use std::fs::File;
 use std::io::BufReader;
-use std::path::{Path, PathBuf};
+use std::path::Path;
+
+use crate::processing::dng_writing::ImageWriter;
 
 #[derive(Copy, Clone)]
 pub enum MergeMode {
@@ -103,9 +105,9 @@ impl Image {
         })
     }
 
-    pub fn write_dng(self, path: PathBuf) -> anyhow::Result<()> {
-        println!("Exif: {:#?}", self.exif);
-        todo!();
+    pub fn get_image_writer(self) -> anyhow::Result<ImageWriter> {
+        //println!("Exif: {:#?}", self.exif);
+        ImageWriter::new(self.raw_image, self.exif)
     }
 }
 
@@ -181,7 +183,7 @@ impl Mergable for RawImage {
             orientation: self.orientation,
             data: RawImageData::Integer(res),
             color_matrix: self.color_matrix,
-            dng_tags: self.dng_tags,
+            dng_tags: self.dng_tags, // Todo: Proper merge
         })
     }
 
