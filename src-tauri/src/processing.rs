@@ -7,10 +7,9 @@ use anyhow::{self, Context};
 use clap::ValueEnum;
 use itertools::chain;
 use log::{error, info};
-use num::rational::Ratio;
+use rawler::exif::Exif;
 use rayon::prelude::*;
 use serde::Serialize;
-use tempfile::tempdir;
 
 use crate::processing::image::MergeMode::{Maximize, WeightedAverage};
 use crate::processing::image::{Image, Mergable, MergeMode};
@@ -48,16 +47,11 @@ pub struct RenderedPreview {
 }
 
 impl RenderedPreview {
-    fn new(image_path: &Path) -> RenderedPreview {
-        //let image_bytes = fs::read(image_path).unwrap();
-        let image_bytes = Vec::<u8>::new();
-        let encoded = base64::encode(image_bytes);
-        let aperture_ratio = Ratio::new(0, 1);
-        let exposure_ratio = Ratio::new(0, 1);
-        let isospeed = 0;
+    fn new(preview_bytes: Vec<u8>, exif: Exif) -> RenderedPreview {
+        let encoded = base64::encode(preview_bytes);
 
-        let aperture = *aperture_ratio.numer() as f32 / *aperture_ratio.denom() as f32;
-        let exposure = time::Duration::from_secs_f64(*exposure_ratio.numer() as f64 / *exposure_ratio.denom() as f64);
+        let exposure_time = exif.exposure_time.unwrap_or_default();
+        let exposure = time::Duration::from_secs_f64(exposure_time.n as f64 / exposure_time.d as f64);
 
         let seconds = exposure.as_secs() % 60;
         let minutes = (exposure.as_secs() / 60) % 60;
@@ -65,9 +59,9 @@ impl RenderedPreview {
 
         RenderedPreview {
             encoded,
-            aperture: format!("f/{}", aperture),
+            aperture: format!("f/{:.1}", exif.fnumber.unwrap_or_default().as_f32()),
             exposure: format!("{}h{}m{}s", hours, minutes, seconds),
-            isospeed: format!("ISO{}", isospeed),
+            isospeed: format!("ISO{}", exif.iso_speed_ratings.unwrap_or_default()),
         }
     }
 }
@@ -143,13 +137,9 @@ pub fn run_merge(
     };
 
     info!("Processing done");
-    //raw_image.exif.print_all();
-
-    // Create a temporary directory to store the result and preview for further handling
-    let dir =
-        tempdir().with_context(|| "A temporary directory to store the preliminary results could not be created.")?;
 
     // Write the result
+    let exif = raw_image.exif.clone();
     let writer = raw_image.get_image_writer()?;
     if out_path_dng.is_some() {
         writer.write_dng(out_path_dng.unwrap())?;
@@ -160,10 +150,9 @@ pub fn run_merge(
     }
 
     // Create a preview to show in the UI
-    let preview_path = dir.path().join("preview.jpg");
-    //writer.write_preview_jpg(preview_path.as_path().to_path_buf())?;
+    let preview_bytes = writer.get_preview_bytes()?;
 
-    Ok(RenderedPreview::new(preview_path.as_path()))
+    Ok(RenderedPreview::new(preview_bytes, exif))
 }
 
 fn spawn_workers(
