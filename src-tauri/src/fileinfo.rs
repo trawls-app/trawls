@@ -1,3 +1,4 @@
+use chrono::NaiveDateTime;
 use rawler::RawFile;
 use rawler::decoders::RawDecodeParams;
 use rawler::exif::Exif;
@@ -31,16 +32,22 @@ impl ImageCandidate {
 
     pub fn json(self) -> serde_json::Value {
         let exif = self.exif.lock().unwrap();
-        let aperture = exif.aperture_value.unwrap_or_default();
+        let aperture = exif.fnumber.unwrap_or_default();
         let exposure_time = exif.exposure_time.unwrap_or_default();
+
+        // Bring the date into something more ISO conform
+        let creation_time = NaiveDateTime::parse_from_str(
+            exif.date_time_original.clone().unwrap_or_default().as_str(),
+            "%Y:%m:%d %H:%M:%S"
+        ).ok().unwrap_or_default();
 
         json!({
             "path": self.path.to_str(),
             "filename": self.path.file_name().unwrap().to_str().unwrap(),
-            "creation_time": exif.date_time_original.clone().unwrap_or_default(),
-            "exposure_seconds": format!("{:.1}", exposure_time.as_f32()),
+            "creation_time": creation_time,
+            "exposure_seconds": exposure_time.as_f32(),
             "aperture": format!("{:.1}", aperture.as_f32()),
-            "iso": exif.iso_speed.unwrap_or_default(),
+            "iso": exif.iso_speed_ratings.unwrap_or_default(),
         })
     }
 }
