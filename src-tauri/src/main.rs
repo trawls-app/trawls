@@ -149,7 +149,7 @@ fn main() {
     match &cli.command {
         Some(Commands::Merge(cmd)) => {
             let state = ProcessingStatus::new(cmd.files.len(), 0, String::from("processing_state_change"), None);
-            let preview = processing::run_merge(
+            processing::run_merge(
                 cmd.files.clone(),
                 vec![],
                 Some(cmd.out.clone()),
