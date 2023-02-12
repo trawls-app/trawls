@@ -7,8 +7,8 @@ use log::info;
 use rawler::{
     dng::{
         dngwriter::{
-            dng_put_preview, dng_put_raw, dng_put_raw_ljpeg, dng_put_raw_uncompressed, dng_put_thumbnail,
-            fill_exif_ifd, fill_exif_root, matrix_to_tiff_value, wbcoeff_to_tiff_value, ConvertParams,
+            dng_put_preview, dng_put_raw_ljpeg, dng_put_thumbnail,
+            fill_exif_ifd, fill_exif_root, matrix_to_tiff_value, wbcoeff_to_tiff_value,
         },
         rect_to_dng_area,
     },
@@ -18,6 +18,7 @@ use rawler::{
     tags::{DngTag, ExifTag, TiffCommonTag},
     RawImage, RawImageData,
 };
+use uuid::Uuid;
 
 const LJ92_PREDICTOR: u8 = 7;
 const DNG_VERSION_V1_1: [u8; 4] = [1, 1, 0, 0];
@@ -59,15 +60,21 @@ impl ImageWriter {
             File::create(path.clone()).with_context(|| format!("Error while opening {:#?} for writing.", path))?;
 
         let wb_coeff = wbcoeff_to_tiff_value(&self.raw_image);
-        let mut dng = TiffWriter::new(&mut output)?;
 
+        let mut dng = TiffWriter::new(&mut output)?;
         let mut root_ifd = dng.new_directory();
+
         fill_exif_root(&mut root_ifd, &self.exif)?;
 
+        // Create a unique image id
+        let uiid = Uuid::new_v4().to_bytes_le();
+        root_ifd.add_tag(DngTag::RawDataUniqueID, uiid)?;
+
+        // Add a thumbnail
         root_ifd.add_tag(TiffCommonTag::NewSubFileType, 1_u16)?;
         dng_put_thumbnail(&mut root_ifd, &self.preview).unwrap();
 
-        // Add basic creation info
+        // Add basic info
         root_ifd.add_tag(TiffCommonTag::Software, &program_description())?;
         root_ifd.add_tag(DngTag::DNGVersion, &DNG_VERSION_V1_6[..])?;
         root_ifd.add_tag(DngTag::DNGBackwardVersion, &DNG_VERSION_V1_1[..])?;
