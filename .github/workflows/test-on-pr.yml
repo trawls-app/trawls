@@ -46,7 +46,7 @@ jobs:
         run: yarn
         env:
           CXXFLAGS: --std=c++14
-      - uses: tauri-apps/tauri-action@dev
+      - uses: tauri-apps/tauri-action@fa6292738e73baa75c31ab9d5fd1a95aaea45537
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           CXXFLAGS: --std=c++14
