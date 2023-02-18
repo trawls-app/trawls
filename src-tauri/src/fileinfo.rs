@@ -1,7 +1,7 @@
 use chrono::NaiveDateTime;
-use rawler::RawFile;
 use rawler::decoders::RawDecodeParams;
 use rawler::exif::Exif;
+use rawler::RawFile;
 use serde_json::json;
 use std::fs::File;
 use std::io::BufReader;
@@ -38,8 +38,10 @@ impl ImageCandidate {
         // Bring the date into something more ISO conform
         let creation_time = NaiveDateTime::parse_from_str(
             exif.date_time_original.clone().unwrap_or_default().as_str(),
-            "%Y:%m:%d %H:%M:%S"
-        ).ok().unwrap_or_default();
+            "%Y:%m:%d %H:%M:%S",
+        )
+        .ok()
+        .unwrap_or_default();
 
         json!({
             "path": self.path.to_str(),
