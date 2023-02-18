@@ -21,7 +21,7 @@ use rawler::{
 };
 use uuid::Uuid;
 
-const LJ92_PREDICTOR: u8 = 7;
+const LJ92_PREDICTOR: u8 = 1;   // RawTherapee on Linux shows artifacts for all other predictors
 const DNG_VERSION_V1_1: [u8; 4] = [1, 1, 0, 0];
 const DNG_VERSION_V1_6: [u8; 4] = [1, 6, 0, 0];
 
