@@ -1,15 +1,15 @@
 use crate::anyhow::Context;
 use crate::program_description;
-use std::{fs::File, path::PathBuf};
 use std::io::Cursor;
+use std::{fs::File, path::PathBuf};
 
 use image::{DynamicImage, ImageBuffer, ImageFormat};
 use log::info;
 use rawler::{
     dng::{
         dngwriter::{
-            dng_put_preview, dng_put_raw_ljpeg, dng_put_thumbnail,
-            fill_exif_ifd, fill_exif_root, matrix_to_tiff_value, wbcoeff_to_tiff_value,
+            dng_put_preview, dng_put_raw_ljpeg, dng_put_thumbnail, fill_exif_ifd, fill_exif_root, matrix_to_tiff_value,
+            wbcoeff_to_tiff_value,
         },
         rect_to_dng_area,
     },
@@ -239,7 +239,7 @@ impl ImageWriter {
 
     pub fn get_preview_bytes(&self) -> anyhow::Result<Vec<u8>> {
         info!("Creating preview file in memory...");
-        
+
         let img = self.preview.clone().into_rgb8();
         let mut cursor = Cursor::new(Vec::new());
         img.write_to(&mut cursor, ImageFormat::Jpeg)?;
