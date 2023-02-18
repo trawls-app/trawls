@@ -106,7 +106,6 @@ impl Image {
     }
 
     pub fn get_image_writer(self) -> anyhow::Result<ImageWriter> {
-        //println!("Exif: {:#?}", self.exif);
         ImageWriter::new(self.raw_image, self.exif)
     }
 }

@@ -21,7 +21,7 @@ use rawler::{
 };
 use uuid::Uuid;
 
-const LJ92_PREDICTOR: u8 = 1;   // RawTherapee on Linux shows artifacts for all other predictors
+const LJ92_PREDICTOR: u8 = 1; // RawTherapee on Linux shows artifacts for all other predictors
 const DNG_VERSION_V1_1: [u8; 4] = [1, 1, 0, 0];
 const DNG_VERSION_V1_6: [u8; 4] = [1, 6, 0, 0];
 
@@ -206,21 +206,11 @@ impl ImageWriter {
 
         raw_ifd.add_tag(TiffCommonTag::CFARepeatPatternDim, [cfa.width as u16, cfa.height as u16])?;
         raw_ifd.add_tag(TiffCommonTag::CFAPattern, &cfa.flat_pattern()[..])?;
-
-        //raw_ifd.add_tag(DngTag::CFAPlaneColor, [0u8, 1u8, 2u8])?; // RGB
-
-        //raw_ifd.add_tag(DngTag::CFAPlaneColor, [1u8, 4u8, 3u8, 5u8])?; // RGB
-
         raw_ifd.add_tag(DngTag::CFALayout, 1_u16)?; // Square layout
 
-        //raw_ifd.add_tag(LegacyTiffRootTag::CFAPattern, [0u8, 1u8, 1u8, 2u8])?; // RGGB
-        //raw_ifd.add_tag(LegacyTiffRootTag::CFARepeatPatternDim, [2u16, 2u16])?;
-        //raw_ifd.add_tag(DngTag::CFAPlaneColor, [0u8, 1u8, 2u8])?; // RGGB
-
+        // Add the actual RAW, compressed with LJ92
         raw_ifd.add_tag(TiffCommonTag::Compression, CompressionMethod::ModernJPEG)?;
         dng_put_raw_ljpeg(raw_ifd, &self.raw_image, LJ92_PREDICTOR)?;
-        //raw_ifd.add_tag(TiffCommonTag::Compression, CompressionMethod::None)?;
-        //dng_put_raw_uncompressed(raw_ifd, &self.raw_image)?;
 
         for (tag, value) in self.raw_image.dng_tags.iter() {
             raw_ifd.add_untyped_tag(*tag, value.clone())?;
