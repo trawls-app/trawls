@@ -3,6 +3,7 @@ use std::sync::{Arc, Mutex};
 use std::time;
 
 use anyhow::{self, Context};
+use base64::{engine::general_purpose as b64, Engine as _};
 use clap::ValueEnum;
 use log::info;
 use rawler::exif::Exif;
@@ -43,7 +44,7 @@ pub struct RenderedPreview {
 
 impl RenderedPreview {
     pub fn new(preview_bytes: Vec<u8>, exif: Exif) -> RenderedPreview {
-        let encoded = base64::encode(preview_bytes);
+        let encoded = b64::STANDARD.encode(preview_bytes);
 
         let exposure_time = exif.exposure_time.unwrap_or_default();
         let exposure = time::Duration::from_secs_f64(exposure_time.n as f64 / exposure_time.d as f64);
