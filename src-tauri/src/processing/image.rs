@@ -8,8 +8,11 @@ use std::cmp::max;
 use std::fs::File;
 use std::io::BufReader;
 use std::path::Path;
+use std::sync::{Arc, Mutex};
 
 use crate::processing::dng_writing::ImageWriter;
+
+use super::status;
 
 #[derive(Copy, Clone)]
 pub enum MergeMode {
@@ -20,6 +23,74 @@ pub enum MergeMode {
 pub trait Mergable<Rhs = Self> {
     fn weighted_merge(self, other: Rhs, weight_self: f32, weight_other: f32, mode: MergeMode) -> anyhow::Result<Rhs>;
     fn merge(self, other: Rhs, mode: MergeMode) -> anyhow::Result<Rhs>;
+}
+
+pub struct Frame {
+    lightframe: Option<Image>,
+    darkframe: Option<Image>,
+}
+
+impl Frame {
+    pub fn from_lightframe(image: Image) -> Frame {
+        Frame {
+            lightframe: Some(image),
+            darkframe: None,
+        }
+    }
+
+    pub fn from_darkframe(image: Image) -> Frame {
+        Frame {
+            lightframe: None,
+            darkframe: Some(image),
+        }
+    }
+
+    pub fn identity() -> Frame {
+        Frame {
+            lightframe: None,
+            darkframe: None,
+        }
+    }
+
+    pub fn get_image(self) -> anyhow::Result<Image> {
+        match (self.lightframe, self.darkframe) {
+            (Some(light), Some(dark)) => light.apply_darkframe(dark),
+            (Some(light), None) => Ok(light),
+            _ => anyhow::bail!("The image contains no lightframe"),
+        }
+    }
+
+    pub fn merge(self, other: Frame, state: Arc<Mutex<status::ProcessingStatus>>) -> anyhow::Result<Box<Frame>> {
+        let frame = Frame {
+            lightframe: match (self.lightframe, other.lightframe) {
+                (Some(x), Some(y)) => Some(Frame::count_and_merge(x, y, MergeMode::Maximize, state.clone())?),
+                (Some(x), None) => Some(x),
+                (None, Some(y)) => Some(y),
+                (None, None) => None,
+            },
+            darkframe: match (self.darkframe, other.darkframe) {
+                (Some(x), Some(y)) => Some(Frame::count_and_merge(x, y, MergeMode::WeightedAverage, state)?),
+                (Some(x), None) => Some(x),
+                (None, Some(y)) => Some(y),
+                (None, None) => None,
+            },
+        };
+
+        Ok(Box::new(frame))
+    }
+
+    fn count_and_merge(
+        x: Image,
+        y: Image,
+        mode: MergeMode,
+        state: Arc<Mutex<status::ProcessingStatus>>,
+    ) -> anyhow::Result<Image> {
+        state.lock().unwrap().start_merging();
+        let image = x.merge(y, mode);
+        state.lock().unwrap().finish_merging();
+
+        image
+    }
 }
 
 pub struct Image {
