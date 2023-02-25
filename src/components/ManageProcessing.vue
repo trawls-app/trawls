@@ -100,9 +100,9 @@
       <b-icon icon="arrow-clockwise" animation="spin" v-if="state.merging_done === false"></b-icon>
     </h6>
 
-    <b-progress class="mt-2" :max="state.count_lights + state.count_darks - 1" show-value>
+    <b-progress class="mt-2" :max="state.count_lights - 1 + Math.max(state.count_darks - 1, 0)" show-value>
       <b-progress-bar :value="state.count_merged" variant="success">
-        <span><strong>{{ state.count_merged }} / {{ state.count_lights + state.count_darks - 1 }}</strong></span>
+        <span><strong>{{ state.count_merged }} / {{ state.count_lights - 1 + Math.max(state.count_darks - 1, 0) }}</strong></span>
       </b-progress-bar>
       <b-progress-bar :value="state.count_merging" animated show-value></b-progress-bar>
     </b-progress>
