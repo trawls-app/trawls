@@ -1,4 +1,5 @@
 use anyhow;
+use log::info;
 use num::rational::Ratio;
 use num::ToPrimitive;
 use rawler::decoders::RawDecodeParams;
@@ -101,6 +102,15 @@ pub struct Image {
 
 impl Image {
     pub fn apply_darkframe(self, darkframe: Image) -> anyhow::Result<Image> {
+        info!("Applying darkframe...");
+
+        anyhow::ensure!(
+            self.raw_image.width == darkframe.raw_image.width
+                && self.raw_image.height == darkframe.raw_image.height
+                && self.raw_image.cpp == darkframe.raw_image.cpp,
+            "Lightframe and darkframe have different dimensions."
+        );
+
         let light = self.get_image_data()?;
         let dark = darkframe.get_image_data()?;
         let avg_black = (dark.iter().fold(0u64, |acc, x| acc + *x as u64) / dark.len() as u64) as i16;
