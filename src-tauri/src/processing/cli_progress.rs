@@ -1,7 +1,8 @@
+use std::cmp::max;
+
 use indicatif::{MultiProgress, ProgressBar, ProgressStyle};
 
 pub struct ProcessingStatusCli {
-    bars: MultiProgress,
     pb_loading: ProgressBar,
     pb_merging: ProgressBar,
 }
@@ -18,11 +19,11 @@ impl ProcessingStatusCli {
         let pb_loading = bars.add(ProgressBar::new(count_lights + count_darks));
         pb_loading.set_style(style.clone());
 
-        let pb_merging = bars.insert_after(&pb_loading, ProgressBar::new(count_lights - 1));
+        let count_merge_tasks = max(count_lights - 1, 0) + max(count_darks - 1, 0);
+        let pb_merging = bars.insert_after(&pb_loading, ProgressBar::new(count_merge_tasks));
         pb_merging.set_style(style);
 
         ProcessingStatusCli {
-            bars,
             pb_loading,
             pb_merging,
         }
