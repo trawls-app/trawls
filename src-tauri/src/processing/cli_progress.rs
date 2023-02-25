@@ -19,7 +19,7 @@ impl ProcessingStatusCli {
         let pb_loading = bars.add(ProgressBar::new(count_lights + count_darks));
         pb_loading.set_style(style.clone());
 
-        let count_merge_tasks = max(count_lights - 1, 0) + max(count_darks - 1, 0);
+        let count_merge_tasks = max(count_lights as i64 - 1, 0) as u64 + max(count_darks as i64 - 1, 0) as u64;
         let pb_merging = bars.insert_after(&pb_loading, ProgressBar::new(count_merge_tasks));
         pb_merging.set_style(style);
 
