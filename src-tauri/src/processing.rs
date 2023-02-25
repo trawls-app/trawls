@@ -42,7 +42,7 @@ pub struct RenderedPreview {
 }
 
 impl RenderedPreview {
-    fn new(preview_bytes: Vec<u8>, exif: Exif) -> RenderedPreview {
+    pub fn new(preview_bytes: Vec<u8>, exif: Exif) -> RenderedPreview {
         let encoded = base64::encode(preview_bytes);
 
         let exposure_time = exif.exposure_time.unwrap_or_default();
@@ -64,11 +64,9 @@ impl RenderedPreview {
 pub fn run_merge(
     lightframe_files: Vec<PathBuf>,
     darkframe_files: Vec<PathBuf>,
-    out_path_dng: Option<PathBuf>,
-    out_path_preview: Option<PathBuf>,
     mode: Comets,
     state: Arc<Mutex<status::ProcessingStatus>>,
-) -> anyhow::Result<RenderedPreview> {
+) -> anyhow::Result<Image> {
     let num_threads = num_cpus::get();
     info!(
         "System has {} cores and {} threads. Using {} worker threads.",
@@ -77,6 +75,7 @@ pub fn run_merge(
         num_threads
     );
 
+    // Create loading tasks for lightframes
     let mut tasks: Vec<LoadTask> = lightframe_files
         .iter()
         .enumerate()
@@ -85,6 +84,8 @@ pub fn run_merge(
             path: p.to_path_buf(),
         })
         .collect();
+
+    // Add darkframes to the tasklist
     tasks.append(
         &mut darkframe_files
             .iter()
@@ -95,36 +96,17 @@ pub fn run_merge(
             .collect(),
     );
 
+    // Loading and merging
     let frame = tasks
         .par_iter()
         .map(|t| load_image(t, mode, state.clone()))
         .reduce(|| Ok(Box::new(Frame::identity())), |x, y| x?.merge(*y?, state.clone()));
 
-    let raw_image = match frame {
-        Ok(x) => x.get_image()?,
-        Err(e) => {
-            state.lock().unwrap().abort();
-            return Err(e);
-        }
-    };
-
-    info!("Processing done");
-
-    // Write the result
-    let exif = raw_image.exif.clone();
-    let writer = raw_image.get_image_writer()?;
-    if out_path_dng.is_some() {
-        writer.write_dng(out_path_dng.unwrap())?;
+    if frame.is_err() {
+        state.lock().unwrap().abort();
     }
 
-    if out_path_preview.is_some() {
-        writer.write_preview_jpg(out_path_preview.unwrap())?;
-    }
-
-    // Create a preview to show in the UI
-    let preview_bytes = writer.get_preview_bytes()?;
-
-    Ok(RenderedPreview::new(preview_bytes, exif))
+    frame?.get_image()
 }
 
 fn load_image(
