@@ -23,10 +23,7 @@ impl ProcessingStatusCli {
         let pb_merging = bars.insert_after(&pb_loading, ProgressBar::new(count_merge_tasks));
         pb_merging.set_style(style);
 
-        ProcessingStatusCli {
-            pb_loading,
-            pb_merging,
-        }
+        ProcessingStatusCli { pb_loading, pb_merging }
     }
 
     pub fn update(&self, loaded: u64, merged: u64, loading: u64, merging: u64) {
