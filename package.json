@@ -12,7 +12,6 @@
   },
   "dependencies": {
     "@tauri-apps/api": "^1.2.0",
-    "@tauri-apps/tauri": "0.0.1-utility.19",
     "bootstrap-vue": "^2.23.1",
     "core-js": "^3.29.0",
     "vue": "~2.7.14",
