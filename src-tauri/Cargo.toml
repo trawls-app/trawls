@@ -1,5 +1,5 @@
 [package]
-name = "trawls"
+name = "Trawls"
 version = "0.4.1"
 description = "Trawls - RAW based startrail processing"
 authors = [ "Christopher Schmidt" ]
