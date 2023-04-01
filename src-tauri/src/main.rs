@@ -65,10 +65,16 @@ fn main() -> anyhow::Result<()> {
     match &cli.command {
         Some(Commands::Merge(cmd)) => {
             let state = ProcessingStatus::new(cmd.files.len(), 0, String::from("processing_state_change"), None);
-            let image = processing::run_merge(cmd.files.clone(), vec![], cmd.mode, state)?;
+            let image = processing::run_merge(cmd.files.clone(), vec![], cmd.mode, state.clone())?;
 
             let writer = image.get_image_writer()?;
+
+            let step = state
+                .lock()
+                .unwrap()
+                .start_step("Writing DNG".to_string(), char::from_u32(128175).unwrap());
             writer.write_dng(cmd.out.clone())?;
+            state.lock().unwrap().finish_step(step);
 
             if let Some(x) = &cmd.preview {
                 writer.write_preview_jpg(x.to_path_buf())?;

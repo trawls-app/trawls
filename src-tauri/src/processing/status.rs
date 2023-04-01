@@ -6,7 +6,7 @@ use std::sync::atomic::Ordering::Relaxed;
 use std::sync::atomic::{AtomicBool, AtomicUsize};
 use std::sync::{Arc, Mutex};
 use std::thread;
-use std::time::Duration;
+use std::time::{Duration, Instant};
 use tauri::Window;
 
 use crate::processing::cli_progress::ProcessingStatusCli;
@@ -135,6 +135,39 @@ impl InfoLoadingStatus {
     }
 }
 
+pub struct ProcessingStepStatus {
+    pub str: String,
+    pub emoji: char,
+    started_at: Instant,
+    ended_at: Option<Instant>,
+}
+
+impl ProcessingStepStatus {
+    pub fn new(str: String, emoji: char) -> ProcessingStepStatus {
+        ProcessingStepStatus {
+            str,
+            emoji,
+            started_at: Instant::now(),
+            ended_at: None,
+        }
+    }
+
+    pub fn is_finished(&self) -> bool {
+        self.ended_at.is_some()
+    }
+
+    fn finish(&mut self) {
+        self.ended_at = Some(Instant::now())
+    }
+
+    pub fn runtime(&self) -> Duration {
+        match self.ended_at {
+            Some(x) => x - self.started_at,
+            None => Instant::now() - self.started_at,
+        }
+    }
+}
+
 pub struct ProcessingStatus {
     pub count_lights: usize,
     pub count_darks: usize,
@@ -143,6 +176,7 @@ pub struct ProcessingStatus {
     count_loading_lights: Arc<AtomicUsize>,
     count_merge_completed: Arc<AtomicUsize>,
     count_merging: Arc<AtomicUsize>,
+    steps: Arc<Mutex<Vec<ProcessingStepStatus>>>,
     cli_progress: ProcessingStatusCli,
 }
 
@@ -192,6 +226,7 @@ impl ProcessingStatus {
             count_loading_lights: Arc::new(AtomicUsize::new(0)),
             count_merge_completed: Arc::new(AtomicUsize::new(0)),
             count_merging: Arc::new(AtomicUsize::new(0)),
+            steps: Arc::new(Mutex::new(vec![])),
             cli_progress: ProcessingStatusCli::new(count_lights as u64, count_darks as u64),
         }));
 
@@ -215,34 +250,55 @@ impl ProcessingStatus {
             == self.count_merge_completed.load(Relaxed)
     }
 
-    pub fn start_loading(&self) {
+    pub fn start_loading(&mut self) {
         self.count_loading_lights.fetch_add(1, Relaxed);
         self.print_status();
     }
 
-    pub fn finish_loading(&self) {
+    pub fn finish_loading(&mut self) {
         self.count_loaded_lights.fetch_add(1, Relaxed);
         self.count_loading_lights.fetch_sub(1, Relaxed);
         self.print_status();
     }
 
-    pub fn start_merging(&self) {
+    pub fn start_merging(&mut self) {
         self.count_merging.fetch_add(1, Relaxed);
         self.print_status();
     }
 
-    pub fn finish_merging(&self) {
+    pub fn finish_merging(&mut self) {
         self.count_merge_completed.fetch_add(1, Relaxed);
         self.count_merging.fetch_sub(1, Relaxed);
         self.print_status();
     }
 
-    fn print_status(&self) {
+    pub fn start_step(&mut self, str: String, emoji: char) -> usize {
+        let mut steps = self.steps.lock().unwrap();
+        steps.push(ProcessingStepStatus::new(str, emoji));
+
+        let index = steps.len() - 1;
+        drop(steps);
+
+        self.print_status();
+        index
+    }
+
+    pub fn finish_step(&mut self, step: usize) {
+        let mut steps = self.steps.lock().unwrap();
+
+        steps[step].finish();
+        drop(steps);
+
+        self.print_status();
+    }
+
+    fn print_status(&mut self) {
         self.cli_progress.update(
             self.count_loaded_lights.load(Relaxed) as u64,
             self.count_merge_completed.load(Relaxed) as u64,
             self.count_loading_lights.load(Relaxed) as u64,
             self.count_merging.load(Relaxed) as u64,
+            self.steps.lock().unwrap().as_ref(),
         );
 
         if self.loading_done() {
