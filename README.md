@@ -13,6 +13,10 @@ Pre-compiled packages for Linux, macOS and Windows can be found and downloaded o
 Trawls is based on [Tauri](https://tauri.studio/en/) and uses [Vue](https://vuejs.org/) for its user interface.
 Tauri is integrated using a vue-cli plugin, such that setup, compilation and building of the Rust parts can be controlled through `yarn`.
 
+### Dependencies for building on Linux
+ * Node >= 14
+ * On Ubuntu Jammy `libgtk-3-dev librsvg2-dev patchelf cmake libsoup2.4-dev libjavascriptcoregtk-4.0-dev libwebkit2gtk-4.0-dev`
+
 ```
 CXXFLAGS="--std=c++14" yarn install
 ```
