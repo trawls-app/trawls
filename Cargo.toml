@@ -1,0 +1,10 @@
+[package]
+name = "trawls-gpui"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+anyhow = "1"
+gpui = "0.2.2"
+gpui-component = { path = "../gpui-component/crates/ui" }
+rust-embed = "8.5.0"
