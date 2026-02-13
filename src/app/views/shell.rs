@@ -78,7 +78,7 @@ impl TrawlsDummy {
                 SidebarGroup::new("Steps").child(
                     SidebarMenu::new()
                         .child(
-                            SidebarMenuItem::new("Add Lightframes")
+                            SidebarMenuItem::new("Lightframes")
                                 .icon(IconName::SquareTerminal)
                                 .active(self.active_step == 0)
                                 .suffix(format!("{}", self.lightframes.len()))
@@ -88,7 +88,7 @@ impl TrawlsDummy {
                                 })),
                         )
                         .child(
-                            SidebarMenuItem::new("Add Darkframes")
+                            SidebarMenuItem::new("Darkframes")
                                 .icon(IconName::Bot)
                                 .active(self.active_step == 1)
                                 .suffix(format!("{}", self.darkframes.len()))
@@ -98,7 +98,7 @@ impl TrawlsDummy {
                                 })),
                         )
                         .child(
-                            SidebarMenuItem::new("Process images")
+                            SidebarMenuItem::new("Processing")
                                 .icon(IconName::Settings2)
                                 .active(self.active_step == 2)
                                 .on_click(cx.listener(|this, _, _, cx| {

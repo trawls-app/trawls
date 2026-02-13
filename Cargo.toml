@@ -5,6 +5,7 @@ edition = "2024"
 
 [dependencies]
 anyhow = "1"
+chrono = "0.4"
 gpui = "0.2.2"
 gpui-component = { path = "../gpui-component/crates/ui" }
 rust-embed = "8.5.0"

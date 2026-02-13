@@ -51,3 +51,22 @@ impl Default for ProcessingMock {
         }
     }
 }
+
+#[derive(Clone)]
+pub struct LightframeStats {
+    pub total_count: usize,
+    pub valid_count: usize,
+    pub error_count: usize,
+    pub total_exposure_seconds: f32,
+    pub total_time_seconds: f32,
+    pub non_exposing_seconds: f32,
+    pub duty_cycle_percent: f32,
+    pub largest_gap: Option<LargestGap>,
+}
+
+#[derive(Clone)]
+pub struct LargestGap {
+    pub from: String,
+    pub to: String,
+    pub seconds: f32,
+}

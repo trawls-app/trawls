@@ -1,3 +1,4 @@
+use chrono::NaiveDateTime;
 use gpui::{Context, ParentElement as _, Styled as _, Window, div};
 use gpui_component::{
     WindowExt as _,
@@ -5,7 +6,7 @@ use gpui_component::{
     v_flex,
 };
 
-use crate::model::{FrameInfo, PreviewData, ProcessingMock, SortKey};
+use crate::model::{FrameInfo, LargestGap, LightframeStats, PreviewData, ProcessingMock, SortKey};
 
 use super::TrawlsDummy;
 
@@ -200,5 +201,96 @@ impl TrawlsDummy {
         let current =
             self.processing.count_merged as f32 + (self.processing.count_merging as f32 * 0.5);
         (current / total * 100.0).clamp(0.0, 100.0)
+    }
+
+    pub(crate) fn lightframe_stats(rows: &[FrameInfo]) -> Option<LightframeStats> {
+        let total_count = rows.len();
+        let error_count = rows.iter().filter(|r| r.error.is_some()).count();
+        let valid_rows: Vec<&FrameInfo> = rows.iter().filter(|r| r.error.is_none()).collect();
+        if valid_rows.is_empty() {
+            return None;
+        }
+        let valid_count = valid_rows.len();
+
+        let total_exposure_seconds: f32 = valid_rows.iter().map(|r| r.exposure_seconds).sum();
+        let non_exposing_seconds: f32 = valid_rows
+            .iter()
+            .filter_map(|r| r.interval_seconds)
+            .map(|v| v.max(0.0))
+            .sum();
+        let total_time_seconds = Self::capture_span_seconds(&valid_rows)
+            .unwrap_or(total_exposure_seconds + non_exposing_seconds);
+        let duty_cycle_percent = if total_time_seconds > 0.0 {
+            (total_exposure_seconds / total_time_seconds * 100.0).clamp(0.0, 100.0)
+        } else {
+            0.0
+        };
+        let largest_gap = Self::largest_gap(&valid_rows);
+
+        Some(LightframeStats {
+            total_count,
+            valid_count,
+            error_count,
+            total_exposure_seconds,
+            total_time_seconds,
+            non_exposing_seconds,
+            duty_cycle_percent,
+            largest_gap,
+        })
+    }
+
+    fn capture_span_seconds(rows: &[&FrameInfo]) -> Option<f32> {
+        let mut times = rows
+            .iter()
+            .filter_map(|r| {
+                NaiveDateTime::parse_from_str(r.creation_time, "%Y-%m-%dT%H:%M:%S").ok()
+            })
+            .collect::<Vec<_>>();
+
+        if times.len() < 2 {
+            return None;
+        }
+
+        times.sort();
+        let first = times.first()?;
+        let last = times.last()?;
+        Some((last.signed_duration_since(*first).num_seconds() as f32).max(0.0))
+    }
+
+    fn largest_gap(rows: &[&FrameInfo]) -> Option<LargestGap> {
+        let mut with_time = rows
+            .iter()
+            .filter_map(|r| {
+                NaiveDateTime::parse_from_str(r.creation_time, "%Y-%m-%dT%H:%M:%S")
+                    .ok()
+                    .map(|dt| (*r, dt))
+            })
+            .collect::<Vec<_>>();
+
+        if with_time.len() < 2 {
+            return None;
+        }
+        with_time.sort_by_key(|(_, dt)| *dt);
+
+        let mut best: Option<LargestGap> = None;
+        for window in with_time.windows(2) {
+            let (prev_row, prev_dt) = window[0];
+            let (next_row, next_dt) = window[1];
+            let dt = next_dt.signed_duration_since(prev_dt).num_seconds() as f32;
+            let gap = (dt - prev_row.exposure_seconds).max(0.0);
+
+            match &best {
+                Some(cur) if cur.seconds >= gap => {}
+                _ => {
+                    best = Some(LargestGap {
+                        from: prev_row.filename.to_string(),
+                        to: next_row.filename.to_string(),
+                        seconds: gap,
+                    });
+                }
+            }
+        }
+
+        best
     }
 }

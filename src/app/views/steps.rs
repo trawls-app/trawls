@@ -15,7 +15,7 @@ use gpui_component::{
 
 use crate::{
     app::TrawlsDummy,
-    model::MergeMode,
+    model::{LightframeStats, MergeMode},
     samples::{sample_darkframes, sample_lightframes},
 };
 
@@ -31,6 +31,11 @@ impl TrawlsDummy {
             Self::sorted_frames(&self.darkframes, self.dark_sort)
         };
         let count = rows.len();
+        let light_stats = if is_light {
+            Self::lightframe_stats(&rows)
+        } else {
+            None
+        };
 
         v_flex()
             .gap_4()
@@ -133,7 +138,146 @@ impl TrawlsDummy {
                         ),
                     ),
             )
+            .when_some(light_stats, |this, stats| {
+                this.child(self.render_lightframe_stats(stats, cx))
+            })
             .child(self.render_frame_table(&rows, is_light, is_light, cx))
+    }
+
+    fn render_lightframe_stats(
+        &self,
+        stats: LightframeStats,
+        cx: &mut Context<Self>,
+    ) -> impl IntoElement {
+        v_flex()
+            .gap_2()
+            .p_3()
+            .rounded(cx.theme().radius)
+            .bg(cx.theme().sidebar.alpha(0.45))
+            .border_1()
+            .border_color(cx.theme().border)
+            .child(div().font_semibold().child("Lightframe statistics"))
+            .child(
+                h_flex()
+                    .gap_4()
+                    .child(
+                        v_flex()
+                            .gap_1()
+                            .child(
+                                div()
+                                    .text_xs()
+                                    .text_color(cx.theme().muted_foreground)
+                                    .child("Frames"),
+                            )
+                            .child(div().text_sm().child(format!(
+                                "{} total, {} valid, {} errors",
+                                stats.total_count, stats.valid_count, stats.error_count
+                            ))),
+                    )
+                    .child(
+                        v_flex()
+                            .gap_1()
+                            .child(
+                                div()
+                                    .text_xs()
+                                    .text_color(cx.theme().muted_foreground)
+                                    .child("Total exposure"),
+                            )
+                            .child(
+                                div()
+                                    .text_sm()
+                                    .child(format!("{:.1} s", stats.total_exposure_seconds)),
+                            ),
+                    )
+                    .child(
+                        v_flex()
+                            .gap_1()
+                            .child(
+                                div()
+                                    .text_xs()
+                                    .text_color(cx.theme().muted_foreground)
+                                    .child("Total time"),
+                            )
+                            .child(
+                                div()
+                                    .text_sm()
+                                    .child(format!("{:.1} s", stats.total_time_seconds)),
+                            ),
+                    )
+                    .child(
+                        v_flex()
+                            .gap_1()
+                            .child(
+                                div()
+                                    .text_xs()
+                                    .text_color(cx.theme().muted_foreground)
+                                    .child("Time not exposing"),
+                            )
+                            .child(
+                                div()
+                                    .text_sm()
+                                    .child(format!("{:.1} s", stats.non_exposing_seconds)),
+                            ),
+                    ),
+            )
+            .child(
+                h_flex()
+                    .gap_4()
+                    .child(
+                        v_flex()
+                            .gap_1()
+                            .child(
+                                div()
+                                    .text_xs()
+                                    .text_color(cx.theme().muted_foreground)
+                                    .child("Duty cycle"),
+                            )
+                            .child(
+                                div()
+                                    .text_sm()
+                                    .child(format!("{:.1}%", stats.duty_cycle_percent)),
+                            ),
+                    )
+                    .child(
+                        v_flex()
+                            .gap_1()
+                            .child(
+                                div()
+                                    .text_xs()
+                                    .text_color(cx.theme().muted_foreground)
+                                    .child("Not exposing"),
+                            )
+                            .child(div().text_sm().child(format!(
+                                "{:.1}%",
+                                if stats.total_time_seconds > 0.0 {
+                                    (stats.non_exposing_seconds / stats.total_time_seconds * 100.0)
+                                        .clamp(0.0, 100.0)
+                                } else {
+                                    0.0
+                                }
+                            ))),
+                    )
+                    .child(
+                        v_flex()
+                            .gap_1()
+                            .child(
+                                div()
+                                    .text_xs()
+                                    .text_color(cx.theme().muted_foreground)
+                                    .child("Largest gap"),
+                            )
+                            .child(match &stats.largest_gap {
+                                Some(gap) => div().text_sm().child(format!(
+                                    "{:.1} s ({} -> {})",
+                                    gap.seconds, gap.from, gap.to
+                                )),
+                                None => div()
+                                    .text_sm()
+                                    .text_color(cx.theme().muted_foreground)
+                                    .child("n/a"),
+                            }),
+                    ),
+            )
     }
 
     pub(crate) fn render_processing_step(&self, cx: &mut Context<Self>) -> impl IntoElement {
