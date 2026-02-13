@@ -1,10 +1,11 @@
 use gpui::{
-    Context, InteractiveElement as _, IntoElement, ParentElement as _,
+    Context, InteractiveElement as _, IntoElement, MouseButton, ParentElement as _,
     StatefulInteractiveElement as _, Styled as _, div, prelude::FluentBuilder as _, px,
 };
 use gpui_component::{
-    ActiveTheme as _, IconName, Sizable as _, StyledExt as _,
+    ActiveTheme as _, Disableable as _, IconName, Sizable as _, StyledExt as _,
     button::{Button, ButtonVariants as _},
+    checkbox::Checkbox,
     h_flex, v_flex,
 };
 
@@ -31,6 +32,17 @@ impl TrawlsDummy {
         } else {
             self.dark_sort
         };
+        let selected_paths = if is_light {
+            &self.selected_light_paths
+        } else {
+            &self.selected_dark_paths
+        };
+        let visible_paths: Vec<String> = rows.iter().map(|row| row.path.to_string()).collect();
+        let selected_visible_count = rows
+            .iter()
+            .filter(|row| selected_paths.contains(row.path))
+            .count();
+        let all_visible_selected = !rows.is_empty() && selected_visible_count == rows.len();
         let filename_label = if active_sort == SortKey::Filename {
             "Filename  ^"
         } else {
@@ -44,7 +56,101 @@ impl TrawlsDummy {
 
         v_flex()
             .w_full()
-            .gap_0()
+            .gap_2()
+            .child(
+                h_flex()
+                    .justify_between()
+                    .items_center()
+                    .gap_2()
+                    .px_2()
+                    .py_2()
+                    .rounded(cx.theme().radius)
+                    .bg(cx.theme().sidebar.alpha(0.35))
+                    .border_1()
+                    .border_color(cx.theme().border)
+                    .child(
+                        h_flex()
+                            .gap_2()
+                            .items_center()
+                            .child(
+                                Button::new(if is_light {
+                                    "select-all-light-rows"
+                                } else {
+                                    "select-all-dark-rows"
+                                })
+                                .small()
+                                .icon(IconName::Check)
+                                .label("Select all")
+                                .on_click(cx.listener({
+                                    let visible_paths = visible_paths.clone();
+                                    move |this, _, _, cx| {
+                                        if is_light {
+                                            for path in &visible_paths {
+                                                this.selected_light_paths.insert(path.clone());
+                                            }
+                                        } else {
+                                            for path in &visible_paths {
+                                                this.selected_dark_paths.insert(path.clone());
+                                            }
+                                        }
+                                        cx.notify();
+                                    }
+                                })),
+                            )
+                            .child(
+                                Button::new(if is_light {
+                                    "clear-light-selection"
+                                } else {
+                                    "clear-dark-selection"
+                                })
+                                .small()
+                                .icon(IconName::Close)
+                                .label("Clear selection")
+                                .on_click(cx.listener(
+                                    move |this, _, _, cx| {
+                                        if is_light {
+                                            this.selected_light_paths.clear();
+                                        } else {
+                                            this.selected_dark_paths.clear();
+                                        }
+                                        cx.notify();
+                                    },
+                                )),
+                            )
+                            .child(
+                                Button::new(if is_light {
+                                    "remove-selected-light"
+                                } else {
+                                    "remove-selected-dark"
+                                })
+                                .small()
+                                .warning()
+                                .icon(IconName::Minus)
+                                .label("Remove selected")
+                                .disabled(selected_visible_count == 0)
+                                .on_click(cx.listener(
+                                    move |this, _, _, cx| {
+                                        if is_light {
+                                            let selected = this.selected_light_paths.clone();
+                                            this.lightframes.retain(|f| !selected.contains(f.path));
+                                            this.selected_light_paths.clear();
+                                        } else {
+                                            let selected = this.selected_dark_paths.clone();
+                                            this.darkframes.retain(|f| !selected.contains(f.path));
+                                            this.selected_dark_paths.clear();
+                                        }
+                                        cx.notify();
+                                    },
+                                )),
+                            ),
+                    )
+                    .child(
+                        div()
+                            .text_xs()
+                            .text_color(cx.theme().muted_foreground)
+                            .child(format!("{} selected", selected_visible_count)),
+                    ),
+            )
             .border_1()
             .border_color(cx.theme().border)
             .rounded(cx.theme().radius)
@@ -60,7 +166,42 @@ impl TrawlsDummy {
                     .font_semibold()
                     .text_xs()
                     .child(
-                        div().w(px(260.)).child(
+                        div().w(px(36.)).child(
+                            Checkbox::new(if is_light {
+                                "header-select-all-light"
+                            } else {
+                                "header-select-all-dark"
+                            })
+                            .checked(all_visible_selected)
+                            .on_click(cx.listener({
+                                let visible_paths = visible_paths.clone();
+                                move |this, checked, _, cx| {
+                                    if is_light {
+                                        if *checked {
+                                            for path in &visible_paths {
+                                                this.selected_light_paths.insert(path.clone());
+                                            }
+                                        } else {
+                                            for path in &visible_paths {
+                                                this.selected_light_paths.remove(path);
+                                            }
+                                        }
+                                    } else if *checked {
+                                        for path in &visible_paths {
+                                            this.selected_dark_paths.insert(path.clone());
+                                        }
+                                    } else {
+                                        for path in &visible_paths {
+                                            this.selected_dark_paths.remove(path);
+                                        }
+                                    }
+                                    cx.notify();
+                                }
+                            })),
+                        ),
+                    )
+                    .child(
+                        div().w(px(290.)).child(
                             Button::new(if is_light {
                                 "header-sort-light-filename"
                             } else {
@@ -108,8 +249,7 @@ impl TrawlsDummy {
                                 },
                             )),
                         ),
-                    )
-                    .child(div().w(px(85.)).text_right().child("Action")),
+                    ),
             )
             .child(
                 v_flex()
@@ -125,29 +265,64 @@ impl TrawlsDummy {
                                 .border_b_1()
                                 .border_color(cx.theme().border)
                                 .bg(cx.theme().danger.alpha(0.18))
+                                .when(selected_paths.contains(row.path), |this| {
+                                    this.bg(cx.theme().primary.alpha(0.18))
+                                })
+                                .cursor_pointer()
+                                .on_mouse_down(
+                                    MouseButton::Left,
+                                    cx.listener({
+                                        let path = row.path.to_string();
+                                        move |this, _, _, cx| {
+                                            if is_light {
+                                                if this.selected_light_paths.contains(&path) {
+                                                    this.selected_light_paths.remove(&path);
+                                                } else {
+                                                    this.selected_light_paths.insert(path.clone());
+                                                }
+                                            } else if this.selected_dark_paths.contains(&path) {
+                                                this.selected_dark_paths.remove(&path);
+                                            } else {
+                                                this.selected_dark_paths.insert(path.clone());
+                                            }
+                                            cx.notify();
+                                        }
+                                    }),
+                                )
                                 .text_xs()
-                                .child(div().w(px(260.)).child(row.filename))
-                                .child(div().w(px(570.)).child(error))
                                 .child(
-                                    div().w(px(85.)).text_right().child(
-                                        Button::new(("remove-err", ix))
-                                            .small()
-                                            .danger()
-                                            .icon(IconName::Minus)
-                                            .label("Remove")
-                                            .on_click(cx.listener({
+                                    div().w(px(36.)).child(
+                                        Checkbox::new(if is_light {
+                                            ("select-err-light", ix)
+                                        } else {
+                                            ("select-err-dark", ix)
+                                        })
+                                        .checked(selected_paths.contains(row.path))
+                                        .on_click(
+                                            cx.listener({
                                                 let path = row.path.to_string();
-                                                move |this, _, _, cx| {
+                                                move |this, checked, _, cx| {
                                                     if is_light {
-                                                        this.lightframes.retain(|f| f.path != path);
+                                                        if *checked {
+                                                            this.selected_light_paths
+                                                                .insert(path.clone());
+                                                        } else {
+                                                            this.selected_light_paths.remove(&path);
+                                                        }
+                                                    } else if *checked {
+                                                        this.selected_dark_paths
+                                                            .insert(path.clone());
                                                     } else {
-                                                        this.darkframes.retain(|f| f.path != path);
+                                                        this.selected_dark_paths.remove(&path);
                                                     }
                                                     cx.notify();
                                                 }
-                                            })),
+                                            }),
+                                        ),
                                     ),
                                 )
+                                .child(div().w(px(290.)).child(row.filename))
+                                .child(div().w(px(570.)).child(error))
                                 .into_any_element();
                         }
 
@@ -160,8 +335,59 @@ impl TrawlsDummy {
                             .when(ix % 2 == 1, |this| {
                                 this.bg(cx.theme().sidebar_accent.alpha(0.35))
                             })
+                            .when(selected_paths.contains(row.path), |this| {
+                                this.bg(cx.theme().primary.alpha(0.18))
+                            })
+                            .cursor_pointer()
+                            .on_mouse_down(
+                                MouseButton::Left,
+                                cx.listener({
+                                    let path = row.path.to_string();
+                                    move |this, _, _, cx| {
+                                        if is_light {
+                                            if this.selected_light_paths.contains(&path) {
+                                                this.selected_light_paths.remove(&path);
+                                            } else {
+                                                this.selected_light_paths.insert(path.clone());
+                                            }
+                                        } else if this.selected_dark_paths.contains(&path) {
+                                            this.selected_dark_paths.remove(&path);
+                                        } else {
+                                            this.selected_dark_paths.insert(path.clone());
+                                        }
+                                        cx.notify();
+                                    }
+                                }),
+                            )
                             .text_xs()
-                            .child(div().w(px(260.)).child(row.filename))
+                            .child(
+                                div().w(px(36.)).child(
+                                    Checkbox::new(if is_light {
+                                        ("select-light", ix)
+                                    } else {
+                                        ("select-dark", ix)
+                                    })
+                                    .checked(selected_paths.contains(row.path))
+                                    .on_click(cx.listener({
+                                        let path = row.path.to_string();
+                                        move |this, checked, _, cx| {
+                                            if is_light {
+                                                if *checked {
+                                                    this.selected_light_paths.insert(path.clone());
+                                                } else {
+                                                    this.selected_light_paths.remove(&path);
+                                                }
+                                            } else if *checked {
+                                                this.selected_dark_paths.insert(path.clone());
+                                            } else {
+                                                this.selected_dark_paths.remove(&path);
+                                            }
+                                            cx.notify();
+                                        }
+                                    })),
+                                ),
+                            )
+                            .child(div().w(px(290.)).child(row.filename))
                             .child(
                                 div()
                                     .w(px(90.))
@@ -211,25 +437,6 @@ impl TrawlsDummy {
                                     .child(format!("{}", row.iso)),
                             )
                             .child(div().w(px(210.)).text_center().child(row.creation_time))
-                            .child(
-                                div().w(px(85.)).text_right().child(
-                                    Button::new(("remove", ix))
-                                        .small()
-                                        .icon(IconName::Minus)
-                                        .label("Remove")
-                                        .on_click(cx.listener({
-                                            let path = row.path.to_string();
-                                            move |this, _, _, cx| {
-                                                if is_light {
-                                                    this.lightframes.retain(|f| f.path != path);
-                                                } else {
-                                                    this.darkframes.retain(|f| f.path != path);
-                                                }
-                                                cx.notify();
-                                            }
-                                        })),
-                                ),
-                            )
                             .into_any_element()
                     }))),
             )

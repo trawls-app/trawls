@@ -1,3 +1,5 @@
+use std::collections::HashSet;
+
 use gpui::{AppContext, Context, Entity, FocusHandle, SharedString, Window};
 use gpui_component::input::InputState;
 
@@ -11,6 +13,8 @@ pub struct TrawlsDummy {
     pub(crate) active_step: usize,
     pub(crate) lightframes: Vec<FrameInfo>,
     pub(crate) darkframes: Vec<FrameInfo>,
+    pub(crate) selected_light_paths: HashSet<String>,
+    pub(crate) selected_dark_paths: HashSet<String>,
     pub(crate) light_sort: SortKey,
     pub(crate) dark_sort: SortKey,
     pub(crate) output_path: Option<SharedString>,
@@ -30,6 +34,8 @@ impl TrawlsDummy {
             active_step: 0,
             lightframes: Vec::new(),
             darkframes: Vec::new(),
+            selected_light_paths: HashSet::new(),
+            selected_dark_paths: HashSet::new(),
             light_sort: SortKey::CreationTime,
             dark_sort: SortKey::CreationTime,
             output_path: None,

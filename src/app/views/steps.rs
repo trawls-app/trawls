@@ -101,8 +101,10 @@ impl TrawlsDummy {
                                     move |this, _, _, cx| {
                                         if is_light {
                                             this.lightframes = sample_lightframes();
+                                            this.selected_light_paths.clear();
                                         } else {
                                             this.darkframes = sample_darkframes();
+                                            this.selected_dark_paths.clear();
                                         }
                                         cx.notify();
                                     },
@@ -121,8 +123,10 @@ impl TrawlsDummy {
                                     move |this, _, _, cx| {
                                         if is_light {
                                             this.lightframes.clear();
+                                            this.selected_light_paths.clear();
                                         } else {
                                             this.darkframes.clear();
+                                            this.selected_dark_paths.clear();
                                         }
                                         cx.notify();
                                     },
