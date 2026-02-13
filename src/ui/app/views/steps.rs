@@ -13,7 +13,7 @@ use gpui_component::{
     v_flex,
 };
 
-use crate::{
+use crate::ui::{
     app::TrawlsDummy,
     model::{LightframeStats, MergeMode},
     samples::{sample_darkframes, sample_lightframes},

@@ -9,7 +9,7 @@ use gpui_component::{
     h_flex, v_flex,
 };
 
-use crate::{
+use crate::ui::{
     app::TrawlsDummy,
     model::{FrameInfo, SortKey},
 };

@@ -6,7 +6,11 @@ use gpui_component::{
     v_flex,
 };
 
-use crate::model::{FrameInfo, LargestGap, LightframeStats, PreviewData, ProcessingMock, SortKey};
+use crate::processing::{
+    dummy::DUMMY_PROCESSOR,
+    interface::{ProcessingInput, Processor},
+};
+use crate::ui::model::{FrameInfo, LargestGap, LightframeStats, SortKey};
 
 use super::TrawlsDummy;
 
@@ -97,15 +101,22 @@ impl TrawlsDummy {
     }
 
     pub(crate) fn run_dummy_processing(&mut self, window: &mut Window, cx: &mut Context<Self>) {
-        let issues = self.collect_readiness_issues();
+        let result = DUMMY_PROCESSOR.start(ProcessingInput {
+            lightframes: &self.lightframes,
+            darkframes: &self.darkframes,
+            output_path_set: self.output_path.is_some(),
+            has_metadata_errors: Self::error_warning(&self.lightframes)
+                || Self::error_warning(&self.darkframes),
+        });
 
-        if !issues.is_empty() {
+        if !result.issues.is_empty() {
             window.open_dialog(cx, move |dialog, _, _| {
                 dialog
                     .title("Can't start processing")
                     .child(
                         v_flex().gap_2().children(
-                            issues
+                            result
+                                .issues
                                 .iter()
                                 .map(|item| div().text_sm().child(format!("- {item}"))),
                         ),
@@ -122,68 +133,16 @@ impl TrawlsDummy {
             return;
         }
 
-        self.update_processing_state();
-        self.preview = Some(PreviewData {
-            image_url: "https://images.unsplash.com/photo-1462331940025-496dfbfc7564?w=1600",
-            exif: "ISO 1600, f/2.8, 20s",
-        });
+        self.processing = result.state;
+        self.preview = result.preview;
         self.active_step = 3;
 
         window.push_notification("Dummy processing finished and preview generated.", cx);
         cx.notify();
     }
 
-    fn collect_readiness_issues(&self) -> Vec<String> {
-        let mut issues = Vec::new();
-
-        if Self::error_warning(&self.lightframes) || Self::error_warning(&self.darkframes) {
-            issues.push("The metadata of some files could not be loaded.".to_string());
-        }
-        if self.lightframes.len() < 2 {
-            issues.push("Less than two lightframes are selected.".to_string());
-        }
-        if self.output_path.is_none() {
-            issues.push("No output path is specified.".to_string());
-        }
-
-        issues
-    }
-
-    fn update_processing_state(&mut self) {
-        let count_lights = self.lightframes.len();
-        let count_darks = self.darkframes.len();
-        let merge_total = count_lights.saturating_sub(1) + count_darks.saturating_sub(1);
-
-        self.processing = ProcessingMock {
-            count_lights,
-            count_darks,
-            count_loaded: count_lights + count_darks,
-            count_loading: 0,
-            count_merged: merge_total.saturating_sub(1),
-            count_merging: usize::from(merge_total > 0),
-        };
-    }
-
     pub(crate) fn advance_dummy_progress(&mut self, cx: &mut Context<Self>) {
-        let loading_total = self.processing.count_lights + self.processing.count_darks;
-        if self.processing.count_loaded < loading_total {
-            self.processing.count_loading = 1;
-            self.processing.count_loaded = (self.processing.count_loaded + 1).min(loading_total);
-            if self.processing.count_loaded == loading_total {
-                self.processing.count_loading = 0;
-            }
-        }
-
-        let merge_total = self.processing.count_lights.saturating_sub(1)
-            + self.processing.count_darks.saturating_sub(1);
-        if self.processing.count_merged < merge_total {
-            self.processing.count_merging = 1;
-            self.processing.count_merged = (self.processing.count_merged + 1).min(merge_total);
-            if self.processing.count_merged == merge_total {
-                self.processing.count_merging = 0;
-            }
-        }
-
+        DUMMY_PROCESSOR.advance(&mut self.processing);
         cx.notify();
     }
 

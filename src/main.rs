@@ -1,13 +1,9 @@
-mod app;
-mod assets;
-mod model;
-mod samples;
-mod theme;
+mod processing;
+mod ui;
 
-use app::TrawlsDummy;
-use assets::Assets;
 use gpui::{AppContext, Application, WindowOptions, px};
 use gpui_component::{Root, Theme, ThemeMode, TitleBar};
+use ui::{app::TrawlsDummy, assets::Assets};
 
 fn main() {
     let app = Application::new().with_assets(Assets);
@@ -15,7 +11,7 @@ fn main() {
     app.run(move |cx| {
         gpui_component::init(cx);
         cx.activate(true);
-        theme::configure_theme(cx);
+        ui::theme::configure_theme(cx);
 
         cx.spawn(async move |cx| {
             let options = WindowOptions {

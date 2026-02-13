@@ -3,7 +3,7 @@ use std::collections::HashSet;
 use gpui::{AppContext, Context, Entity, FocusHandle, SharedString, Window};
 use gpui_component::input::InputState;
 
-use crate::model::{FrameInfo, MergeMode, PreviewData, ProcessingMock, SortKey};
+use crate::ui::model::{FrameInfo, MergeMode, PreviewData, ProcessingMock, SortKey};
 
 mod logic;
 mod views;

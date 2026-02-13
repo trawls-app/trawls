@@ -1,4 +1,4 @@
-use crate::model::FrameInfo;
+use crate::ui::model::FrameInfo;
 
 pub fn sample_lightframes() -> Vec<FrameInfo> {
     vec![

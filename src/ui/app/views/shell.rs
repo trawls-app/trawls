@@ -10,7 +10,7 @@ use gpui_component::{
     v_flex,
 };
 
-use crate::app::TrawlsDummy;
+use crate::ui::app::TrawlsDummy;
 
 impl TrawlsDummy {
     fn render_active_step(&self, cx: &mut Context<Self>) -> gpui::AnyElement {
