@@ -22,6 +22,10 @@ impl TrawlsDummy {
         cx: &mut Context<Self>,
     ) -> impl IntoElement {
         let threshold = Self::interval_warning_threshold(rows).unwrap_or(9999.0);
+        let baseline_settings = rows
+            .iter()
+            .find(|r| r.error.is_none())
+            .map(|r| (r.exposure_seconds, r.aperture, r.iso));
         let active_sort = if is_light {
             self.light_sort
         } else {
@@ -162,6 +166,11 @@ impl TrawlsDummy {
                                 div()
                                     .w(px(90.))
                                     .text_center()
+                                    .when(
+                                        baseline_settings
+                                            .is_some_and(|(exp, _, _)| row.exposure_seconds != exp),
+                                        |this| this.bg(cx.theme().warning.alpha(0.2)),
+                                    )
                                     .child(format!("{:.1}s", row.exposure_seconds)),
                             )
                             .when(show_interval, |this| {
@@ -184,9 +193,23 @@ impl TrawlsDummy {
                                 div()
                                     .w(px(90.))
                                     .text_center()
+                                    .when(
+                                        baseline_settings
+                                            .is_some_and(|(_, apt, _)| row.aperture != apt),
+                                        |this| this.bg(cx.theme().warning.alpha(0.2)),
+                                    )
                                     .child(format!("f/{:.1}", row.aperture)),
                             )
-                            .child(div().w(px(90.)).text_center().child(format!("{}", row.iso)))
+                            .child(
+                                div()
+                                    .w(px(90.))
+                                    .text_center()
+                                    .when(
+                                        baseline_settings.is_some_and(|(_, _, iso)| row.iso != iso),
+                                        |this| this.bg(cx.theme().warning.alpha(0.2)),
+                                    )
+                                    .child(format!("{}", row.iso)),
+                            )
                             .child(div().w(px(210.)).text_center().child(row.creation_time))
                             .child(
                                 div().w(px(85.)).text_right().child(
