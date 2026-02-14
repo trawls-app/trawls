@@ -27,6 +27,8 @@ pub enum MergeMode {
 pub struct PreviewData {
     pub image_url: &'static str,
     pub exif: &'static str,
+    pub width_px: u32,
+    pub height_px: u32,
 }
 
 #[derive(Clone)]

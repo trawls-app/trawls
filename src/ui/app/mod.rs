@@ -22,6 +22,7 @@ pub struct TrawlsDummy {
     pub(crate) merge_mode: MergeMode,
     pub(crate) processing: ProcessingMock,
     pub(crate) preview: Option<PreviewData>,
+    pub(crate) preview_zoom: f32,
 }
 
 impl TrawlsDummy {
@@ -43,6 +44,7 @@ impl TrawlsDummy {
             merge_mode: MergeMode::Normal,
             processing: ProcessingMock::default(),
             preview: None,
+            preview_zoom: 1.0,
         }
     }
 

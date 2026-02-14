@@ -18,8 +18,10 @@ impl Processor for DummyProcessor {
 
         let state = initial_state(input.lightframes.len(), input.darkframes.len());
         let preview = Some(PreviewData {
-            image_url: "https://images.unsplash.com/photo-1462331940025-496dfbfc7564?w=1600",
+            image_url: "examples/dummy_preview.jpg",
             exif: "ISO 1600, f/2.8, 20s",
+            width_px: 6000,
+            height_px: 4000,
         });
 
         ProcessingStartResult {

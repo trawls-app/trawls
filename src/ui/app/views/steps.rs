@@ -1,6 +1,7 @@
 use gpui::{
-    Context, IntoElement, ParentElement as _, Styled as _, div, img, prelude::FluentBuilder as _,
-    px,
+    Context, InteractiveElement as _, IntoElement, ObjectFit, ParentElement as _,
+    StatefulInteractiveElement as _, Styled as _, StyledImage as _, div, img,
+    prelude::FluentBuilder as _, px,
 };
 use gpui_component::{
     ActiveTheme as _, Icon, IconName, Sizable as _, StyledExt as _,
@@ -473,15 +474,76 @@ impl TrawlsDummy {
 
     pub(crate) fn render_preview_step(&self, cx: &mut Context<Self>) -> impl IntoElement {
         if let Some(preview) = &self.preview {
+            let zoomed_w = preview.width_px as f32 * self.preview_zoom;
+            let zoomed_h = preview.height_px as f32 * self.preview_zoom;
             return v_flex()
-                .items_center()
-                .gap_2()
+                .w_full()
+                .h_full()
+                .gap_3()
                 .p_3()
                 .rounded(cx.theme().radius)
                 .bg(cx.theme().sidebar.alpha(0.45))
                 .border_1()
                 .border_color(cx.theme().border)
-                .child(img(preview.image_url).max_w_full().max_h(px(760.0)))
+                .child(
+                    h_flex()
+                        .justify_between()
+                        .items_center()
+                        .gap_2()
+                        .child(
+                            h_flex()
+                                .gap_2()
+                                .items_center()
+                                .child(
+                                    Button::new("preview-zoom-out")
+                                        .small()
+                                        .icon(IconName::Minus)
+                                        .label("Zoom out")
+                                        .on_click(cx.listener(|this, _, _, cx| {
+                                            this.set_preview_zoom(this.preview_zoom - 0.1, cx);
+                                        })),
+                                )
+                                .child(
+                                    Button::new("preview-zoom-reset")
+                                        .small()
+                                        .label("Reset")
+                                        .on_click(cx.listener(|this, _, _, cx| {
+                                            this.set_preview_zoom(1.0, cx);
+                                        })),
+                                )
+                                .child(
+                                    Button::new("preview-zoom-in")
+                                        .small()
+                                        .icon(IconName::Plus)
+                                        .label("Zoom in")
+                                        .on_click(cx.listener(|this, _, _, cx| {
+                                            this.set_preview_zoom(this.preview_zoom + 0.1, cx);
+                                        })),
+                                ),
+                        )
+                        .child(
+                            div()
+                                .text_sm()
+                                .text_color(cx.theme().muted_foreground)
+                                .child(format!("{:.0}%", self.preview_zoom * 100.0)),
+                        ),
+                )
+                .child(
+                    v_flex()
+                        .id("preview-image-scroll")
+                        .flex_1()
+                        .h_full()
+                        .w_full()
+                        .overflow_x_scroll()
+                        .overflow_y_scroll()
+                        .child(
+                            div().w(px(zoomed_w)).h(px(zoomed_h)).flex_shrink_0().child(
+                                img(preview.image_url)
+                                    .size_full()
+                                    .object_fit(ObjectFit::Contain),
+                            ),
+                        ),
+                )
                 .child(
                     div()
                         .text_sm()

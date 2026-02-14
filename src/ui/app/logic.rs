@@ -135,6 +135,7 @@ impl TrawlsDummy {
 
         self.processing = result.state;
         self.preview = result.preview;
+        self.preview_zoom = 1.0;
         self.active_step = 3;
 
         window.push_notification("Dummy processing finished and preview generated.", cx);
@@ -143,6 +144,11 @@ impl TrawlsDummy {
 
     pub(crate) fn advance_dummy_progress(&mut self, cx: &mut Context<Self>) {
         DUMMY_PROCESSOR.advance(&mut self.processing);
+        cx.notify();
+    }
+
+    pub(crate) fn set_preview_zoom(&mut self, zoom: f32, cx: &mut Context<Self>) {
+        self.preview_zoom = zoom.clamp(0.25, 4.0);
         cx.notify();
     }
 
