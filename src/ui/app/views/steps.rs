@@ -4,7 +4,7 @@ use gpui::{
     div, img, prelude::FluentBuilder as _, px,
 };
 use gpui_component::{
-    ActiveTheme as _, Icon, IconName, Sizable as _, StyledExt as _,
+    ActiveTheme as _, Disableable as _, Icon, IconName, Sizable as _, StyledExt as _,
     alert::Alert,
     button::{Button, ButtonVariants as _},
     h_flex,
@@ -17,7 +17,6 @@ use gpui_component::{
 use crate::ui::{
     app::TrawlsDummy,
     model::{LightframeStats, MergeMode},
-    samples::{sample_darkframes, sample_lightframes},
 };
 
 impl TrawlsDummy {
@@ -100,14 +99,7 @@ impl TrawlsDummy {
                                 .label("Select images")
                                 .on_click(cx.listener(
                                     move |this, _, _, cx| {
-                                        if is_light {
-                                            this.lightframes = sample_lightframes();
-                                            this.selected_light_paths.clear();
-                                        } else {
-                                            this.darkframes = sample_darkframes();
-                                            this.selected_dark_paths.clear();
-                                        }
-                                        cx.notify();
+                                        this.queue_mock_metadata_loading(is_light, cx);
                                     },
                                 )),
                             )
@@ -566,19 +558,24 @@ impl TrawlsDummy {
                                 Button::new("start-processing")
                                     .success()
                                     .icon(IconName::Bot)
-                                    .label("Start processing")
+                                    .label(if self.processing_running {
+                                        "Processing..."
+                                    } else {
+                                        "Start processing"
+                                    })
+                                    .disabled(self.processing_running)
                                     .on_click(cx.listener(|this, _, window, cx| {
                                         this.run_dummy_processing(window, cx);
                                     })),
                             )
-                            .child(
-                                Button::new("advance-progress")
-                                    .icon(IconName::Plus)
-                                    .label("Advance progress")
-                                    .on_click(cx.listener(|this, _, _, cx| {
-                                        this.advance_dummy_progress(cx);
-                                    })),
-                            ),
+                            .when(self.processing_running, |this| {
+                                this.child(
+                                    div()
+                                        .text_xs()
+                                        .text_color(cx.theme().muted_foreground)
+                                        .child("Simulating background processing..."),
+                                )
+                            }),
                     )
                     .child(
                         v_flex()

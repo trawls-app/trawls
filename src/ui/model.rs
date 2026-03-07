@@ -1,13 +1,21 @@
 #[derive(Clone)]
 pub struct FrameInfo {
-    pub path: &'static str,
-    pub filename: &'static str,
-    pub exposure_seconds: f32,
+    pub path: String,
+    pub filename: String,
+    pub exposure_seconds: Option<f32>,
     pub interval_seconds: Option<f32>,
-    pub aperture: f32,
-    pub iso: u32,
-    pub creation_time: &'static str,
-    pub error: Option<&'static str>,
+    pub aperture: Option<f32>,
+    pub iso: Option<u32>,
+    pub creation_time: Option<String>,
+    pub metadata_status: MetadataStatus,
+    pub error: Option<String>,
+}
+
+#[derive(Clone, Copy, PartialEq, Eq)]
+pub enum MetadataStatus {
+    Pending,
+    Loaded,
+    Failed,
 }
 
 #[derive(Clone, Copy, PartialEq, Eq)]

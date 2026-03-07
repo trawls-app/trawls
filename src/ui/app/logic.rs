@@ -1,5 +1,9 @@
+use std::time::Duration;
+
 use chrono::NaiveDateTime;
-use gpui::{Context, ParentElement as _, Pixels, Point, Styled as _, Window, div, point, px};
+use gpui::{
+    Context, ParentElement as _, Pixels, Point, Size, Styled as _, Timer, Window, div, point, px,
+};
 use gpui_component::{
     WindowExt as _,
     button::{Button, ButtonVariants as _},
@@ -8,9 +12,16 @@ use gpui_component::{
 
 use crate::processing::{
     dummy::DUMMY_PROCESSOR,
-    interface::{ProcessingInput, Processor},
+    interface::{FrameIdentifier, ProcessingInput, Processor},
+    status::{
+        FrameMetadata, MetadataStatus as MetadataStatusSink, ProcessingCounters,
+        ProcessingStatus as ProcessingStatusSink,
+    },
 };
-use crate::ui::model::{FrameInfo, LargestGap, LightframeStats, SortKey};
+use crate::ui::{
+    model::{FrameInfo, LargestGap, LightframeStats, MetadataStatus, SortKey},
+    samples::{MockFrameSeed, sample_darkframe_seeds, sample_lightframe_seeds},
+};
 
 use super::TrawlsDummy;
 
@@ -21,16 +32,15 @@ impl TrawlsDummy {
     pub(crate) fn sorted_frames(frames: &[FrameInfo], sort: SortKey) -> Vec<FrameInfo> {
         let mut rows: Vec<FrameInfo> = frames.to_vec();
         rows.sort_by(|a, b| {
-            if a.error.is_some() && b.error.is_none() {
-                return std::cmp::Ordering::Less;
-            }
-            if a.error.is_none() && b.error.is_some() {
-                return std::cmp::Ordering::Greater;
+            let a_rank = frame_rank(a);
+            let b_rank = frame_rank(b);
+            if a_rank != b_rank {
+                return a_rank.cmp(&b_rank);
             }
 
             match sort {
-                SortKey::CreationTime => a.creation_time.cmp(b.creation_time),
-                SortKey::Filename => a.filename.cmp(b.filename),
+                SortKey::CreationTime => a.creation_time.cmp(&b.creation_time),
+                SortKey::Filename => a.filename.cmp(&b.filename),
             }
         });
         rows
@@ -45,10 +55,19 @@ impl TrawlsDummy {
         let mut exposures = std::collections::BTreeSet::new();
         let mut isos = std::collections::BTreeSet::new();
 
-        for frame in frames.iter().filter(|f| f.error.is_none()) {
-            apertures.insert(format!("{:.1}", frame.aperture));
-            exposures.insert(format!("{:.1}", frame.exposure_seconds));
-            isos.insert(frame.iso);
+        for frame in frames
+            .iter()
+            .filter(|f| f.metadata_status == MetadataStatus::Loaded && f.error.is_none())
+        {
+            if let Some(aperture) = frame.aperture {
+                apertures.insert(format!("{aperture:.1}"));
+            }
+            if let Some(exposure) = frame.exposure_seconds {
+                exposures.insert(format!("{exposure:.1}"));
+            }
+            if let Some(iso) = frame.iso {
+                isos.insert(iso);
+            }
         }
 
         apertures.len() > 1 || exposures.len() > 1 || isos.len() > 1
@@ -103,13 +122,64 @@ impl TrawlsDummy {
         cx.notify();
     }
 
+    pub(crate) fn queue_mock_metadata_loading(&mut self, is_light: bool, cx: &mut Context<Self>) {
+        let seeds = if is_light {
+            sample_lightframe_seeds()
+        } else {
+            sample_darkframe_seeds()
+        };
+
+        let rows = seeds
+            .iter()
+            .map(MockFrameSeed::as_pending_row)
+            .collect::<Vec<_>>();
+        if is_light {
+            self.lightframes = rows;
+            self.selected_light_paths.clear();
+        } else {
+            self.darkframes = rows;
+            self.selected_dark_paths.clear();
+        }
+        self.reset_processing_state_for_selection();
+        for seed in &seeds {
+            self.metadata_queued(&FrameIdentifier::from(seed.path));
+        }
+        cx.notify();
+
+        for (ix, seed) in seeds.into_iter().enumerate() {
+            let delay_ms = mock_metadata_delay_ms(seed.path, ix);
+            let frame_id = FrameIdentifier::from(seed.path);
+            cx.spawn(async move |this, cx| {
+                Timer::after(Duration::from_millis(delay_ms)).await;
+                let _ = this.update(cx, |this, cx| {
+                    match (seed.metadata, seed.error) {
+                        (Some(metadata), _) => this.metadata_loaded(&frame_id, metadata),
+                        (_, Some(error)) => this.metadata_failed(&frame_id, error.to_string()),
+                        _ => this.metadata_failed(&frame_id, "Unknown metadata error".to_string()),
+                    }
+                    cx.notify();
+                });
+            })
+            .detach();
+        }
+    }
+
     pub(crate) fn run_dummy_processing(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+        if self.processing_running {
+            return;
+        }
+
         let result = DUMMY_PROCESSOR.start(ProcessingInput {
             lightframes: &self.lightframes,
             darkframes: &self.darkframes,
             output_path_set: self.output_path.is_some(),
             has_metadata_errors: Self::error_warning(&self.lightframes)
                 || Self::error_warning(&self.darkframes),
+            has_pending_metadata: self
+                .lightframes
+                .iter()
+                .chain(self.darkframes.iter())
+                .any(|row| row.metadata_status == MetadataStatus::Pending),
         });
 
         if !result.issues.is_empty() {
@@ -137,16 +207,49 @@ impl TrawlsDummy {
         }
 
         self.processing = result.state;
-        self.preview = result.preview;
-        self.preview_zoom = self.fit_preview_zoom_for_window(window);
-        self.active_step = 3;
+        self.preview = None;
+        self.processing_running = true;
+        let preview = result.preview;
+        let should_go_to_preview = self.active_step != 3;
+        let viewport_size = window.viewport_size();
 
-        window.push_notification("Dummy processing finished and preview generated.", cx);
-        cx.notify();
-    }
+        cx.spawn(async move |this, cx| {
+            loop {
+                let phase = match this.update(cx, |this, _| {
+                    DUMMY_PROCESSOR.current_phase(&this.processing)
+                }) {
+                    Ok(phase) => phase,
+                    Err(_) => return,
+                };
 
-    pub(crate) fn advance_dummy_progress(&mut self, cx: &mut Context<Self>) {
-        DUMMY_PROCESSOR.advance(&mut self.processing);
+                let Some(delay_ms) = DUMMY_PROCESSOR.phase_delay_ms(phase) else {
+                    break;
+                };
+                Timer::after(Duration::from_millis(delay_ms)).await;
+
+                let _ = this.update(cx, |this, cx| {
+                    let mut state = std::mem::take(&mut this.processing);
+                    DUMMY_PROCESSOR.emulate_step(&mut state, this);
+                    this.processing = state;
+                    cx.notify();
+                });
+            }
+
+            let _ = this.update(cx, |this, cx| {
+                this.processing_running = false;
+                this.preview = preview.clone();
+                if this.preview.is_some() {
+                    this.preview_zoom = this.fit_preview_zoom_for_viewport(viewport_size);
+                }
+                if should_go_to_preview {
+                    this.active_step = 3;
+                }
+                cx.notify();
+            });
+        })
+        .detach();
+
+        window.push_notification("Dummy processing started.", cx);
         cx.notify();
     }
 
@@ -156,7 +259,6 @@ impl TrawlsDummy {
     }
 
     pub(crate) fn zoom_preview_in(&mut self, cx: &mut Context<Self>) {
-        // Multiplicative steps keep zoom useful across tiny and huge scales.
         self.preview_zoom = self
             .next_preview_zoom(true)
             .clamp(MIN_PREVIEW_ZOOM, MAX_PREVIEW_ZOOM);
@@ -191,8 +293,6 @@ impl TrawlsDummy {
         let local_y = (f32::from(cursor.y) - f32::from(viewport_bounds.origin.y))
             .clamp(0.0, f32::from(viewport_bounds.size.height));
 
-        // Keep the image pixel under the cursor fixed while changing zoom.
-        // In GPUI, scroll offsets are typically negative as you scroll down/right.
         let offset_x = f32::from(old_offset.x);
         let offset_y = f32::from(old_offset.y);
         let scale = new_zoom / old_zoom.max(0.0001);
@@ -214,17 +314,15 @@ impl TrawlsDummy {
     }
 
     pub(crate) fn fit_preview_to_window(&mut self, window: &Window, cx: &mut Context<Self>) {
-        self.preview_zoom = self.fit_preview_zoom_for_window(window);
+        self.preview_zoom = self.fit_preview_zoom_for_viewport(window.viewport_size());
         cx.notify();
     }
 
-    fn fit_preview_zoom_for_window(&self, window: &Window) -> f32 {
+    fn fit_preview_zoom_for_viewport(&self, viewport: Size<Pixels>) -> f32 {
         let Some(preview) = &self.preview else {
             return 1.0;
         };
 
-        let viewport = window.viewport_size();
-        // Reserve space for sidebar, title/header, paddings and preview controls.
         let available_w = (f32::from(viewport.width) - 360.0).max(220.0);
         let available_h = (f32::from(viewport.height) - 250.0).max(180.0);
 
@@ -244,8 +342,7 @@ impl TrawlsDummy {
 
     pub(crate) fn loading_percent(&self) -> f32 {
         let total = (self.processing.count_lights + self.processing.count_darks).max(1) as f32;
-        let current =
-            self.processing.count_loaded as f32 + (self.processing.count_loading as f32 * 0.5);
+        let current = self.processing.count_loaded.min(total as usize) as f32;
         (current / total * 100.0).clamp(0.0, 100.0)
     }
 
@@ -261,13 +358,21 @@ impl TrawlsDummy {
     pub(crate) fn lightframe_stats(rows: &[FrameInfo]) -> Option<LightframeStats> {
         let total_count = rows.len();
         let error_count = rows.iter().filter(|r| r.error.is_some()).count();
-        let valid_rows: Vec<&FrameInfo> = rows.iter().filter(|r| r.error.is_none()).collect();
+        let valid_rows: Vec<&FrameInfo> = rows
+            .iter()
+            .filter(|r| {
+                r.metadata_status == MetadataStatus::Loaded
+                    && r.error.is_none()
+                    && r.exposure_seconds.is_some()
+            })
+            .collect();
         if valid_rows.is_empty() {
             return None;
         }
         let valid_count = valid_rows.len();
 
-        let total_exposure_seconds: f32 = valid_rows.iter().map(|r| r.exposure_seconds).sum();
+        let total_exposure_seconds: f32 =
+            valid_rows.iter().filter_map(|r| r.exposure_seconds).sum();
         let non_exposing_seconds: f32 = valid_rows
             .iter()
             .filter_map(|r| r.interval_seconds)
@@ -297,9 +402,8 @@ impl TrawlsDummy {
     fn capture_span_seconds(rows: &[&FrameInfo]) -> Option<f32> {
         let mut times = rows
             .iter()
-            .filter_map(|r| {
-                NaiveDateTime::parse_from_str(r.creation_time, "%Y-%m-%dT%H:%M:%S").ok()
-            })
+            .filter_map(|r| r.creation_time.as_deref())
+            .filter_map(|value| NaiveDateTime::parse_from_str(value, "%Y-%m-%dT%H:%M:%S").ok())
             .collect::<Vec<_>>();
 
         if times.len() < 2 {
@@ -316,8 +420,11 @@ impl TrawlsDummy {
         let mut with_time = rows
             .iter()
             .filter_map(|r| {
-                NaiveDateTime::parse_from_str(r.creation_time, "%Y-%m-%dT%H:%M:%S")
-                    .ok()
+                r.creation_time
+                    .as_deref()
+                    .and_then(|value| {
+                        NaiveDateTime::parse_from_str(value, "%Y-%m-%dT%H:%M:%S").ok()
+                    })
                     .map(|dt| (*r, dt))
             })
             .collect::<Vec<_>>();
@@ -332,14 +439,14 @@ impl TrawlsDummy {
             let (prev_row, prev_dt) = window[0];
             let (next_row, next_dt) = window[1];
             let dt = next_dt.signed_duration_since(prev_dt).num_seconds() as f32;
-            let gap = (dt - prev_row.exposure_seconds).max(0.0);
+            let gap = (dt - prev_row.exposure_seconds.unwrap_or(0.0)).max(0.0);
 
             match &best {
                 Some(cur) if cur.seconds >= gap => {}
                 _ => {
                     best = Some(LargestGap {
-                        from: prev_row.filename.to_string(),
-                        to: next_row.filename.to_string(),
+                        from: prev_row.filename.clone(),
+                        to: next_row.filename.clone(),
                         seconds: gap,
                     });
                 }
@@ -348,4 +455,84 @@ impl TrawlsDummy {
 
         best
     }
+
+    fn reset_processing_state_for_selection(&mut self) {
+        self.processing_updated(ProcessingCounters {
+            count_lights: self.lightframes.len(),
+            count_darks: self.darkframes.len(),
+            count_loaded: 0,
+            count_loading: 0,
+            count_merged: 0,
+            count_merging: 0,
+        });
+        self.processing_running = false;
+        self.preview = None;
+    }
+}
+
+impl MetadataStatusSink for TrawlsDummy {
+    fn metadata_queued(&mut self, frame_id: &FrameIdentifier) {
+        if let Some(row) = find_frame_mut(self, frame_id) {
+            row.metadata_status = MetadataStatus::Pending;
+            row.error = None;
+        }
+    }
+
+    fn metadata_loaded(&mut self, frame_id: &FrameIdentifier, metadata: FrameMetadata) {
+        if let Some(row) = find_frame_mut(self, frame_id) {
+            row.exposure_seconds = Some(metadata.exposure_seconds);
+            row.interval_seconds = metadata.interval_seconds;
+            row.aperture = Some(metadata.aperture);
+            row.iso = Some(metadata.iso);
+            row.creation_time = Some(metadata.creation_time);
+            row.metadata_status = MetadataStatus::Loaded;
+            row.error = None;
+        }
+    }
+
+    fn metadata_failed(&mut self, frame_id: &FrameIdentifier, error: String) {
+        if let Some(row) = find_frame_mut(self, frame_id) {
+            row.metadata_status = MetadataStatus::Failed;
+            row.error = Some(error);
+        }
+    }
+}
+
+impl ProcessingStatusSink for TrawlsDummy {
+    fn processing_updated(&mut self, counters: ProcessingCounters) {
+        self.processing.count_lights = counters.count_lights;
+        self.processing.count_darks = counters.count_darks;
+        self.processing.count_loaded = counters.count_loaded;
+        self.processing.count_loading = counters.count_loading;
+        self.processing.count_merged = counters.count_merged;
+        self.processing.count_merging = counters.count_merging;
+    }
+}
+
+fn frame_rank(frame: &FrameInfo) -> u8 {
+    match frame.metadata_status {
+        MetadataStatus::Failed => 0,
+        MetadataStatus::Pending => 1,
+        MetadataStatus::Loaded => 2,
+    }
+}
+
+fn find_frame_mut<'a>(
+    app: &'a mut TrawlsDummy,
+    frame_id: &FrameIdentifier,
+) -> Option<&'a mut FrameInfo> {
+    let target = frame_id.as_path().to_string_lossy();
+    app.lightframes
+        .iter_mut()
+        .find(|row| row.path == target)
+        .or_else(|| app.darkframes.iter_mut().find(|row| row.path == target))
+}
+
+fn mock_metadata_delay_ms(path: &str, index: usize) -> u64 {
+    let mut hash = 1469598103934665603u64;
+    for byte in path.as_bytes() {
+        hash ^= u64::from(*byte);
+        hash = hash.wrapping_mul(1099511628211);
+    }
+    150 + ((hash.wrapping_add((index as u64) * 97)) % 850)
 }

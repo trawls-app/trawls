@@ -3,7 +3,7 @@ use gpui::{
     StatefulInteractiveElement as _, Styled as _, div, prelude::FluentBuilder as _, px,
 };
 use gpui_component::{
-    ActiveTheme as _, Disableable as _, IconName, Sizable as _, StyledExt as _,
+    ActiveTheme as _, Disableable as _, Icon, IconName, Sizable as _, StyledExt as _,
     button::{Button, ButtonVariants as _},
     checkbox::Checkbox,
     h_flex, v_flex,
@@ -11,7 +11,7 @@ use gpui_component::{
 
 use crate::ui::{
     app::TrawlsDummy,
-    model::{FrameInfo, SortKey},
+    model::{FrameInfo, MetadataStatus, SortKey},
 };
 
 impl TrawlsDummy {
@@ -23,10 +23,12 @@ impl TrawlsDummy {
         cx: &mut Context<Self>,
     ) -> impl IntoElement {
         let threshold = Self::interval_warning_threshold(rows).unwrap_or(9999.0);
-        let baseline_settings = rows
-            .iter()
-            .find(|r| r.error.is_none())
-            .map(|r| (r.exposure_seconds, r.aperture, r.iso));
+        let baseline_settings = rows.iter().find_map(|r| {
+            if r.metadata_status != MetadataStatus::Loaded || r.error.is_some() {
+                return None;
+            }
+            Some((r.exposure_seconds?, r.aperture?, r.iso?))
+        });
         let active_sort = if is_light {
             self.light_sort
         } else {
@@ -40,7 +42,7 @@ impl TrawlsDummy {
         let visible_paths: Vec<String> = rows.iter().map(|row| row.path.to_string()).collect();
         let selected_visible_count = rows
             .iter()
-            .filter(|row| selected_paths.contains(row.path))
+            .filter(|row| selected_paths.contains(row.path.as_str()))
             .count();
         let all_visible_selected = !rows.is_empty() && selected_visible_count == rows.len();
         let filename_label = if active_sort == SortKey::Filename {
@@ -132,11 +134,13 @@ impl TrawlsDummy {
                                     move |this, _, _, cx| {
                                         if is_light {
                                             let selected = this.selected_light_paths.clone();
-                                            this.lightframes.retain(|f| !selected.contains(f.path));
+                                            this.lightframes
+                                                .retain(|f| !selected.contains(f.path.as_str()));
                                             this.selected_light_paths.clear();
                                         } else {
                                             let selected = this.selected_dark_paths.clone();
-                                            this.darkframes.retain(|f| !selected.contains(f.path));
+                                            this.darkframes
+                                                .retain(|f| !selected.contains(f.path.as_str()));
                                             this.selected_dark_paths.clear();
                                         }
                                         cx.notify();
@@ -257,7 +261,7 @@ impl TrawlsDummy {
                     .max_h(px(480.0))
                     .overflow_y_scroll()
                     .child(v_flex().children(rows.iter().enumerate().map(|(ix, row)| {
-                        if let Some(error) = row.error {
+                        if let Some(error) = &row.error {
                             return h_flex()
                                 .w_full()
                                 .px_2()
@@ -265,7 +269,7 @@ impl TrawlsDummy {
                                 .border_b_1()
                                 .border_color(cx.theme().border)
                                 .bg(cx.theme().danger.alpha(0.18))
-                                .when(selected_paths.contains(row.path), |this| {
+                                .when(selected_paths.contains(row.path.as_str()), |this| {
                                     this.bg(cx.theme().primary.alpha(0.18))
                                 })
                                 .cursor_pointer()
@@ -297,7 +301,7 @@ impl TrawlsDummy {
                                         } else {
                                             ("select-err-dark", ix)
                                         })
-                                        .checked(selected_paths.contains(row.path))
+                                        .checked(selected_paths.contains(row.path.as_str()))
                                         .on_click(
                                             cx.listener({
                                                 let path = row.path.to_string();
@@ -321,8 +325,8 @@ impl TrawlsDummy {
                                         ),
                                     ),
                                 )
-                                .child(div().w(px(290.)).child(row.filename))
-                                .child(div().w(px(570.)).child(error))
+                                .child(div().w(px(290.)).child(row.filename.clone()))
+                                .child(div().w(px(570.)).child(error.clone()))
                                 .into_any_element();
                         }
 
@@ -335,7 +339,7 @@ impl TrawlsDummy {
                             .when(ix % 2 == 1, |this| {
                                 this.bg(cx.theme().sidebar_accent.alpha(0.35))
                             })
-                            .when(selected_paths.contains(row.path), |this| {
+                            .when(selected_paths.contains(row.path.as_str()), |this| {
                                 this.bg(cx.theme().primary.alpha(0.18))
                             })
                             .cursor_pointer()
@@ -367,7 +371,7 @@ impl TrawlsDummy {
                                     } else {
                                         ("select-dark", ix)
                                     })
-                                    .checked(selected_paths.contains(row.path))
+                                    .checked(selected_paths.contains(row.path.as_str()))
                                     .on_click(cx.listener({
                                         let path = row.path.to_string();
                                         move |this, checked, _, cx| {
@@ -387,17 +391,48 @@ impl TrawlsDummy {
                                     })),
                                 ),
                             )
-                            .child(div().w(px(290.)).child(row.filename))
+                            .child(
+                                div().w(px(290.)).child(
+                                    h_flex()
+                                        .gap_2()
+                                        .items_center()
+                                        .child(match row.metadata_status {
+                                            MetadataStatus::Pending => {
+                                                Icon::new(IconName::LoaderCircle)
+                                                    .xsmall()
+                                                    .text_color(cx.theme().muted_foreground)
+                                                    .into_any_element()
+                                            }
+                                            MetadataStatus::Loaded => {
+                                                Icon::new(IconName::CircleCheck)
+                                                    .xsmall()
+                                                    .text_color(cx.theme().success)
+                                                    .into_any_element()
+                                            }
+                                            MetadataStatus::Failed => {
+                                                Icon::new(IconName::TriangleAlert)
+                                                    .xsmall()
+                                                    .text_color(cx.theme().danger)
+                                                    .into_any_element()
+                                            }
+                                        })
+                                        .child(row.filename.clone()),
+                                ),
+                            )
                             .child(
                                 div()
                                     .w(px(90.))
                                     .text_center()
                                     .when(
-                                        baseline_settings
-                                            .is_some_and(|(exp, _, _)| row.exposure_seconds != exp),
+                                        baseline_settings.is_some_and(|(exp, _, _)| {
+                                            row.exposure_seconds.is_some_and(|value| value != exp)
+                                        }),
                                         |this| this.bg(cx.theme().warning.alpha(0.2)),
                                     )
-                                    .child(format!("{:.1}s", row.exposure_seconds)),
+                                    .child(match row.exposure_seconds {
+                                        Some(value) => format!("{value:.1}s"),
+                                        None => "...".to_string(),
+                                    }),
                             )
                             .when(show_interval, |this| {
                                 this.child(
@@ -411,7 +446,7 @@ impl TrawlsDummy {
                                         )
                                         .child(match row.interval_seconds {
                                             Some(value) => format!("{value:.1}s"),
-                                            None => "-".to_string(),
+                                            None => "...".to_string(),
                                         }),
                                 )
                             })
@@ -420,23 +455,38 @@ impl TrawlsDummy {
                                     .w(px(90.))
                                     .text_center()
                                     .when(
-                                        baseline_settings
-                                            .is_some_and(|(_, apt, _)| row.aperture != apt),
+                                        baseline_settings.is_some_and(|(_, apt, _)| {
+                                            row.aperture.is_some_and(|value| value != apt)
+                                        }),
                                         |this| this.bg(cx.theme().warning.alpha(0.2)),
                                     )
-                                    .child(format!("f/{:.1}", row.aperture)),
+                                    .child(match row.aperture {
+                                        Some(value) => format!("f/{value:.1}"),
+                                        None => "...".to_string(),
+                                    }),
                             )
                             .child(
                                 div()
                                     .w(px(90.))
                                     .text_center()
                                     .when(
-                                        baseline_settings.is_some_and(|(_, _, iso)| row.iso != iso),
+                                        baseline_settings.is_some_and(|(_, _, iso)| {
+                                            row.iso.is_some_and(|value| value != iso)
+                                        }),
                                         |this| this.bg(cx.theme().warning.alpha(0.2)),
                                     )
-                                    .child(format!("{}", row.iso)),
+                                    .child(match row.iso {
+                                        Some(value) => value.to_string(),
+                                        None => "...".to_string(),
+                                    }),
                             )
-                            .child(div().w(px(210.)).text_center().child(row.creation_time))
+                            .child(
+                                div().w(px(210.)).text_center().child(
+                                    row.creation_time
+                                        .clone()
+                                        .unwrap_or_else(|| "...".to_string()),
+                                ),
+                            )
                             .into_any_element()
                     }))),
             )
