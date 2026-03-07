@@ -1,13 +1,16 @@
+use std::rc::Rc;
+
 use gpui::{
-    Context, InteractiveElement as _, IntoElement, MouseButton, ParentElement as _,
-    Styled as _, div, prelude::FluentBuilder as _, px,
+    Context, InteractiveElement as _, IntoElement, MouseButton, ParentElement as _, Styled as _,
+    div, prelude::FluentBuilder as _, px, size,
 };
 use gpui_component::{
     ActiveTheme as _, Disableable as _, Icon, IconName, Sizable as _, StyledExt as _,
     button::{Button, ButtonVariants as _},
     checkbox::Checkbox,
-    scroll::ScrollbarAxis,
-    h_flex, v_flex,
+    h_flex,
+    scroll::{Scrollbar, ScrollbarShow},
+    v_flex, v_virtual_list,
 };
 
 use crate::ui::{
@@ -75,6 +78,12 @@ impl TrawlsDummy {
         } else {
             "Time"
         };
+        let rows_vec = rows.to_vec();
+        let item_sizes = Rc::new(
+            (0..rows_vec.len())
+                .map(|_| size(px(table_total_w), px(30.0)))
+                .collect::<Vec<_>>(),
+        );
 
         v_flex()
             .w_full()
@@ -278,242 +287,338 @@ impl TrawlsDummy {
                     ),
             )
             .child(
-                v_flex()
-                    .id("frame-table-scroll")
+                div()
+                    .relative()
                     .flex_1()
                     .min_h_0()
-                    .child(v_flex().children(rows.iter().enumerate().map(|(ix, row)| {
-                        if let Some(error) = &row.error {
-                            return h_flex()
-                                .min_w(px(table_total_w))
-                                .w_full()
-                                .px_2()
-                                .py_1()
-                                .border_b_1()
-                                .border_color(cx.theme().border)
-                                .bg(cx.theme().danger.alpha(0.18))
-                                .when(selected_paths.contains(row.path.as_str()), |this| {
-                                    this.bg(cx.theme().primary.alpha(0.18))
-                                })
-                                .cursor_pointer()
-                                .on_mouse_down(
-                                    MouseButton::Left,
-                                    cx.listener({
-                                        let path = row.path.to_string();
-                                        move |this, _, _, cx| {
-                                            if is_light {
-                                                if this.selected_light_paths.contains(&path) {
-                                                    this.selected_light_paths.remove(&path);
-                                                } else {
-                                                    this.selected_light_paths.insert(path.clone());
-                                                }
-                                            } else if this.selected_dark_paths.contains(&path) {
-                                                this.selected_dark_paths.remove(&path);
-                                            } else {
-                                                this.selected_dark_paths.insert(path.clone());
-                                            }
-                                            cx.notify();
-                                        }
-                                    }),
-                                )
-                                .text_xs()
-                                .child(
-                                    div().w(px(select_col_w)).child(
-                                        Checkbox::new(if is_light {
-                                            ("select-err-light", ix)
+                    .child(
+                        v_virtual_list(
+                            cx.entity().clone(),
+                            if is_light {
+                                "frame-table-virtual-light"
+                            } else {
+                                "frame-table-virtual-dark"
+                            },
+                            item_sizes,
+                            move |this, visible_range, _, cx| {
+                                visible_range
+                                    .map(|ix| {
+                                        let row = &rows_vec[ix];
+                                        let selected_paths = if is_light {
+                                            &this.selected_light_paths
                                         } else {
-                                            ("select-err-dark", ix)
-                                        })
-                                        .checked(selected_paths.contains(row.path.as_str()))
-                                        .on_click(
-                                            cx.listener({
-                                                let path = row.path.to_string();
-                                                move |this, checked, _, cx| {
-                                                    if is_light {
-                                                        if *checked {
-                                                            this.selected_light_paths
-                                                                .insert(path.clone());
-                                                        } else {
-                                                            this.selected_light_paths.remove(&path);
-                                                        }
-                                                    } else if *checked {
-                                                        this.selected_dark_paths
-                                                            .insert(path.clone());
-                                                    } else {
-                                                        this.selected_dark_paths.remove(&path);
-                                                    }
-                                                    cx.notify();
-                                                }
-                                            }),
-                                        ),
-                                    ),
-                                )
-                                .child(div().w(px(filename_col_w)).child(row.filename.clone()))
-                                .child(div().w(px(error_col_w)).child(error.clone()))
-                                .into_any_element();
-                        }
+                                            &this.selected_dark_paths
+                                        };
 
-                        h_flex()
-                            .min_w(px(table_total_w))
-                            .w_full()
-                            .px_2()
-                            .py_1()
-                            .border_b_1()
-                            .border_color(cx.theme().border)
-                            .when(ix % 2 == 1, |this| {
-                                this.bg(cx.theme().sidebar_accent.alpha(0.35))
-                            })
-                            .when(selected_paths.contains(row.path.as_str()), |this| {
-                                this.bg(cx.theme().primary.alpha(0.18))
-                            })
-                            .cursor_pointer()
-                            .on_mouse_down(
-                                MouseButton::Left,
-                                cx.listener({
-                                    let path = row.path.to_string();
-                                    move |this, _, _, cx| {
-                                        if is_light {
-                                            if this.selected_light_paths.contains(&path) {
-                                                this.selected_light_paths.remove(&path);
-                                            } else {
-                                                this.selected_light_paths.insert(path.clone());
-                                            }
-                                        } else if this.selected_dark_paths.contains(&path) {
-                                            this.selected_dark_paths.remove(&path);
-                                        } else {
-                                            this.selected_dark_paths.insert(path.clone());
+                                        if let Some(error) = &row.error {
+                                            return h_flex()
+                                                .min_w(px(table_total_w))
+                                                .w_full()
+                                                .px_2()
+                                                .py_1()
+                                                .border_b_1()
+                                                .border_color(cx.theme().border)
+                                                .bg(cx.theme().danger.alpha(0.18))
+                                                .when(
+                                                    selected_paths.contains(row.path.as_str()),
+                                                    |this| this.bg(cx.theme().primary.alpha(0.18)),
+                                                )
+                                                .cursor_pointer()
+                                                .on_mouse_down(
+                                                    MouseButton::Left,
+                                                    cx.listener({
+                                                        let path = row.path.to_string();
+                                                        move |this, _, _, cx| {
+                                                            if is_light {
+                                                                if this
+                                                                    .selected_light_paths
+                                                                    .contains(&path)
+                                                                {
+                                                                    this.selected_light_paths
+                                                                        .remove(&path);
+                                                                } else {
+                                                                    this.selected_light_paths
+                                                                        .insert(path.clone());
+                                                                }
+                                                            } else if this
+                                                                .selected_dark_paths
+                                                                .contains(&path)
+                                                            {
+                                                                this.selected_dark_paths
+                                                                    .remove(&path);
+                                                            } else {
+                                                                this.selected_dark_paths
+                                                                    .insert(path.clone());
+                                                            }
+                                                            cx.notify();
+                                                        }
+                                                    }),
+                                                )
+                                                .text_xs()
+                                                .child(
+                                                    div().w(px(select_col_w)).child(
+                                                        Checkbox::new(if is_light {
+                                                            ("select-err-light", ix)
+                                                        } else {
+                                                            ("select-err-dark", ix)
+                                                        })
+                                                        .checked(
+                                                            selected_paths
+                                                                .contains(row.path.as_str()),
+                                                        )
+                                                        .on_click(cx.listener({
+                                                            let path = row.path.to_string();
+                                                            move |this, checked, _, cx| {
+                                                                if is_light {
+                                                                    if *checked {
+                                                                        this.selected_light_paths
+                                                                            .insert(path.clone());
+                                                                    } else {
+                                                                        this.selected_light_paths
+                                                                            .remove(&path);
+                                                                    }
+                                                                } else if *checked {
+                                                                    this.selected_dark_paths
+                                                                        .insert(path.clone());
+                                                                } else {
+                                                                    this.selected_dark_paths
+                                                                        .remove(&path);
+                                                                }
+                                                                cx.notify();
+                                                            }
+                                                        })),
+                                                    ),
+                                                )
+                                                .child(
+                                                    div()
+                                                        .w(px(filename_col_w))
+                                                        .child(row.filename.clone()),
+                                                )
+                                                .child(
+                                                    div().w(px(error_col_w)).child(error.clone()),
+                                                )
+                                                .into_any_element();
                                         }
-                                        cx.notify();
-                                    }
-                                }),
-                            )
-                            .text_xs()
-                            .child(
-                                div().w(px(select_col_w)).child(
-                                    Checkbox::new(if is_light {
-                                        ("select-light", ix)
-                                    } else {
-                                        ("select-dark", ix)
+
+                                        h_flex()
+                                            .min_w(px(table_total_w))
+                                            .w_full()
+                                            .px_2()
+                                            .py_1()
+                                            .border_b_1()
+                                            .border_color(cx.theme().border)
+                                            .when(ix % 2 == 1, |this| {
+                                                this.bg(cx.theme().sidebar_accent.alpha(0.35))
+                                            })
+                                            .when(
+                                                selected_paths.contains(row.path.as_str()),
+                                                |this| this.bg(cx.theme().primary.alpha(0.18)),
+                                            )
+                                            .cursor_pointer()
+                                            .on_mouse_down(
+                                                MouseButton::Left,
+                                                cx.listener({
+                                                    let path = row.path.to_string();
+                                                    move |this, _, _, cx| {
+                                                        if is_light {
+                                                            if this
+                                                                .selected_light_paths
+                                                                .contains(&path)
+                                                            {
+                                                                this.selected_light_paths
+                                                                    .remove(&path);
+                                                            } else {
+                                                                this.selected_light_paths
+                                                                    .insert(path.clone());
+                                                            }
+                                                        } else if this
+                                                            .selected_dark_paths
+                                                            .contains(&path)
+                                                        {
+                                                            this.selected_dark_paths.remove(&path);
+                                                        } else {
+                                                            this.selected_dark_paths
+                                                                .insert(path.clone());
+                                                        }
+                                                        cx.notify();
+                                                    }
+                                                }),
+                                            )
+                                            .text_xs()
+                                            .child(
+                                                div().w(px(select_col_w)).child(
+                                                    Checkbox::new(if is_light {
+                                                        ("select-light", ix)
+                                                    } else {
+                                                        ("select-dark", ix)
+                                                    })
+                                                    .checked(
+                                                        selected_paths.contains(row.path.as_str()),
+                                                    )
+                                                    .on_click(cx.listener({
+                                                        let path = row.path.to_string();
+                                                        move |this, checked, _, cx| {
+                                                            if is_light {
+                                                                if *checked {
+                                                                    this.selected_light_paths
+                                                                        .insert(path.clone());
+                                                                } else {
+                                                                    this.selected_light_paths
+                                                                        .remove(&path);
+                                                                }
+                                                            } else if *checked {
+                                                                this.selected_dark_paths
+                                                                    .insert(path.clone());
+                                                            } else {
+                                                                this.selected_dark_paths
+                                                                    .remove(&path);
+                                                            }
+                                                            cx.notify();
+                                                        }
+                                                    })),
+                                                ),
+                                            )
+                                            .child(
+                                                div().w(px(filename_col_w)).child(
+                                                    h_flex()
+                                                        .gap_2()
+                                                        .items_center()
+                                                        .child(match row.metadata_status {
+                                                            MetadataStatus::Pending => {
+                                                                Icon::new(IconName::LoaderCircle)
+                                                                    .xsmall()
+                                                                    .text_color(
+                                                                        cx.theme().muted_foreground,
+                                                                    )
+                                                                    .into_any_element()
+                                                            }
+                                                            MetadataStatus::Loaded => {
+                                                                Icon::new(IconName::CircleCheck)
+                                                                    .xsmall()
+                                                                    .text_color(cx.theme().success)
+                                                                    .into_any_element()
+                                                            }
+                                                            MetadataStatus::Failed => {
+                                                                Icon::new(IconName::TriangleAlert)
+                                                                    .xsmall()
+                                                                    .text_color(cx.theme().danger)
+                                                                    .into_any_element()
+                                                            }
+                                                        })
+                                                        .child(row.filename.clone()),
+                                                ),
+                                            )
+                                            .child(
+                                                div()
+                                                    .w(px(exposure_col_w))
+                                                    .text_center()
+                                                    .when(
+                                                        baseline_settings.is_some_and(
+                                                            |(exp, _, _)| {
+                                                                row.exposure_seconds.is_some_and(
+                                                                    |value| value != exp,
+                                                                )
+                                                            },
+                                                        ),
+                                                        |this| {
+                                                            this.bg(cx.theme().warning.alpha(0.2))
+                                                        },
+                                                    )
+                                                    .child(match row.exposure_seconds {
+                                                        Some(value) => format!("{value:.1}s"),
+                                                        None => "...".to_string(),
+                                                    }),
+                                            )
+                                            .when(show_interval, |this| {
+                                                this.child(
+                                                    div()
+                                                        .w(px(interval_col_w))
+                                                        .text_center()
+                                                        .when(
+                                                            row.interval_seconds.is_some_and(
+                                                                |value| value.abs() > threshold,
+                                                            ),
+                                                            |this| {
+                                                                this.bg(cx
+                                                                    .theme()
+                                                                    .warning
+                                                                    .alpha(0.2))
+                                                            },
+                                                        )
+                                                        .child(match row.interval_seconds {
+                                                            Some(value) => format!("{value:.1}s"),
+                                                            None => "...".to_string(),
+                                                        }),
+                                                )
+                                            })
+                                            .child(
+                                                div()
+                                                    .w(px(aperture_col_w))
+                                                    .text_center()
+                                                    .when(
+                                                        baseline_settings.is_some_and(
+                                                            |(_, apt, _)| {
+                                                                row.aperture.is_some_and(|value| {
+                                                                    value != apt
+                                                                })
+                                                            },
+                                                        ),
+                                                        |this| {
+                                                            this.bg(cx.theme().warning.alpha(0.2))
+                                                        },
+                                                    )
+                                                    .child(match row.aperture {
+                                                        Some(value) => format!("f/{value:.1}"),
+                                                        None => "...".to_string(),
+                                                    }),
+                                            )
+                                            .child(
+                                                div()
+                                                    .w(px(iso_col_w))
+                                                    .text_center()
+                                                    .when(
+                                                        baseline_settings.is_some_and(
+                                                            |(_, _, iso)| {
+                                                                row.iso.is_some_and(|value| {
+                                                                    value != iso
+                                                                })
+                                                            },
+                                                        ),
+                                                        |this| {
+                                                            this.bg(cx.theme().warning.alpha(0.2))
+                                                        },
+                                                    )
+                                                    .child(match row.iso {
+                                                        Some(value) => value.to_string(),
+                                                        None => "...".to_string(),
+                                                    }),
+                                            )
+                                            .child(
+                                                div().w(px(time_col_w)).text_center().child(
+                                                    row.creation_time
+                                                        .map(|dt| {
+                                                            dt.format("%Y-%m-%dT%H:%M:%S")
+                                                                .to_string()
+                                                        })
+                                                        .unwrap_or_else(|| "...".to_string()),
+                                                ),
+                                            )
+                                            .into_any_element()
                                     })
-                                    .checked(selected_paths.contains(row.path.as_str()))
-                                    .on_click(cx.listener({
-                                        let path = row.path.to_string();
-                                        move |this, checked, _, cx| {
-                                            if is_light {
-                                                if *checked {
-                                                    this.selected_light_paths.insert(path.clone());
-                                                } else {
-                                                    this.selected_light_paths.remove(&path);
-                                                }
-                                            } else if *checked {
-                                                this.selected_dark_paths.insert(path.clone());
-                                            } else {
-                                                this.selected_dark_paths.remove(&path);
-                                            }
-                                            cx.notify();
-                                        }
-                                    })),
-                                ),
+                                    .collect::<Vec<_>>()
+                            },
+                        )
+                        .track_scroll(&self.table_scroll_handle),
+                    )
+                    .child(
+                        div().absolute().top_0().right_0().bottom_0().child(
+                            Scrollbar::vertical(
+                                &self.table_scroll_state,
+                                &self.table_scroll_handle,
                             )
-                            .child(
-                                div().w(px(filename_col_w)).child(
-                                    h_flex()
-                                        .gap_2()
-                                        .items_center()
-                                        .child(match row.metadata_status {
-                                            MetadataStatus::Pending => {
-                                                Icon::new(IconName::LoaderCircle)
-                                                    .xsmall()
-                                                    .text_color(cx.theme().muted_foreground)
-                                                    .into_any_element()
-                                            }
-                                            MetadataStatus::Loaded => {
-                                                Icon::new(IconName::CircleCheck)
-                                                    .xsmall()
-                                                    .text_color(cx.theme().success)
-                                                    .into_any_element()
-                                            }
-                                            MetadataStatus::Failed => {
-                                                Icon::new(IconName::TriangleAlert)
-                                                    .xsmall()
-                                                    .text_color(cx.theme().danger)
-                                                    .into_any_element()
-                                            }
-                                        })
-                                        .child(row.filename.clone()),
-                                ),
-                            )
-                            .child(
-                                div()
-                                    .w(px(exposure_col_w))
-                                    .text_center()
-                                    .when(
-                                        baseline_settings.is_some_and(|(exp, _, _)| {
-                                            row.exposure_seconds.is_some_and(|value| value != exp)
-                                        }),
-                                        |this| this.bg(cx.theme().warning.alpha(0.2)),
-                                    )
-                                    .child(match row.exposure_seconds {
-                                        Some(value) => format!("{value:.1}s"),
-                                        None => "...".to_string(),
-                                    }),
-                            )
-                            .when(show_interval, |this| {
-                                this.child(
-                                    div()
-                                        .w(px(interval_col_w))
-                                        .text_center()
-                                        .when(
-                                            row.interval_seconds
-                                                .is_some_and(|value| value.abs() > threshold),
-                                            |this| this.bg(cx.theme().warning.alpha(0.2)),
-                                        )
-                                        .child(match row.interval_seconds {
-                                            Some(value) => format!("{value:.1}s"),
-                                            None => "...".to_string(),
-                                        }),
-                                )
-                            })
-                            .child(
-                                div()
-                                    .w(px(aperture_col_w))
-                                    .text_center()
-                                    .when(
-                                        baseline_settings.is_some_and(|(_, apt, _)| {
-                                            row.aperture.is_some_and(|value| value != apt)
-                                        }),
-                                        |this| this.bg(cx.theme().warning.alpha(0.2)),
-                                    )
-                                    .child(match row.aperture {
-                                        Some(value) => format!("f/{value:.1}"),
-                                        None => "...".to_string(),
-                                    }),
-                            )
-                            .child(
-                                div()
-                                    .w(px(iso_col_w))
-                                    .text_center()
-                                    .when(
-                                        baseline_settings.is_some_and(|(_, _, iso)| {
-                                            row.iso.is_some_and(|value| value != iso)
-                                        }),
-                                        |this| this.bg(cx.theme().warning.alpha(0.2)),
-                                    )
-                                    .child(match row.iso {
-                                        Some(value) => value.to_string(),
-                                        None => "...".to_string(),
-                                    }),
-                            )
-                            .child(
-                                div().w(px(time_col_w)).text_center().child(
-                                    row.creation_time
-                                        .map(|dt| dt.format("%Y-%m-%dT%H:%M:%S").to_string())
-                                        .unwrap_or_else(|| "...".to_string()),
-                                ),
-                            )
-                            .into_any_element()
-                    })))
-                    .scrollable(ScrollbarAxis::Vertical),
+                            .scrollbar_show(ScrollbarShow::Always),
+                        ),
+                    ),
             )
     }
 }

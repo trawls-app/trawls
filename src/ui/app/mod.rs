@@ -1,7 +1,7 @@
 use std::collections::HashSet;
 
 use gpui::{AppContext, Context, Entity, FocusHandle, ScrollHandle, SharedString, Window};
-use gpui_component::{input::InputState, scroll::ScrollbarState};
+use gpui_component::{VirtualListScrollHandle, input::InputState, scroll::ScrollbarState};
 
 use crate::ui::model::{FrameInfo, MergeMode, PreviewData, ProcessingMock, SortKey};
 
@@ -26,6 +26,8 @@ pub struct TrawlsDummy {
     pub(crate) preview_zoom: f32,
     pub(crate) preview_scroll_handle: ScrollHandle,
     pub(crate) preview_scroll_state: ScrollbarState,
+    pub(crate) table_scroll_handle: VirtualListScrollHandle,
+    pub(crate) table_scroll_state: ScrollbarState,
 }
 
 impl TrawlsDummy {
@@ -51,6 +53,8 @@ impl TrawlsDummy {
             preview_zoom: 1.0,
             preview_scroll_handle: ScrollHandle::new(),
             preview_scroll_state: ScrollbarState::default(),
+            table_scroll_handle: VirtualListScrollHandle::new(),
+            table_scroll_state: ScrollbarState::default(),
         }
     }
 
