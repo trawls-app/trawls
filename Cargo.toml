@@ -9,3 +9,4 @@ chrono = "0.4"
 gpui = "0.2.2"
 gpui-component = { path = "../gpui-component/crates/ui" }
 rust-embed = "8.5.0"
+rawler = { git = "https://github.com/trawls-app/dnglab" }

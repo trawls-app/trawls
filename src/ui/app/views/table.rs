@@ -1,11 +1,12 @@
 use gpui::{
     Context, InteractiveElement as _, IntoElement, MouseButton, ParentElement as _,
-    StatefulInteractiveElement as _, Styled as _, div, prelude::FluentBuilder as _, px,
+    Styled as _, div, prelude::FluentBuilder as _, px,
 };
 use gpui_component::{
     ActiveTheme as _, Disableable as _, Icon, IconName, Sizable as _, StyledExt as _,
     button::{Button, ButtonVariants as _},
     checkbox::Checkbox,
+    scroll::ScrollbarAxis,
     h_flex, v_flex,
 };
 
@@ -23,6 +24,25 @@ impl TrawlsDummy {
         cx: &mut Context<Self>,
     ) -> impl IntoElement {
         let threshold = Self::interval_warning_threshold(rows).unwrap_or(9999.0);
+        let filename_col_w = rows
+            .iter()
+            .map(|row| row.filename.len() as f32 * 8.0 + 56.0)
+            .fold(290.0_f32, f32::max)
+            .clamp(290.0, 820.0);
+        let select_col_w = 36.0_f32;
+        let exposure_col_w = 90.0_f32;
+        let interval_col_w = if show_interval { 90.0 } else { 0.0 };
+        let aperture_col_w = 90.0_f32;
+        let iso_col_w = 90.0_f32;
+        let time_col_w = 210.0_f32;
+        let table_total_w = select_col_w
+            + filename_col_w
+            + exposure_col_w
+            + interval_col_w
+            + aperture_col_w
+            + iso_col_w
+            + time_col_w;
+        let error_col_w = table_total_w - select_col_w - filename_col_w;
         let baseline_settings = rows.iter().find_map(|r| {
             if r.metadata_status != MetadataStatus::Loaded || r.error.is_some() {
                 return None;
@@ -58,6 +78,8 @@ impl TrawlsDummy {
 
         v_flex()
             .w_full()
+            .flex_1()
+            .min_h_0()
             .gap_2()
             .child(
                 h_flex()
@@ -158,9 +180,9 @@ impl TrawlsDummy {
             .border_1()
             .border_color(cx.theme().border)
             .rounded(cx.theme().radius)
-            .overflow_hidden()
             .child(
                 h_flex()
+                    .min_w(px(table_total_w))
                     .w_full()
                     .px_2()
                     .py_1p5()
@@ -170,7 +192,7 @@ impl TrawlsDummy {
                     .font_semibold()
                     .text_xs()
                     .child(
-                        div().w(px(36.)).child(
+                        div().w(px(select_col_w)).child(
                             Checkbox::new(if is_light {
                                 "header-select-all-light"
                             } else {
@@ -205,7 +227,7 @@ impl TrawlsDummy {
                         ),
                     )
                     .child(
-                        div().w(px(290.)).child(
+                        div().w(px(filename_col_w)).child(
                             Button::new(if is_light {
                                 "header-sort-light-filename"
                             } else {
@@ -226,14 +248,14 @@ impl TrawlsDummy {
                             )),
                         ),
                     )
-                    .child(div().w(px(90.)).text_center().child("Exposure"))
+                    .child(div().w(px(exposure_col_w)).text_center().child("Exposure"))
                     .when(show_interval, |this| {
-                        this.child(div().w(px(90.)).text_center().child("Interval"))
+                        this.child(div().w(px(interval_col_w)).text_center().child("Interval"))
                     })
-                    .child(div().w(px(90.)).text_center().child("Aperture"))
-                    .child(div().w(px(90.)).text_center().child("ISO"))
+                    .child(div().w(px(aperture_col_w)).text_center().child("Aperture"))
+                    .child(div().w(px(iso_col_w)).text_center().child("ISO"))
                     .child(
-                        div().w(px(210.)).child(
+                        div().w(px(time_col_w)).child(
                             Button::new(if is_light {
                                 "header-sort-light-time"
                             } else {
@@ -258,11 +280,12 @@ impl TrawlsDummy {
             .child(
                 v_flex()
                     .id("frame-table-scroll")
-                    .max_h(px(480.0))
-                    .overflow_y_scroll()
+                    .flex_1()
+                    .min_h_0()
                     .child(v_flex().children(rows.iter().enumerate().map(|(ix, row)| {
                         if let Some(error) = &row.error {
                             return h_flex()
+                                .min_w(px(table_total_w))
                                 .w_full()
                                 .px_2()
                                 .py_1()
@@ -295,7 +318,7 @@ impl TrawlsDummy {
                                 )
                                 .text_xs()
                                 .child(
-                                    div().w(px(36.)).child(
+                                    div().w(px(select_col_w)).child(
                                         Checkbox::new(if is_light {
                                             ("select-err-light", ix)
                                         } else {
@@ -325,12 +348,13 @@ impl TrawlsDummy {
                                         ),
                                     ),
                                 )
-                                .child(div().w(px(290.)).child(row.filename.clone()))
-                                .child(div().w(px(570.)).child(error.clone()))
+                                .child(div().w(px(filename_col_w)).child(row.filename.clone()))
+                                .child(div().w(px(error_col_w)).child(error.clone()))
                                 .into_any_element();
                         }
 
                         h_flex()
+                            .min_w(px(table_total_w))
                             .w_full()
                             .px_2()
                             .py_1()
@@ -365,7 +389,7 @@ impl TrawlsDummy {
                             )
                             .text_xs()
                             .child(
-                                div().w(px(36.)).child(
+                                div().w(px(select_col_w)).child(
                                     Checkbox::new(if is_light {
                                         ("select-light", ix)
                                     } else {
@@ -392,7 +416,7 @@ impl TrawlsDummy {
                                 ),
                             )
                             .child(
-                                div().w(px(290.)).child(
+                                div().w(px(filename_col_w)).child(
                                     h_flex()
                                         .gap_2()
                                         .items_center()
@@ -421,7 +445,7 @@ impl TrawlsDummy {
                             )
                             .child(
                                 div()
-                                    .w(px(90.))
+                                    .w(px(exposure_col_w))
                                     .text_center()
                                     .when(
                                         baseline_settings.is_some_and(|(exp, _, _)| {
@@ -437,7 +461,7 @@ impl TrawlsDummy {
                             .when(show_interval, |this| {
                                 this.child(
                                     div()
-                                        .w(px(90.))
+                                        .w(px(interval_col_w))
                                         .text_center()
                                         .when(
                                             row.interval_seconds
@@ -452,7 +476,7 @@ impl TrawlsDummy {
                             })
                             .child(
                                 div()
-                                    .w(px(90.))
+                                    .w(px(aperture_col_w))
                                     .text_center()
                                     .when(
                                         baseline_settings.is_some_and(|(_, apt, _)| {
@@ -467,7 +491,7 @@ impl TrawlsDummy {
                             )
                             .child(
                                 div()
-                                    .w(px(90.))
+                                    .w(px(iso_col_w))
                                     .text_center()
                                     .when(
                                         baseline_settings.is_some_and(|(_, _, iso)| {
@@ -481,14 +505,15 @@ impl TrawlsDummy {
                                     }),
                             )
                             .child(
-                                div().w(px(210.)).text_center().child(
+                                div().w(px(time_col_w)).text_center().child(
                                     row.creation_time
-                                        .clone()
+                                        .map(|dt| dt.format("%Y-%m-%dT%H:%M:%S").to_string())
                                         .unwrap_or_else(|| "...".to_string()),
                                 ),
                             )
                             .into_any_element()
-                    }))),
+                    })))
+                    .scrollable(ScrollbarAxis::Vertical),
             )
     }
 }

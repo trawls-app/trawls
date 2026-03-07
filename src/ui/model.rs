@@ -1,3 +1,5 @@
+use chrono::NaiveDateTime;
+
 #[derive(Clone)]
 pub struct FrameInfo {
     pub path: String,
@@ -6,7 +8,7 @@ pub struct FrameInfo {
     pub interval_seconds: Option<f32>,
     pub aperture: Option<f32>,
     pub iso: Option<u32>,
-    pub creation_time: Option<String>,
+    pub creation_time: Option<NaiveDateTime>,
     pub metadata_status: MetadataStatus,
     pub error: Option<String>,
 }

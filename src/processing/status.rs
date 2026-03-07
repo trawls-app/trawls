@@ -1,13 +1,5 @@
 use crate::processing::interface::FrameIdentifier;
-
-#[derive(Clone)]
-pub struct FrameMetadata {
-    pub exposure_seconds: f32,
-    pub interval_seconds: Option<f32>,
-    pub aperture: f32,
-    pub iso: u32,
-    pub creation_time: String,
-}
+use crate::processing::metadata::FrameMetadata;
 
 #[derive(Clone, Copy, Default)]
 pub struct ProcessingCounters {

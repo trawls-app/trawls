@@ -39,6 +39,8 @@ impl TrawlsDummy {
         };
 
         v_flex()
+            .h_full()
+            .min_h_0()
             .gap_4()
             .when(Self::error_warning(&rows), |this| {
                 this.child(
@@ -97,7 +99,21 @@ impl TrawlsDummy {
                                 })
                                 .success()
                                 .icon(IconName::Search)
-                                .label("Select images")
+                                .label("Add images")
+                                .on_click(cx.listener(
+                                    move |this, _, window, cx| {
+                                        this.pick_image_files(is_light, window, cx);
+                                    },
+                                )),
+                            )
+                            .child(
+                                Button::new(if is_light {
+                                    "add-dummy-lights"
+                                } else {
+                                    "add-dummy-darks"
+                                })
+                                .icon(IconName::Plus)
+                                .label("Add dummy frames")
                                 .on_click(cx.listener(
                                     move |this, _, _, cx| {
                                         this.queue_mock_metadata_loading(is_light, cx);

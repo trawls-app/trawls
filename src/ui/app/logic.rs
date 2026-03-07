@@ -1,8 +1,8 @@
-use std::time::Duration;
+use std::{path::PathBuf, time::Duration};
 
-use chrono::NaiveDateTime;
 use gpui::{
-    Context, ParentElement as _, Pixels, Point, Size, Styled as _, Timer, Window, div, point, px,
+    Context, ParentElement as _, PathPromptOptions, Pixels, Point, Size, Styled as _, Timer,
+    Window, div, point, px,
 };
 use gpui_component::{
     WindowExt as _,
@@ -11,10 +11,11 @@ use gpui_component::{
 };
 
 use crate::processing::{
-    dummy::DUMMY_PROCESSOR,
+    dummy::{DUMMY_METADATA_PROCESSOR, DUMMY_PROCESSOR},
     interface::{FrameIdentifier, ProcessingInput, Processor},
+    metadata::{FrameMetadata, FrameMetadataLoader, RawlerMetadataLoader},
     status::{
-        FrameMetadata, MetadataStatus as MetadataStatusSink, ProcessingCounters,
+        MetadataStatus as MetadataStatusSink, ProcessingCounters,
         ProcessingStatus as ProcessingStatusSink,
     },
 };
@@ -151,11 +152,115 @@ impl TrawlsDummy {
             let frame_id = FrameIdentifier::from(seed.path);
             cx.spawn(async move |this, cx| {
                 Timer::after(Duration::from_millis(delay_ms)).await;
+                let load_result = DUMMY_METADATA_PROCESSOR.load_metadata(&frame_id);
                 let _ = this.update(cx, |this, cx| {
-                    match (seed.metadata, seed.error) {
-                        (Some(metadata), _) => this.metadata_loaded(&frame_id, metadata),
-                        (_, Some(error)) => this.metadata_failed(&frame_id, error.to_string()),
-                        _ => this.metadata_failed(&frame_id, "Unknown metadata error".to_string()),
+                    match load_result {
+                        Ok(metadata) => this.metadata_loaded(&frame_id, metadata),
+                        Err(error) => this.metadata_failed(&frame_id, error.to_string()),
+                    }
+                    cx.notify();
+                });
+            })
+            .detach();
+        }
+    }
+
+    pub(crate) fn pick_image_files(
+        &mut self,
+        is_light: bool,
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) {
+        let selected_paths = cx.prompt_for_paths(PathPromptOptions {
+            files: true,
+            directories: false,
+            multiple: true,
+            prompt: Some("Select image files".into()),
+        });
+        let view = cx.entity();
+
+        cx.spawn_in(window, async move |_, window| {
+            let selected_paths = selected_paths.await.ok()?.ok()??;
+            let files: Vec<PathBuf> = selected_paths.into_iter().collect();
+            if files.is_empty() {
+                return Some(());
+            }
+
+            window
+                .update(|_, cx| {
+                    _ = view.update(cx, |this, cx| {
+                        this.queue_selected_metadata_loading(files, is_light, cx);
+                    });
+                })
+                .ok();
+
+            Some(())
+        })
+        .detach();
+    }
+
+    pub(crate) fn queue_selected_metadata_loading(
+        &mut self,
+        files: Vec<PathBuf>,
+        is_light: bool,
+        cx: &mut Context<Self>,
+    ) {
+        let existing_paths = if is_light {
+            self.lightframes
+                .iter()
+                .map(|row| row.path.clone())
+                .collect::<std::collections::HashSet<_>>()
+        } else {
+            self.darkframes
+                .iter()
+                .map(|row| row.path.clone())
+                .collect::<std::collections::HashSet<_>>()
+        };
+
+        let mut new_files = Vec::new();
+        let new_rows = files
+            .into_iter()
+            .filter(|path| !existing_paths.contains(path.to_string_lossy().as_ref()))
+            .map(|path| {
+                let filename = path
+                    .file_name()
+                    .and_then(|name| name.to_str())
+                    .unwrap_or("unknown");
+                let path_string = path.to_string_lossy().to_string();
+                new_files.push(PathBuf::from(&path_string));
+                FrameInfo {
+                    path: path_string,
+                    filename: filename.to_string(),
+                    exposure_seconds: None,
+                    interval_seconds: None,
+                    aperture: None,
+                    iso: None,
+                    creation_time: None,
+                    metadata_status: MetadataStatus::Pending,
+                    error: None,
+                }
+            })
+            .collect::<Vec<_>>();
+
+        if is_light {
+            self.lightframes.extend(new_rows);
+        } else {
+            self.darkframes.extend(new_rows);
+        }
+        self.reset_processing_state_for_selection();
+        for path in &new_files {
+            self.metadata_queued(&FrameIdentifier::new(path.clone()));
+        }
+        cx.notify();
+
+        for path in new_files {
+            let frame_id = FrameIdentifier::new(path);
+            cx.spawn(async move |this, cx| {
+                let load_result = RawlerMetadataLoader.load_metadata(&frame_id);
+                let _ = this.update(cx, |this, cx| {
+                    match load_result {
+                        Ok(metadata) => this.metadata_loaded(&frame_id, metadata),
+                        Err(error) => this.metadata_failed(&frame_id, error.to_string()),
                     }
                     cx.notify();
                 });
@@ -402,8 +507,7 @@ impl TrawlsDummy {
     fn capture_span_seconds(rows: &[&FrameInfo]) -> Option<f32> {
         let mut times = rows
             .iter()
-            .filter_map(|r| r.creation_time.as_deref())
-            .filter_map(|value| NaiveDateTime::parse_from_str(value, "%Y-%m-%dT%H:%M:%S").ok())
+            .filter_map(|r| r.creation_time)
             .collect::<Vec<_>>();
 
         if times.len() < 2 {
@@ -419,14 +523,7 @@ impl TrawlsDummy {
     fn largest_gap(rows: &[&FrameInfo]) -> Option<LargestGap> {
         let mut with_time = rows
             .iter()
-            .filter_map(|r| {
-                r.creation_time
-                    .as_deref()
-                    .and_then(|value| {
-                        NaiveDateTime::parse_from_str(value, "%Y-%m-%dT%H:%M:%S").ok()
-                    })
-                    .map(|dt| (*r, dt))
-            })
+            .filter_map(|r| r.creation_time.map(|dt| (*r, dt)))
             .collect::<Vec<_>>();
 
         if with_time.len() < 2 {
@@ -479,14 +576,35 @@ impl MetadataStatusSink for TrawlsDummy {
     }
 
     fn metadata_loaded(&mut self, frame_id: &FrameIdentifier, metadata: FrameMetadata) {
-        if let Some(row) = find_frame_mut(self, frame_id) {
+        if let Some(row) = self
+            .lightframes
+            .iter_mut()
+            .find(|row| row.path == frame_id.as_path().to_string_lossy())
+        {
             row.exposure_seconds = Some(metadata.exposure_seconds);
             row.interval_seconds = metadata.interval_seconds;
             row.aperture = Some(metadata.aperture);
             row.iso = Some(metadata.iso);
-            row.creation_time = Some(metadata.creation_time);
+            row.creation_time = metadata.creation_time;
             row.metadata_status = MetadataStatus::Loaded;
             row.error = None;
+            recompute_intervals(&mut self.lightframes);
+            return;
+        }
+
+        if let Some(row) = self
+            .darkframes
+            .iter_mut()
+            .find(|row| row.path == frame_id.as_path().to_string_lossy())
+        {
+            row.exposure_seconds = Some(metadata.exposure_seconds);
+            row.interval_seconds = metadata.interval_seconds;
+            row.aperture = Some(metadata.aperture);
+            row.iso = Some(metadata.iso);
+            row.creation_time = metadata.creation_time;
+            row.metadata_status = MetadataStatus::Loaded;
+            row.error = None;
+            recompute_intervals(&mut self.darkframes);
         }
     }
 
@@ -535,4 +653,42 @@ fn mock_metadata_delay_ms(path: &str, index: usize) -> u64 {
         hash = hash.wrapping_mul(1099511628211);
     }
     150 + ((hash.wrapping_add((index as u64) * 97)) % 850)
+}
+
+fn recompute_intervals(frames: &mut [FrameInfo]) {
+    for row in frames.iter_mut() {
+        row.interval_seconds = None;
+    }
+
+    let mut ordered = frames
+        .iter()
+        .enumerate()
+        .filter_map(|(ix, row)| {
+            Some((
+                ix,
+                row.creation_time?,
+                row.exposure_seconds?,
+                row.metadata_status == MetadataStatus::Loaded && row.error.is_none(),
+            ))
+        })
+        .filter(|(_, _, _, ok)| *ok)
+        .map(|(ix, time, exposure, _)| (ix, time, exposure))
+        .collect::<Vec<_>>();
+
+    if ordered.is_empty() {
+        return;
+    }
+
+    ordered.sort_by_key(|(_, time, _)| *time);
+    for (position, (ix, time, exposure)) in ordered.iter().enumerate() {
+        if position == 0 {
+            frames[*ix].interval_seconds = None;
+            continue;
+        }
+
+        let (_, prev_time, _) = ordered[position - 1];
+        let dt = time.signed_duration_since(prev_time).num_seconds() as f32;
+        let interval = (dt - *exposure).max(0.0);
+        frames[*ix].interval_seconds = Some(interval);
+    }
 }
