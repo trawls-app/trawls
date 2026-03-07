@@ -1,7 +1,7 @@
 use gpui::{
-    Context, InteractiveElement as _, IntoElement, ObjectFit, ParentElement as _,
-    StatefulInteractiveElement as _, Styled as _, StyledImage as _, div, img,
-    prelude::FluentBuilder as _, px,
+    Context, InteractiveElement as _, IntoElement, MouseButton, ObjectFit, ParentElement as _,
+    ScrollDelta, ScrollWheelEvent, StatefulInteractiveElement as _, Styled as _, StyledImage as _,
+    div, img, prelude::FluentBuilder as _, px,
 };
 use gpui_component::{
     ActiveTheme as _, Icon, IconName, Sizable as _, StyledExt as _,
@@ -10,7 +10,7 @@ use gpui_component::{
     h_flex,
     input::Input,
     progress::Progress,
-    tab::{Tab, TabBar},
+    scroll::{Scrollbar, ScrollbarShow},
     v_flex,
 };
 
@@ -286,12 +286,6 @@ impl TrawlsDummy {
     }
 
     pub(crate) fn render_processing_step(&self, cx: &mut Context<Self>) -> impl IntoElement {
-        let mode_ix = match self.merge_mode {
-            MergeMode::Normal => 0,
-            MergeMode::Falling => 1,
-            MergeMode::Raising => 2,
-        };
-
         v_flex()
             .gap_4()
             .child(
@@ -358,56 +352,194 @@ impl TrawlsDummy {
                             .child(div().font_semibold().child("Mode selection")),
                     )
                     .child(
-                        TabBar::new("merge-mode")
-                            .segmented()
-                            .w_full()
-                            .selected_index(mode_ix)
-                            .on_click(cx.listener(|this, ix: &usize, _, cx| {
-                                this.merge_mode = match ix {
-                                    1 => MergeMode::Falling,
-                                    2 => MergeMode::Raising,
-                                    _ => MergeMode::Normal,
-                                };
-                                cx.notify();
-                            }))
-                            .child(Tab::new().label("Normal"))
-                            .child(Tab::new().label("Falling Comets"))
-                            .child(Tab::new().label("Raising Comets")),
-                    )
-                    .child(
                         h_flex()
-                            .gap_3()
+                            .gap_4()
+                            .flex_wrap()
                             .child(
                                 v_flex()
-                                    .gap_1()
-                                    .w_full()
-                                    .child(img("examples/mode_normal.jpg").h(px(130.)))
+                                    .id("mode-normal-card")
+                                    .flex_1()
+                                    .min_w(px(360.0))
+                                    .overflow_hidden()
+                                    .rounded(cx.theme().radius)
+                                    .border_1()
+                                    .border_color(if self.merge_mode == MergeMode::Normal {
+                                        cx.theme().primary
+                                    } else {
+                                        cx.theme().border
+                                    })
+                                    .bg(if self.merge_mode == MergeMode::Normal {
+                                        cx.theme().primary.alpha(0.08)
+                                    } else {
+                                        cx.theme().sidebar.alpha(0.35)
+                                    })
+                                    .cursor_pointer()
+                                    .on_mouse_down(
+                                        MouseButton::Left,
+                                        cx.listener(|this, _, _, cx| {
+                                            this.merge_mode = MergeMode::Normal;
+                                            cx.notify();
+                                        }),
+                                    )
                                     .child(
-                                        div()
-                                            .text_xs()
-                                            .child("Normal: all images weighted equally."),
+                                        img("examples/mode_normal.jpg")
+                                            .w_full()
+                                            .h(px(190.0))
+                                            .object_fit(ObjectFit::Cover),
+                                    )
+                                    .child(
+                                        v_flex()
+                                            .gap_2()
+                                            .p_4()
+                                            .child(div().text_xl().font_semibold().child("Normal"))
+                                            .child(
+                                                h_flex()
+                                                    .gap_2()
+                                                    .items_start()
+                                                    .child(
+                                                        Icon::new(if self.merge_mode == MergeMode::Normal {
+                                                            IconName::CircleCheck
+                                                        } else {
+                                                            IconName::CircleUser
+                                                        })
+                                                        .small(),
+                                                    )
+                                                    .child(
+                                                        div()
+                                                            .flex_1()
+                                                            .whitespace_normal()
+                                                            .text_base()
+                                                            .child("All images will be weighted identically."),
+                                                    ),
+                                            ),
                                     ),
                             )
                             .child(
                                 v_flex()
-                                    .gap_1()
-                                    .w_full()
-                                    .child(img("examples/mode_falling.jpg").h(px(130.)))
+                                    .id("mode-falling-card")
+                                    .flex_1()
+                                    .min_w(px(360.0))
+                                    .overflow_hidden()
+                                    .rounded(cx.theme().radius)
+                                    .border_1()
+                                    .border_color(if self.merge_mode == MergeMode::Falling {
+                                        cx.theme().primary
+                                    } else {
+                                        cx.theme().border
+                                    })
+                                    .bg(if self.merge_mode == MergeMode::Falling {
+                                        cx.theme().primary.alpha(0.08)
+                                    } else {
+                                        cx.theme().sidebar.alpha(0.35)
+                                    })
+                                    .cursor_pointer()
+                                    .on_mouse_down(
+                                        MouseButton::Left,
+                                        cx.listener(|this, _, _, cx| {
+                                            this.merge_mode = MergeMode::Falling;
+                                            cx.notify();
+                                        }),
+                                    )
                                     .child(
-                                        div()
-                                            .text_xs()
-                                            .child("Falling: later images become darker."),
+                                        img("examples/mode_falling.jpg")
+                                            .w_full()
+                                            .h(px(190.0))
+                                            .object_fit(ObjectFit::Cover),
+                                    )
+                                    .child(
+                                        v_flex()
+                                            .gap_2()
+                                            .p_4()
+                                            .child(
+                                                div()
+                                                    .text_xl()
+                                                    .font_semibold()
+                                                    .child("Falling Comets"),
+                                            )
+                                            .child(
+                                                h_flex()
+                                                    .gap_2()
+                                                    .items_start()
+                                                    .child(
+                                                        Icon::new(if self.merge_mode == MergeMode::Falling {
+                                                            IconName::CircleCheck
+                                                        } else {
+                                                            IconName::CircleUser
+                                                        })
+                                                        .small(),
+                                                    )
+                                                    .child(
+                                                        div()
+                                                            .flex_1()
+                                                            .whitespace_normal()
+                                                            .text_base()
+                                                            .child("Later images become darker, such that stars will fade away."),
+                                                    ),
+                                            ),
                                     ),
                             )
                             .child(
                                 v_flex()
-                                    .gap_1()
-                                    .w_full()
-                                    .child(img("examples/mode_raising.jpg").h(px(130.)))
+                                    .id("mode-raising-card")
+                                    .flex_1()
+                                    .min_w(px(360.0))
+                                    .overflow_hidden()
+                                    .rounded(cx.theme().radius)
+                                    .border_1()
+                                    .border_color(if self.merge_mode == MergeMode::Raising {
+                                        cx.theme().primary
+                                    } else {
+                                        cx.theme().border
+                                    })
+                                    .bg(if self.merge_mode == MergeMode::Raising {
+                                        cx.theme().primary.alpha(0.08)
+                                    } else {
+                                        cx.theme().sidebar.alpha(0.35)
+                                    })
+                                    .cursor_pointer()
+                                    .on_mouse_down(
+                                        MouseButton::Left,
+                                        cx.listener(|this, _, _, cx| {
+                                            this.merge_mode = MergeMode::Raising;
+                                            cx.notify();
+                                        }),
+                                    )
                                     .child(
-                                        div()
-                                            .text_xs()
-                                            .child("Raising: earlier images become darker."),
+                                        img("examples/mode_raising.jpg")
+                                            .w_full()
+                                            .h(px(190.0))
+                                            .object_fit(ObjectFit::Cover),
+                                    )
+                                    .child(
+                                        v_flex()
+                                            .gap_2()
+                                            .p_4()
+                                            .child(
+                                                div()
+                                                    .text_xl()
+                                                    .font_semibold()
+                                                    .child("Raising Comets"),
+                                            )
+                                            .child(
+                                                h_flex()
+                                                    .gap_2()
+                                                    .items_start()
+                                                    .child(
+                                                        Icon::new(if self.merge_mode == MergeMode::Raising {
+                                                            IconName::CircleCheck
+                                                        } else {
+                                                            IconName::CircleUser
+                                                        })
+                                                        .small(),
+                                                    )
+                                                    .child(
+                                                        div()
+                                                            .flex_1()
+                                                            .whitespace_normal()
+                                                            .text_base()
+                                                            .child("Earlier images are darker, such that stars will fade in."),
+                                                    ),
+                                            ),
                                     ),
                             ),
                     ),
@@ -500,7 +632,15 @@ impl TrawlsDummy {
                                         .icon(IconName::Minus)
                                         .label("Zoom out")
                                         .on_click(cx.listener(|this, _, _, cx| {
-                                            this.set_preview_zoom(this.preview_zoom - 0.1, cx);
+                                            this.zoom_preview_out(cx);
+                                        })),
+                                )
+                                .child(
+                                    Button::new("preview-zoom-fit")
+                                        .small()
+                                        .label("Fit to screen")
+                                        .on_click(cx.listener(|this, _, window, cx| {
+                                            this.fit_preview_to_window(window, cx);
                                         })),
                                 )
                                 .child(
@@ -517,9 +657,15 @@ impl TrawlsDummy {
                                         .icon(IconName::Plus)
                                         .label("Zoom in")
                                         .on_click(cx.listener(|this, _, _, cx| {
-                                            this.set_preview_zoom(this.preview_zoom + 0.1, cx);
+                                            this.zoom_preview_in(cx);
                                         })),
                                 ),
+                        )
+                        .child(
+                            div()
+                                .text_xs()
+                                .text_color(cx.theme().muted_foreground)
+                                .child("Hint: hold Ctrl (Cmd on macOS) and scroll to zoom."),
                         )
                         .child(
                             div()
@@ -530,18 +676,61 @@ impl TrawlsDummy {
                 )
                 .child(
                     v_flex()
-                        .id("preview-image-scroll")
+                        .id("preview-image-panel")
+                        .relative()
                         .flex_1()
-                        .h_full()
+                        .min_h_0()
                         .w_full()
-                        .overflow_x_scroll()
-                        .overflow_y_scroll()
+                        .scrollbar_width(px(12.0))
+                        .on_scroll_wheel(cx.listener(
+                            |this, event: &ScrollWheelEvent, window, cx| {
+                                if !event.modifiers.secondary() {
+                                    return;
+                                }
+
+                                let delta_y = match event.delta {
+                                    ScrollDelta::Pixels(delta) => f32::from(delta.y),
+                                    ScrollDelta::Lines(delta) => delta.y * 16.0,
+                                };
+
+                                if delta_y < 0.0 {
+                                    this.zoom_preview_at_cursor(event.position, true, window, cx);
+                                } else if delta_y > 0.0 {
+                                    this.zoom_preview_at_cursor(event.position, false, window, cx);
+                                }
+
+                                cx.stop_propagation();
+                            },
+                        ))
                         .child(
-                            div().w(px(zoomed_w)).h(px(zoomed_h)).flex_shrink_0().child(
-                                img(preview.image_url)
-                                    .size_full()
-                                    .object_fit(ObjectFit::Contain),
-                            ),
+                            div()
+                                .id("preview-image-scroll-content")
+                                .track_scroll(&self.preview_scroll_handle)
+                                .overflow_x_scroll()
+                                .overflow_y_scroll()
+                                .size_full()
+                                .child(
+                                    div().w(px(zoomed_w)).h(px(zoomed_h)).flex_shrink_0().child(
+                                        img(preview.image_url)
+                                            .size_full()
+                                            .object_fit(ObjectFit::Contain),
+                                    ),
+                                ),
+                        )
+                        .child(
+                            div()
+                                .absolute()
+                                .top_0()
+                                .left_0()
+                                .right_0()
+                                .bottom_0()
+                                .child(
+                                    Scrollbar::both(
+                                        &self.preview_scroll_state,
+                                        &self.preview_scroll_handle,
+                                    )
+                                    .scrollbar_show(ScrollbarShow::Always),
+                                ),
                         ),
                 )
                 .child(

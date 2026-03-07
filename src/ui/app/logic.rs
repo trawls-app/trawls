@@ -1,5 +1,5 @@
 use chrono::NaiveDateTime;
-use gpui::{Context, ParentElement as _, Styled as _, Window, div};
+use gpui::{Context, ParentElement as _, Pixels, Point, Styled as _, Window, div, point, px};
 use gpui_component::{
     WindowExt as _,
     button::{Button, ButtonVariants as _},
@@ -13,6 +13,9 @@ use crate::processing::{
 use crate::ui::model::{FrameInfo, LargestGap, LightframeStats, SortKey};
 
 use super::TrawlsDummy;
+
+const MIN_PREVIEW_ZOOM: f32 = 0.02;
+const MAX_PREVIEW_ZOOM: f32 = 8.0;
 
 impl TrawlsDummy {
     pub(crate) fn sorted_frames(frames: &[FrameInfo], sort: SortKey) -> Vec<FrameInfo> {
@@ -135,7 +138,7 @@ impl TrawlsDummy {
 
         self.processing = result.state;
         self.preview = result.preview;
-        self.preview_zoom = 1.0;
+        self.preview_zoom = self.fit_preview_zoom_for_window(window);
         self.active_step = 3;
 
         window.push_notification("Dummy processing finished and preview generated.", cx);
@@ -148,8 +151,95 @@ impl TrawlsDummy {
     }
 
     pub(crate) fn set_preview_zoom(&mut self, zoom: f32, cx: &mut Context<Self>) {
-        self.preview_zoom = zoom.clamp(0.25, 4.0);
+        self.preview_zoom = zoom.clamp(MIN_PREVIEW_ZOOM, MAX_PREVIEW_ZOOM);
         cx.notify();
+    }
+
+    pub(crate) fn zoom_preview_in(&mut self, cx: &mut Context<Self>) {
+        // Multiplicative steps keep zoom useful across tiny and huge scales.
+        self.preview_zoom = self
+            .next_preview_zoom(true)
+            .clamp(MIN_PREVIEW_ZOOM, MAX_PREVIEW_ZOOM);
+        cx.notify();
+    }
+
+    pub(crate) fn zoom_preview_out(&mut self, cx: &mut Context<Self>) {
+        self.preview_zoom = self
+            .next_preview_zoom(false)
+            .clamp(MIN_PREVIEW_ZOOM, MAX_PREVIEW_ZOOM);
+        cx.notify();
+    }
+
+    pub(crate) fn zoom_preview_at_cursor(
+        &mut self,
+        cursor: Point<Pixels>,
+        zoom_in: bool,
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) {
+        let old_zoom = self.preview_zoom;
+        let new_zoom = self.next_preview_zoom(zoom_in);
+        if (new_zoom - old_zoom).abs() < f32::EPSILON {
+            return;
+        }
+
+        let viewport_bounds = self.preview_scroll_handle.bounds();
+        let old_offset = self.preview_scroll_handle.offset();
+
+        let local_x = (f32::from(cursor.x) - f32::from(viewport_bounds.origin.x))
+            .clamp(0.0, f32::from(viewport_bounds.size.width));
+        let local_y = (f32::from(cursor.y) - f32::from(viewport_bounds.origin.y))
+            .clamp(0.0, f32::from(viewport_bounds.size.height));
+
+        // Keep the image pixel under the cursor fixed while changing zoom.
+        // In GPUI, scroll offsets are typically negative as you scroll down/right.
+        let offset_x = f32::from(old_offset.x);
+        let offset_y = f32::from(old_offset.y);
+        let scale = new_zoom / old_zoom.max(0.0001);
+
+        let target_offset = point(
+            px(offset_x * scale + local_x * (1.0 - scale)),
+            px(offset_y * scale + local_y * (1.0 - scale)),
+        );
+
+        self.preview_zoom = new_zoom;
+        self.preview_scroll_handle.set_offset(target_offset);
+        window.defer(cx, {
+            let handle = self.preview_scroll_handle.clone();
+            move |_, _| {
+                handle.set_offset(target_offset);
+            }
+        });
+        cx.notify();
+    }
+
+    pub(crate) fn fit_preview_to_window(&mut self, window: &Window, cx: &mut Context<Self>) {
+        self.preview_zoom = self.fit_preview_zoom_for_window(window);
+        cx.notify();
+    }
+
+    fn fit_preview_zoom_for_window(&self, window: &Window) -> f32 {
+        let Some(preview) = &self.preview else {
+            return 1.0;
+        };
+
+        let viewport = window.viewport_size();
+        // Reserve space for sidebar, title/header, paddings and preview controls.
+        let available_w = (f32::from(viewport.width) - 360.0).max(220.0);
+        let available_h = (f32::from(viewport.height) - 250.0).max(180.0);
+
+        let zoom_w = available_w / preview.width_px as f32;
+        let zoom_h = available_h / preview.height_px as f32;
+        zoom_w.min(zoom_h).clamp(MIN_PREVIEW_ZOOM, MAX_PREVIEW_ZOOM)
+    }
+
+    fn next_preview_zoom(&self, zoom_in: bool) -> f32 {
+        if zoom_in {
+            self.preview_zoom * 1.25
+        } else {
+            self.preview_zoom / 1.25
+        }
+        .clamp(MIN_PREVIEW_ZOOM, MAX_PREVIEW_ZOOM)
     }
 
     pub(crate) fn loading_percent(&self) -> f32 {

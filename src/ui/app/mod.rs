@@ -1,7 +1,7 @@
 use std::collections::HashSet;
 
-use gpui::{AppContext, Context, Entity, FocusHandle, SharedString, Window};
-use gpui_component::input::InputState;
+use gpui::{AppContext, Context, Entity, FocusHandle, ScrollHandle, SharedString, Window};
+use gpui_component::{input::InputState, scroll::ScrollbarState};
 
 use crate::ui::model::{FrameInfo, MergeMode, PreviewData, ProcessingMock, SortKey};
 
@@ -23,6 +23,8 @@ pub struct TrawlsDummy {
     pub(crate) processing: ProcessingMock,
     pub(crate) preview: Option<PreviewData>,
     pub(crate) preview_zoom: f32,
+    pub(crate) preview_scroll_handle: ScrollHandle,
+    pub(crate) preview_scroll_state: ScrollbarState,
 }
 
 impl TrawlsDummy {
@@ -45,6 +47,8 @@ impl TrawlsDummy {
             processing: ProcessingMock::default(),
             preview: None,
             preview_zoom: 1.0,
+            preview_scroll_handle: ScrollHandle::new(),
+            preview_scroll_state: ScrollbarState::default(),
         }
     }
 

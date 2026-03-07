@@ -1,4 +1,8 @@
+use std::path::PathBuf;
+
 use crate::ui::model::{FrameInfo, PreviewData, ProcessingMock};
+
+pub struct FrameIdentifier(PathBuf);
 
 pub struct ProcessingInput<'a> {
     pub lightframes: &'a [FrameInfo],
