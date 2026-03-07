@@ -1,7 +1,7 @@
 use gpui::{
-    Context, InteractiveElement as _, IntoElement, MouseButton, ObjectFit, ParentElement as _,
-    ScrollDelta, ScrollWheelEvent, StatefulInteractiveElement as _, Styled as _, StyledImage as _,
-    div, img, prelude::FluentBuilder as _, px,
+    Context, InteractiveElement as _, IntoElement, Keystroke, MouseButton, ObjectFit,
+    ParentElement as _, ScrollDelta, ScrollWheelEvent, StatefulInteractiveElement as _,
+    Styled as _, StyledImage as _, div, img, prelude::FluentBuilder as _, px,
 };
 use gpui_component::{
     ActiveTheme as _, Disableable as _, Icon, IconName, Sizable as _, StyledExt as _,
@@ -9,6 +9,7 @@ use gpui_component::{
     button::{Button, ButtonVariants as _},
     h_flex,
     input::Input,
+    kbd::Kbd,
     progress::Progress,
     scroll::{Scrollbar, ScrollbarShow},
     v_flex,
@@ -659,10 +660,21 @@ impl TrawlsDummy {
                                 ),
                         )
                         .child(
-                            div()
+                            h_flex()
+                                .gap_1()
+                                .items_center()
                                 .text_xs()
                                 .text_color(cx.theme().muted_foreground)
-                                .child("Hint: hold Ctrl (Cmd on macOS) and scroll to zoom."),
+                                .child("Hint: hold")
+                                .child(Kbd::new(
+                                    Keystroke::parse(if cfg!(target_os = "macos") {
+                                        "cmd"
+                                    } else {
+                                        "ctrl"
+                                    })
+                                    .expect("valid keystroke"),
+                                ))
+                                .child("and scroll to zoom."),
                         )
                         .child(
                             div()
