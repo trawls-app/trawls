@@ -1,5 +1,6 @@
 use chrono::NaiveDateTime;
 use std::path::PathBuf;
+use std::sync::Arc;
 
 #[derive(Clone)]
 pub struct FrameInfo {
@@ -12,6 +13,7 @@ pub struct FrameInfo {
     pub creation_time: Option<NaiveDateTime>,
     pub metadata_status: MetadataStatus,
     pub error: Option<String>,
+    pub thumbnail: Option<Arc<gpui::Image>>,
 }
 
 #[derive(Clone, Copy, PartialEq, Eq)]
@@ -56,6 +58,15 @@ pub struct PreviewData {
     pub output_file_size: u64,
 }
 
+
+#[derive(Clone)]
+pub struct FramePreview {
+    pub filename: String,
+    pub image: Arc<gpui::Image>,
+    pub width_px: u32,
+    pub height_px: u32,
+    pub exif_summary: String,
+}
 
 #[derive(Clone)]
 pub struct LightframeStats {

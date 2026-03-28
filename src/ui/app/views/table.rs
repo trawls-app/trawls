@@ -1,8 +1,9 @@
 use std::rc::Rc;
 
 use gpui::{
-    Context, InteractiveElement as _, IntoElement, MouseButton, ParentElement as _, Styled as _,
-    div, prelude::FluentBuilder as _, px, size,
+    Context, InteractiveElement as _, IntoElement, MouseButton, ObjectFit, ParentElement as _,
+    StatefulInteractiveElement as _, Styled as _, StyledImage as _, div, img,
+    prelude::FluentBuilder as _, px, size,
 };
 use gpui_component::{
     ActiveTheme as _, Disableable as _, Icon, IconName, Sizable as _, StyledExt as _,
@@ -64,19 +65,21 @@ impl Trawls {
             .fold(290.0_f32, f32::max)
             .clamp(290.0, 820.0);
         let select_col_w = 36.0_f32;
+        let thumb_col_w = 64.0_f32;
         let exposure_col_w = 90.0_f32;
         let interval_col_w = if show_interval { 90.0 } else { 0.0 };
         let aperture_col_w = 90.0_f32;
         let iso_col_w = 90.0_f32;
         let time_col_w = 210.0_f32;
         let table_total_w = select_col_w
+            + thumb_col_w
             + filename_col_w
             + exposure_col_w
             + interval_col_w
             + aperture_col_w
             + iso_col_w
             + time_col_w;
-        let error_col_w = table_total_w - select_col_w - filename_col_w;
+        let error_col_w = table_total_w - select_col_w - thumb_col_w - filename_col_w;
         let baseline_settings = rows.iter().find_map(|r| {
             if r.metadata_status != MetadataStatus::Loaded || r.error.is_some() {
                 return None;
@@ -108,7 +111,7 @@ impl Trawls {
         let rows_vec = rows.to_vec();
         let item_sizes = Rc::new(
             (0..rows_vec.len())
-                .map(|_| size(px(table_total_w), px(30.0)))
+                .map(|_| size(px(table_total_w), px(44.0)))
                 .collect::<Vec<_>>(),
         );
 
@@ -209,6 +212,7 @@ impl Trawls {
                             })),
                         ),
                     )
+                    .child(div().w(px(thumb_col_w)))
                     .child(
                         div().w(px(filename_col_w)).child(
                             Button::new(light_dark(is_light, "header-sort-light-filename", "header-sort-dark-filename"))
@@ -314,6 +318,50 @@ impl Trawls {
                                                         }
                                                     })),
                                                 ),
+                                            )
+                                            .child(
+                                                div()
+                                                    .id(("thumb-cell", ix))
+                                                    .w(px(thumb_col_w))
+                                                    .flex()
+                                                    .items_center()
+                                                    .justify_center()
+                                                    .cursor_pointer()
+                                                    .on_mouse_down(MouseButton::Left, |_, _, cx| {
+                                                        cx.stop_propagation();
+                                                    })
+                                                    .on_click(cx.listener({
+                                                        let path = row.path.to_string();
+                                                        move |this, _, window, cx| {
+                                                            this.inspect_frame(path.clone(), window, cx);
+                                                        }
+                                                    }))
+                                                    .child(if let Some(thumb) = &row.thumbnail {
+                                                        img(thumb.clone())
+                                                            .w(px(56.0))
+                                                            .h(px(38.0))
+                                                            .rounded(px(2.0))
+                                                            .object_fit(ObjectFit::Cover)
+                                                            .into_any_element()
+                                                    } else {
+                                                        div()
+                                                            .w(px(56.0))
+                                                            .h(px(38.0))
+                                                            .rounded(px(2.0))
+                                                            .bg(cx.theme().sidebar_accent.alpha(0.3))
+                                                            .flex()
+                                                            .items_center()
+                                                            .justify_center()
+                                                            .when(
+                                                                row.metadata_status == MetadataStatus::Pending,
+                                                                |el| el.child(
+                                                                    Icon::new(IconName::LoaderCircle)
+                                                                        .xsmall()
+                                                                        .text_color(cx.theme().muted_foreground),
+                                                                ),
+                                                            )
+                                                            .into_any_element()
+                                                    }),
                                             )
                                             .child(
                                                 div().w(px(filename_col_w)).child(

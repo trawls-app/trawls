@@ -4,7 +4,7 @@ use gpui::{AppContext, Context, Entity, FocusHandle, ScrollHandle, SharedString,
 use gpui_component::{VirtualListScrollHandle, input::InputState, scroll::ScrollbarState};
 
 use crate::processing::status::ProcessingCounters;
-use crate::ui::model::{FrameInfo, MergeMode, PreviewData, SortKey};
+use crate::ui::model::{FrameInfo, FramePreview, MergeMode, PreviewData, SortKey};
 
 mod logic;
 mod views;
@@ -29,6 +29,11 @@ pub struct Trawls {
     pub(crate) preview_scroll_state: ScrollbarState,
     pub(crate) table_scroll_handle: VirtualListScrollHandle,
     pub(crate) table_scroll_state: ScrollbarState,
+    pub(crate) frame_preview: Option<FramePreview>,
+    pub(crate) frame_preview_zoom: f32,
+    pub(crate) frame_preview_scroll_handle: ScrollHandle,
+    pub(crate) frame_preview_scroll_state: ScrollbarState,
+    pub(crate) frame_preview_loading: bool,
 }
 
 impl Trawls {
@@ -56,6 +61,11 @@ impl Trawls {
             preview_scroll_state: ScrollbarState::default(),
             table_scroll_handle: VirtualListScrollHandle::new(),
             table_scroll_state: ScrollbarState::default(),
+            frame_preview: None,
+            frame_preview_zoom: 1.0,
+            frame_preview_scroll_handle: ScrollHandle::new(),
+            frame_preview_scroll_state: ScrollbarState::default(),
+            frame_preview_loading: false,
         }
     }
 
@@ -89,6 +99,13 @@ impl Trawls {
         } else {
             set.remove(path);
         }
+    }
+
+    pub(crate) fn set_active_step(&mut self, step: usize, cx: &mut Context<Self>) {
+        self.active_step = step;
+        self.frame_preview = None;
+        self.frame_preview_loading = false;
+        cx.notify();
     }
 
     pub(crate) fn step_title(&self) -> &'static str {

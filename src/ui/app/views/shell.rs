@@ -83,8 +83,7 @@ impl Trawls {
                                 .active(self.active_step == 0)
                                 .suffix(format!("{}", self.lightframes.len()))
                                 .on_click(cx.listener(|this, _, _, cx| {
-                                    this.active_step = 0;
-                                    cx.notify();
+                                    this.set_active_step(0, cx);
                                 })),
                         )
                         .child(
@@ -93,8 +92,7 @@ impl Trawls {
                                 .active(self.active_step == 1)
                                 .suffix(format!("{}", self.darkframes.len()))
                                 .on_click(cx.listener(|this, _, _, cx| {
-                                    this.active_step = 1;
-                                    cx.notify();
+                                    this.set_active_step(1, cx);
                                 })),
                         )
                         .child({
@@ -102,8 +100,7 @@ impl Trawls {
                                 .icon(IconName::Settings2)
                                 .active(self.active_step == 2)
                                 .on_click(cx.listener(|this, _, _, cx| {
-                                    this.active_step = 2;
-                                    cx.notify();
+                                    this.set_active_step(2, cx);
                                 }));
                             if self.processing_running {
                                 item.suffix(
@@ -126,8 +123,7 @@ impl Trawls {
                                 .icon(IconName::BookOpen)
                                 .active(self.active_step == 3)
                                 .on_click(cx.listener(|this, _, _, cx| {
-                                    this.active_step = 3;
-                                    cx.notify();
+                                    this.set_active_step(3, cx);
                                 }));
                             if self.preview.is_some() {
                                 item.suffix(
@@ -179,8 +175,7 @@ impl Trawls {
                             .label("Previous")
                             .disabled(self.active_step == 0)
                             .on_click(cx.listener(|this, _, _, cx| {
-                                this.active_step = this.active_step.saturating_sub(1);
-                                cx.notify();
+                                this.set_active_step(this.active_step.saturating_sub(1), cx);
                             })),
                     )
                     .child(
@@ -191,8 +186,7 @@ impl Trawls {
                             .label("Next")
                             .disabled(self.active_step >= 3)
                             .on_click(cx.listener(|this, _, _, cx| {
-                                this.active_step = (this.active_step + 1).min(3);
-                                cx.notify();
+                                this.set_active_step((this.active_step + 1).min(3), cx);
                             })),
                     ),
             )

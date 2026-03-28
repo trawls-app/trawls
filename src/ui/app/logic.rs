@@ -141,6 +141,82 @@ impl Trawls {
         cx.notify();
     }
 
+    pub(crate) fn inspect_frame(&mut self, path: String, window: &Window, cx: &mut Context<Self>) {
+        let filename = PathBuf::from(&path)
+            .file_name()
+            .and_then(|n| n.to_str())
+            .unwrap_or("unknown")
+            .to_string();
+
+        // Find the frame to build an EXIF summary
+        let frame = self
+            .lightframes
+            .iter()
+            .chain(self.darkframes.iter())
+            .find(|f| f.path == path);
+        let exif_summary = frame
+            .map(|f| {
+                let mut parts = Vec::new();
+                if let Some(iso) = f.iso {
+                    parts.push(format!("ISO {iso}"));
+                }
+                if let Some(aperture) = f.aperture {
+                    parts.push(format!("f/{aperture:.1}"));
+                }
+                if let Some(exposure) = f.exposure_seconds {
+                    parts.push(format!("{exposure:.1}s"));
+                }
+                if let Some(dt) = f.creation_time {
+                    parts.push(dt.format("%Y-%m-%d %H:%M:%S").to_string());
+                }
+                parts.join(", ")
+            })
+            .unwrap_or_default();
+
+        self.frame_preview = None;
+        self.frame_preview_loading = true;
+        self.frame_preview_zoom = 1.0;
+        let viewport_size = window.viewport_size();
+        cx.notify();
+
+        let path_clone = path.clone();
+        cx.spawn(async move |this, cx| {
+            let result = thread::spawn(move || {
+                crate::processing::thumbnail::extract_preview(Path::new(&path_clone))
+            })
+            .join()
+            .map_err(|_| anyhow::anyhow!("thread panicked"))
+            .and_then(|r| r);
+
+            let _ = this.update(cx, |this, cx| {
+                this.frame_preview_loading = false;
+                if let Ok(preview) = result {
+                    let available_w = (f32::from(viewport_size.width) - 360.0).max(220.0);
+                    let available_h = (f32::from(viewport_size.height) - 250.0).max(180.0);
+                    let zoom_w = available_w / preview.width_px as f32;
+                    let zoom_h = available_h / preview.height_px as f32;
+                    this.frame_preview_zoom = zoom_w.min(zoom_h).clamp(0.02, 8.0);
+
+                    this.frame_preview = Some(crate::ui::model::FramePreview {
+                        filename,
+                        image: preview.image,
+                        width_px: preview.width_px,
+                        height_px: preview.height_px,
+                        exif_summary,
+                    });
+                }
+                cx.notify();
+            });
+        })
+        .detach();
+    }
+
+    pub(crate) fn close_frame_preview(&mut self, cx: &mut Context<Self>) {
+        self.frame_preview = None;
+        self.frame_preview_loading = false;
+        cx.notify();
+    }
+
     pub(crate) fn remove_selected_frames(&mut self, is_light: bool, cx: &mut Context<Self>) {
         let selected = self.selected_paths(is_light).clone();
         let frames = if is_light {
@@ -205,19 +281,17 @@ impl Trawls {
         is_light: bool,
         cx: &mut Context<Self>,
     ) {
-        let existing_paths = if is_light {
-            self.lightframes
-                .iter()
-                .map(|row| row.path.clone())
-                .collect::<std::collections::HashSet<_>>()
-        } else {
-            self.darkframes
-                .iter()
-                .map(|row| row.path.clone())
-                .collect::<std::collections::HashSet<_>>()
-        };
+        let same_list = if is_light { &self.lightframes } else { &self.darkframes };
+        let other_list = if is_light { &self.darkframes } else { &self.lightframes };
+        let existing_paths: std::collections::HashSet<String> =
+            same_list.iter().map(|row| row.path.clone()).collect();
+        let other_paths: std::collections::HashMap<String, &FrameInfo> = other_list
+            .iter()
+            .map(|row| (row.path.clone(), row))
+            .collect();
 
         let mut new_files = Vec::new();
+        let other_label = if is_light { "darkframe" } else { "lightframe" };
         let new_rows = files
             .into_iter()
             .filter(|path| !existing_paths.contains(path.to_string_lossy().as_ref()))
@@ -227,6 +301,14 @@ impl Trawls {
                     .and_then(|name| name.to_str())
                     .unwrap_or("unknown");
                 let path_string = path.to_string_lossy().to_string();
+
+                // If the file is already loaded in the other list, copy its data
+                if let Some(existing) = other_paths.get(&path_string) {
+                    let mut row = (*existing).clone();
+                    row.error = Some(format!("Also used as {other_label}"));
+                    return row;
+                }
+
                 new_files.push(PathBuf::from(&path_string));
                 FrameInfo {
                     path: path_string,
@@ -238,6 +320,7 @@ impl Trawls {
                     creation_time: None,
                     metadata_status: MetadataStatus::Pending,
                     error: None,
+                    thumbnail: None,
                 }
             })
             .collect::<Vec<_>>();
@@ -253,20 +336,51 @@ impl Trawls {
         }
         cx.notify();
 
-        for path in new_files {
-            let frame_id = FrameIdentifier::new(path);
-            cx.spawn(async move |this, cx| {
-                let load_result = RawlerMetadataLoader.load_metadata(&frame_id);
-                let _ = this.update(cx, |this, cx| {
-                    match load_result {
-                        Ok(metadata) => this.metadata_loaded(&frame_id, metadata),
-                        Err(error) => this.metadata_failed(&frame_id, error.to_string()),
-                    }
-                    cx.notify();
-                });
-            })
-            .detach();
-        }
+        // Metadata loading — parallel, fast (EXIF only)
+        let (meta_tx, meta_rx) = mpsc::channel::<MetadataLoadResult>();
+        let meta_files = new_files.clone();
+        thread::spawn(move || {
+            use rayon::prelude::*;
+            meta_files.into_par_iter().for_each_with(meta_tx, |tx, path| {
+                let frame_id = FrameIdentifier::new(path);
+                let metadata = RawlerMetadataLoader.load_metadata(&frame_id);
+                let _ = tx.send(MetadataLoadResult { frame_id, metadata });
+            });
+        });
+        cx.spawn(async move |this, cx| {
+            poll_channel(meta_rx, |this, cx, result| {
+                match result.metadata {
+                    Ok(metadata) => this.metadata_loaded(&result.frame_id, metadata),
+                    Err(error) => this.metadata_failed(&result.frame_id, error.to_string()),
+                }
+                cx.notify();
+            }, this, cx).await;
+        })
+        .detach();
+
+        // Thumbnail loading — parallel, slower (JPEG extraction + resize)
+        let (thumb_tx, thumb_rx) = mpsc::channel::<ThumbnailLoadResult>();
+        let thumb_files = new_files;
+        thread::spawn(move || {
+            use rayon::prelude::*;
+            thumb_files.into_par_iter().for_each_with(thumb_tx, |tx, path| {
+                let frame_id = FrameIdentifier::new(path);
+                let thumbnail = crate::processing::thumbnail::extract_thumbnail(frame_id.as_path())
+                    .map_err(|e| log::warn!("Thumbnail extraction failed for {:?}: {e}", frame_id.as_path()))
+                    .ok();
+                if let Some(thumb) = thumbnail {
+                    let _ = tx.send(ThumbnailLoadResult { frame_id, thumbnail: thumb });
+                }
+            });
+        });
+        cx.spawn(async move |this, cx| {
+            poll_channel(thumb_rx, |this, _, result| {
+                if let Some(row) = find_frame_mut(this, &result.frame_id) {
+                    row.thumbnail = Some(result.thumbnail);
+                }
+            }, this, cx).await;
+        })
+        .detach();
     }
 
     pub(crate) fn start_processing(&mut self, window: &mut Window, cx: &mut Context<Self>) {
@@ -729,5 +843,40 @@ fn recompute_intervals(frames: &mut [FrameInfo]) {
         let dt = time.signed_duration_since(prev_time).num_seconds() as f32;
         let interval = (dt - *exposure).max(0.0);
         frames[*ix].interval_seconds = Some(interval);
+    }
+}
+
+struct MetadataLoadResult {
+    frame_id: FrameIdentifier,
+    metadata: anyhow::Result<FrameMetadata>,
+}
+
+struct ThumbnailLoadResult {
+    frame_id: FrameIdentifier,
+    thumbnail: Arc<gpui::Image>,
+}
+
+async fn poll_channel<T: 'static>(
+    rx: mpsc::Receiver<T>,
+    mut apply: impl FnMut(&mut Trawls, &mut Context<Trawls>, T),
+    this: gpui::WeakEntity<Trawls>,
+    cx: &mut gpui::AsyncApp,
+) {
+    loop {
+        let mut got_any = false;
+        while let Ok(item) = rx.try_recv() {
+            got_any = true;
+            let _ = this.update(cx, |this, cx| {
+                apply(this, cx, item);
+                cx.notify();
+            });
+        }
+        if got_any {
+            continue;
+        }
+        if rx.try_recv().is_err_and(|e| e == mpsc::TryRecvError::Disconnected) {
+            break;
+        }
+        Timer::after(Duration::from_millis(30)).await;
     }
 }

@@ -27,7 +27,11 @@ impl Trawls {
         &self,
         is_light: bool,
         cx: &mut Context<Self>,
-    ) -> impl IntoElement {
+    ) -> gpui::AnyElement {
+        if self.frame_preview.is_some() || self.frame_preview_loading {
+            return self.render_frame_preview(cx);
+        }
+
         let rows = if is_light {
             Self::sorted_frames(&self.lightframes, self.light_sort)
         } else {
@@ -121,6 +125,7 @@ impl Trawls {
                 this.child(self.render_lightframe_stats(stats, cx))
             })
             .child(self.render_frame_table(&rows, is_light, is_light, cx))
+            .into_any_element()
     }
 
     fn render_lightframe_stats(
@@ -660,5 +665,157 @@ impl Trawls {
                 .child(Icon::new(IconName::Info).small())
                 .child("Run a merge in step 3 to generate a preview."),
         )
+    }
+
+    fn render_frame_preview(&self, cx: &mut Context<Self>) -> gpui::AnyElement {
+        if self.frame_preview_loading {
+            return v_flex()
+                .size_full()
+                .items_center()
+                .justify_center()
+                .gap_2()
+                .child(Icon::new(IconName::LoaderCircle).text_color(cx.theme().muted_foreground))
+                .child(
+                    div()
+                        .text_sm()
+                        .text_color(cx.theme().muted_foreground)
+                        .child("Loading preview..."),
+                )
+                .into_any_element();
+        }
+
+        let Some(preview) = &self.frame_preview else {
+            return div().into_any_element();
+        };
+
+        let zoomed_w = preview.width_px as f32 * self.frame_preview_zoom;
+        let zoomed_h = preview.height_px as f32 * self.frame_preview_zoom;
+
+        v_flex()
+            .w_full()
+            .h_full()
+            .gap_3()
+            .child(
+                h_flex()
+                    .justify_between()
+                    .items_center()
+                    .gap_2()
+                    .child(
+                        h_flex()
+                            .gap_2()
+                            .items_center()
+                            .child(
+                                Button::new("frame-preview-close")
+                                    .small()
+                                    .icon(IconName::ArrowLeft)
+                                    .label("Back")
+                                    .on_click(cx.listener(|this, _, _, cx| {
+                                        this.close_frame_preview(cx);
+                                    })),
+                            )
+                            .child(
+                                div()
+                                    .font_semibold()
+                                    .child(preview.filename.clone()),
+                            ),
+                    )
+                    .child(
+                        h_flex()
+                            .gap_2()
+                            .items_center()
+                            .child(
+                                Button::new("frame-preview-zoom-out")
+                                    .small()
+                                    .icon(IconName::Minus)
+                                    .on_click(cx.listener(|this, _, _, cx| {
+                                        this.frame_preview_zoom = (this.frame_preview_zoom / 1.25).max(0.02);
+                                        cx.notify();
+                                    })),
+                            )
+                            .child(
+                                Button::new("frame-preview-zoom-fit")
+                                    .small()
+                                    .label("Fit")
+                                    .on_click(cx.listener(|this, _, window, cx| {
+                                        if let Some(preview) = &this.frame_preview {
+                                            let vp = window.viewport_size();
+                                            let available_w = (f32::from(vp.width) - 360.0).max(220.0);
+                                            let available_h = (f32::from(vp.height) - 250.0).max(180.0);
+                                            let zoom_w = available_w / preview.width_px as f32;
+                                            let zoom_h = available_h / preview.height_px as f32;
+                                            this.frame_preview_zoom = zoom_w.min(zoom_h).clamp(0.02, 8.0);
+                                        }
+                                        cx.notify();
+                                    })),
+                            )
+                            .child(
+                                Button::new("frame-preview-zoom-in")
+                                    .small()
+                                    .icon(IconName::Plus)
+                                    .on_click(cx.listener(|this, _, _, cx| {
+                                        this.frame_preview_zoom = (this.frame_preview_zoom * 1.25).min(8.0);
+                                        cx.notify();
+                                    })),
+                            )
+                            .child(
+                                div()
+                                    .text_sm()
+                                    .text_color(cx.theme().muted_foreground)
+                                    .child(format!("{:.0}%", self.frame_preview_zoom * 100.0)),
+                            ),
+                    ),
+            )
+            .child(
+                v_flex()
+                    .id("frame-preview-panel")
+                    .relative()
+                    .flex_1()
+                    .min_h_0()
+                    .w_full()
+                    .child(
+                        div()
+                            .id("frame-preview-scroll-content")
+                            .track_scroll(&self.frame_preview_scroll_handle)
+                            .overflow_x_scroll()
+                            .overflow_y_scroll()
+                            .size_full()
+                            .child(
+                                div()
+                                    .w(px(zoomed_w))
+                                    .h(px(zoomed_h))
+                                    .flex_shrink_0()
+                                    .child(
+                                        img(preview.image.clone())
+                                            .size_full()
+                                            .object_fit(ObjectFit::Contain),
+                                    ),
+                            ),
+                    )
+                    .child(
+                        div()
+                            .absolute()
+                            .top_0()
+                            .left_0()
+                            .right_0()
+                            .bottom_0()
+                            .child(
+                                Scrollbar::both(
+                                    &self.frame_preview_scroll_state,
+                                    &self.frame_preview_scroll_handle,
+                                )
+                                .scrollbar_show(ScrollbarShow::Always),
+                            ),
+                    ),
+            )
+            .child(
+                div()
+                    .text_sm()
+                    .text_color(cx.theme().muted_foreground)
+                    .child(format!(
+                        "{}  |  {}x{}",
+                        preview.exif_summary, preview.width_px, preview.height_px
+                    )),
+            )
+            .into_any_element()
     }
 }
