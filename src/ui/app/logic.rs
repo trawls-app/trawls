@@ -730,36 +730,25 @@ impl MetadataStatusSink for TrawlsDummy {
     }
 
     fn metadata_loaded(&mut self, frame_id: &FrameIdentifier, metadata: FrameMetadata) {
-        if let Some(row) = self
-            .lightframes
-            .iter_mut()
-            .find(|row| row.path == frame_id.as_path().to_string_lossy())
-        {
-            row.exposure_seconds = Some(metadata.exposure_seconds);
-            row.interval_seconds = metadata.interval_seconds;
-            row.aperture = Some(metadata.aperture);
-            row.iso = Some(metadata.iso);
-            row.creation_time = metadata.creation_time;
-            row.metadata_status = MetadataStatus::Loaded;
-            row.error = None;
-            recompute_intervals(&mut self.lightframes);
-            return;
-        }
+        let target = frame_id.as_path().to_string_lossy();
+        let is_light = self.lightframes.iter().any(|row| row.path == target);
 
-        if let Some(row) = self
-            .darkframes
-            .iter_mut()
-            .find(|row| row.path == frame_id.as_path().to_string_lossy())
-        {
-            row.exposure_seconds = Some(metadata.exposure_seconds);
-            row.interval_seconds = metadata.interval_seconds;
-            row.aperture = Some(metadata.aperture);
-            row.iso = Some(metadata.iso);
-            row.creation_time = metadata.creation_time;
-            row.metadata_status = MetadataStatus::Loaded;
-            row.error = None;
-            recompute_intervals(&mut self.darkframes);
-        }
+        let Some(row) = find_frame_mut(self, frame_id) else {
+            return;
+        };
+        row.exposure_seconds = Some(metadata.exposure_seconds);
+        row.interval_seconds = metadata.interval_seconds;
+        row.aperture = Some(metadata.aperture);
+        row.iso = Some(metadata.iso);
+        row.creation_time = metadata.creation_time;
+        row.metadata_status = MetadataStatus::Loaded;
+        row.error = None;
+
+        recompute_intervals(if is_light {
+            &mut self.lightframes
+        } else {
+            &mut self.darkframes
+        });
     }
 
     fn metadata_failed(&mut self, frame_id: &FrameIdentifier, error: String) {
