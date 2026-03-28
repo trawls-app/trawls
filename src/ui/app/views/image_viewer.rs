@@ -259,3 +259,59 @@ pub fn render_image_viewer(
         .when_some(params.info_bar, |el, info| el.child(info))
         .into_any_element()
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use gpui::{Size, px};
+
+    #[test]
+    fn default_zoom() {
+        let state = ImageViewerState::default();
+        assert!((state.zoom - 1.0).abs() < f32::EPSILON);
+    }
+
+    #[test]
+    fn zoom_in() {
+        let mut state = ImageViewerState::default();
+        state.zoom_in();
+        assert!((state.zoom - 1.25).abs() < 0.01);
+    }
+
+    #[test]
+    fn zoom_out() {
+        let mut state = ImageViewerState::default();
+        state.zoom_out();
+        assert!((state.zoom - 0.8).abs() < 0.01);
+    }
+
+    #[test]
+    fn zoom_clamped_min() {
+        let mut state = ImageViewerState::default();
+        state.set_zoom(0.001);
+        assert!((state.zoom - MIN_ZOOM).abs() < f32::EPSILON);
+    }
+
+    #[test]
+    fn zoom_clamped_max() {
+        let mut state = ImageViewerState::default();
+        state.set_zoom(100.0);
+        assert!((state.zoom - MAX_ZOOM).abs() < f32::EPSILON);
+    }
+
+    #[test]
+    fn fit_to_viewport_landscape() {
+        let mut state = ImageViewerState::default();
+        let viewport = Size { width: px(1920.0), height: px(1080.0) };
+        state.fit_to_viewport(viewport, 6000, 4000);
+        assert!((state.zoom - 0.2075).abs() < 0.01);
+    }
+
+    #[test]
+    fn fit_to_viewport_small_image() {
+        let mut state = ImageViewerState::default();
+        let viewport = Size { width: px(1920.0), height: px(1080.0) };
+        state.fit_to_viewport(viewport, 100, 100);
+        assert!((state.zoom - MAX_ZOOM).abs() < f32::EPSILON);
+    }
+}

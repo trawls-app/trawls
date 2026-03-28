@@ -88,6 +88,15 @@ pub fn run_merge<S: ProcessingStatus + Send>(
     frame?.get_image()
 }
 
+fn comet_intensity(mode: Comets, index: usize, count: usize) -> f32 {
+    let count = count.max(1);
+    match mode {
+        Comets::Falling => 1.0 - index as f32 / count as f32,
+        Comets::Raising => index as f32 / count as f32,
+        Comets::Normal => 1.0,
+    }
+}
+
 fn load_image<S: ProcessingStatus + Send>(
     task: &LoadTask,
     comets: Comets,
@@ -100,11 +109,7 @@ fn load_image<S: ProcessingStatus + Send>(
         .count_lights
         .max(1);
     let intensity = match task.frame_type {
-        FrameType::Lightframe(index) => match comets {
-            Comets::Falling => 1.0 - index as f32 / count_lights as f32,
-            Comets::Raising => index as f32 / count_lights as f32,
-            Comets::Normal => 1.0,
-        },
+        FrameType::Lightframe(index) => comet_intensity(comets, index, count_lights),
         FrameType::Darkframe => 1.0,
     };
 
@@ -179,4 +184,57 @@ fn emit_status<S: ProcessingStatus + Send>(
         .lock()
         .expect("processing status mutex poisoned")
         .processing_updated(*counters_guard);
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn normal_mode_always_one() {
+        for i in 0..10 {
+            assert!((comet_intensity(Comets::Normal, i, 10) - 1.0).abs() < f32::EPSILON);
+        }
+    }
+
+    #[test]
+    fn falling_mode_decreases() {
+        let intensities: Vec<f32> = (0..5).map(|i| comet_intensity(Comets::Falling, i, 5)).collect();
+        assert!((intensities[0] - 1.0).abs() < f32::EPSILON);
+        for w in intensities.windows(2) {
+            assert!(w[0] > w[1]);
+        }
+    }
+
+    #[test]
+    fn raising_mode_increases() {
+        let intensities: Vec<f32> = (0..5).map(|i| comet_intensity(Comets::Raising, i, 5)).collect();
+        assert!((intensities[0] - 0.0).abs() < f32::EPSILON);
+        for w in intensities.windows(2) {
+            assert!(w[0] < w[1]);
+        }
+    }
+
+    #[test]
+    fn falling_and_raising_complement() {
+        for i in 0..10 {
+            let f = comet_intensity(Comets::Falling, i, 10);
+            let r = comet_intensity(Comets::Raising, i, 10);
+            assert!((f + r - 1.0).abs() < 0.001);
+        }
+    }
+
+    #[test]
+    fn zero_count_does_not_panic() {
+        let _ = comet_intensity(Comets::Normal, 0, 0);
+        let _ = comet_intensity(Comets::Falling, 0, 0);
+        let _ = comet_intensity(Comets::Raising, 0, 0);
+    }
+
+    #[test]
+    fn single_frame() {
+        assert!((comet_intensity(Comets::Normal, 0, 1) - 1.0).abs() < f32::EPSILON);
+        assert!((comet_intensity(Comets::Falling, 0, 1) - 1.0).abs() < f32::EPSILON);
+        assert!((comet_intensity(Comets::Raising, 0, 1) - 0.0).abs() < f32::EPSILON);
+    }
 }

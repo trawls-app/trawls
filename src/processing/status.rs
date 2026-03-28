@@ -20,3 +20,31 @@ pub trait MetadataStatus {
 pub trait ProcessingStatus {
     fn processing_updated(&mut self, counters: ProcessingCounters);
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn processing_counters_default() {
+        let c = ProcessingCounters::default();
+        assert_eq!(c.count_lights, 0);
+        assert_eq!(c.count_darks, 0);
+        assert_eq!(c.count_loaded, 0);
+        assert_eq!(c.count_loading, 0);
+        assert_eq!(c.count_merged, 0);
+        assert_eq!(c.count_merging, 0);
+    }
+
+    #[test]
+    fn processing_counters_copy() {
+        let a = ProcessingCounters {
+            count_lights: 5,
+            count_darks: 2,
+            ..Default::default()
+        };
+        let b = a;
+        assert_eq!(b.count_lights, 5);
+        assert_eq!(b.count_darks, 2);
+    }
+}

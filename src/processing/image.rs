@@ -424,3 +424,95 @@ fn max_exif_entry<T: std::cmp::Ord>(entry1: Option<T>, entry2: Option<T>) -> Opt
 
     Some(std::cmp::max(x1, x2))
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use rawler::formats::tiff::Rational;
+
+    #[test]
+    fn equal_exif_entry_both_same() {
+        assert_eq!(equal_exif_entry(Some(42u32), Some(42)), Some(42));
+    }
+
+    #[test]
+    fn equal_exif_entry_different() {
+        assert_eq!(equal_exif_entry(Some(1u32), Some(2)), None);
+    }
+
+    #[test]
+    fn equal_exif_entry_one_none() {
+        assert_eq!(equal_exif_entry(Some(1u32), None), None);
+        assert_eq!(equal_exif_entry::<u32>(None, Some(1)), None);
+    }
+
+    #[test]
+    fn equal_exif_entry_both_none() {
+        assert_eq!(equal_exif_entry::<u32>(None, None), None);
+    }
+
+    #[test]
+    fn equal_exif_entry_strings() {
+        assert_eq!(
+            equal_exif_entry(Some("Canon".to_string()), Some("Canon".to_string())),
+            Some("Canon".to_string())
+        );
+        assert_eq!(
+            equal_exif_entry(Some("Canon".to_string()), Some("Nikon".to_string())),
+            None
+        );
+    }
+
+    #[test]
+    fn min_exif_entry_values() {
+        assert_eq!(min_exif_entry(Some(10u32), Some(20)), Some(10));
+        assert_eq!(min_exif_entry(Some(20u32), Some(10)), Some(10));
+    }
+
+    #[test]
+    fn min_exif_entry_with_none() {
+        assert_eq!(min_exif_entry(Some(10u32), None), None);
+        assert_eq!(min_exif_entry::<u32>(None, Some(10)), None);
+        assert_eq!(min_exif_entry::<u32>(None, None), None);
+    }
+
+    #[test]
+    fn max_exif_entry_values() {
+        assert_eq!(max_exif_entry(Some(10u32), Some(20)), Some(20));
+        assert_eq!(max_exif_entry(Some(20u32), Some(10)), Some(20));
+    }
+
+    #[test]
+    fn max_exif_entry_with_none() {
+        assert_eq!(max_exif_entry(Some(10u32), None), None);
+        assert_eq!(max_exif_entry::<u32>(None, Some(10)), None);
+    }
+
+    #[test]
+    fn add_tiff_rational_basic() {
+        let result = add_tiff_rational(Some(Rational::new(1, 2)), Some(Rational::new(1, 2))).unwrap();
+        assert_eq!(result.n, 1);
+        assert_eq!(result.d, 1);
+    }
+
+    #[test]
+    fn add_tiff_rational_different_denominators() {
+        let result = add_tiff_rational(Some(Rational::new(1, 3)), Some(Rational::new(1, 6))).unwrap();
+        assert_eq!(result.n, 1);
+        assert_eq!(result.d, 2);
+    }
+
+    #[test]
+    fn add_tiff_rational_with_none() {
+        assert!(add_tiff_rational(Some(Rational::new(1, 2)), None).is_none());
+        assert!(add_tiff_rational(None, Some(Rational::new(1, 2))).is_none());
+        assert!(add_tiff_rational(None, None).is_none());
+    }
+
+    #[test]
+    fn add_tiff_rational_exposure_times() {
+        let result = add_tiff_rational(Some(Rational::new(20, 1)), Some(Rational::new(20, 1))).unwrap();
+        assert_eq!(result.n, 40);
+        assert_eq!(result.d, 1);
+    }
+}

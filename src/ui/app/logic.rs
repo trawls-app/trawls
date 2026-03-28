@@ -803,3 +803,289 @@ async fn poll_channel<T: 'static>(
         Timer::after(Duration::from_millis(30)).await;
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use chrono::NaiveDateTime;
+
+    fn make_frame(filename: &str, status: MetadataStatus) -> FrameInfo {
+        FrameInfo {
+            path: format!("/test/{filename}"),
+            filename: filename.to_string(),
+            exposure_seconds: None,
+            interval_seconds: None,
+            aperture: None,
+            iso: None,
+            creation_time: None,
+            metadata_status: status,
+            error: None,
+            thumbnail: None,
+        }
+    }
+
+    fn make_loaded_frame(
+        filename: &str,
+        exposure: f32,
+        aperture: f32,
+        iso: u32,
+        time_str: &str,
+    ) -> FrameInfo {
+        FrameInfo {
+            path: format!("/test/{filename}"),
+            filename: filename.to_string(),
+            exposure_seconds: Some(exposure),
+            interval_seconds: None,
+            aperture: Some(aperture),
+            iso: Some(iso),
+            creation_time: Some(
+                NaiveDateTime::parse_from_str(time_str, "%Y-%m-%d %H:%M:%S").unwrap(),
+            ),
+            metadata_status: MetadataStatus::Loaded,
+            error: None,
+            thumbnail: None,
+        }
+    }
+
+    #[test]
+    fn frame_rank_ordering() {
+        let failed = make_frame("a.arw", MetadataStatus::Failed);
+        let pending = make_frame("b.arw", MetadataStatus::Pending);
+        let loaded = make_frame("c.arw", MetadataStatus::Loaded);
+        assert_eq!(frame_rank(&failed), 0);
+        assert_eq!(frame_rank(&pending), 1);
+        assert_eq!(frame_rank(&loaded), 2);
+    }
+
+    #[test]
+    fn sorted_frames_by_filename() {
+        let frames = vec![
+            make_frame("c.arw", MetadataStatus::Loaded),
+            make_frame("a.arw", MetadataStatus::Loaded),
+            make_frame("b.arw", MetadataStatus::Loaded),
+        ];
+        let sorted = Trawls::sorted_frames(&frames, SortKey::Filename);
+        assert_eq!(sorted[0].filename, "a.arw");
+        assert_eq!(sorted[1].filename, "b.arw");
+        assert_eq!(sorted[2].filename, "c.arw");
+    }
+
+    #[test]
+    fn sorted_frames_errors_first() {
+        let mut error_frame = make_frame("z.arw", MetadataStatus::Failed);
+        error_frame.error = Some("bad".to_string());
+        let loaded = make_frame("a.arw", MetadataStatus::Loaded);
+        let pending = make_frame("b.arw", MetadataStatus::Pending);
+        let sorted = Trawls::sorted_frames(&[error_frame, loaded, pending], SortKey::Filename);
+        assert_eq!(sorted[0].filename, "z.arw");
+        assert_eq!(sorted[1].filename, "b.arw");
+        assert_eq!(sorted[2].filename, "a.arw");
+    }
+
+    #[test]
+    fn sorted_frames_by_creation_time() {
+        let frames = vec![
+            make_loaded_frame("c.arw", 20.0, 2.8, 1600, "2024-01-01 03:00:00"),
+            make_loaded_frame("a.arw", 20.0, 2.8, 1600, "2024-01-01 01:00:00"),
+            make_loaded_frame("b.arw", 20.0, 2.8, 1600, "2024-01-01 02:00:00"),
+        ];
+        let sorted = Trawls::sorted_frames(&frames, SortKey::CreationTime);
+        assert_eq!(sorted[0].filename, "a.arw");
+        assert_eq!(sorted[1].filename, "b.arw");
+        assert_eq!(sorted[2].filename, "c.arw");
+    }
+
+    #[test]
+    fn error_warning_no_errors() {
+        assert!(!Trawls::error_warning(&[make_frame("a.arw", MetadataStatus::Loaded)]));
+    }
+
+    #[test]
+    fn error_warning_with_error() {
+        let mut frame = make_frame("a.arw", MetadataStatus::Failed);
+        frame.error = Some("bad".to_string());
+        assert!(Trawls::error_warning(&[frame]));
+    }
+
+    #[test]
+    fn camera_setting_warning_consistent() {
+        let frames = vec![
+            make_loaded_frame("a.arw", 20.0, 2.8, 1600, "2024-01-01 01:00:00"),
+            make_loaded_frame("b.arw", 20.0, 2.8, 1600, "2024-01-01 02:00:00"),
+        ];
+        assert!(!Trawls::camera_setting_warning(&frames));
+    }
+
+    #[test]
+    fn camera_setting_warning_different_iso() {
+        let frames = vec![
+            make_loaded_frame("a.arw", 20.0, 2.8, 1600, "2024-01-01 01:00:00"),
+            make_loaded_frame("b.arw", 20.0, 2.8, 3200, "2024-01-01 02:00:00"),
+        ];
+        assert!(Trawls::camera_setting_warning(&frames));
+    }
+
+    #[test]
+    fn camera_setting_warning_different_exposure() {
+        let frames = vec![
+            make_loaded_frame("a.arw", 20.0, 2.8, 1600, "2024-01-01 01:00:00"),
+            make_loaded_frame("b.arw", 30.0, 2.8, 1600, "2024-01-01 02:00:00"),
+        ];
+        assert!(Trawls::camera_setting_warning(&frames));
+    }
+
+    #[test]
+    fn camera_setting_warning_ignores_pending() {
+        let frames = vec![
+            make_loaded_frame("a.arw", 20.0, 2.8, 1600, "2024-01-01 01:00:00"),
+            make_frame("b.arw", MetadataStatus::Pending),
+        ];
+        assert!(!Trawls::camera_setting_warning(&frames));
+    }
+
+    #[test]
+    fn interval_warning_threshold_no_intervals() {
+        assert!(Trawls::interval_warning_threshold(&[make_frame("a.arw", MetadataStatus::Loaded)]).is_none());
+    }
+
+    #[test]
+    fn interval_warning_threshold_with_intervals() {
+        let mut frames = vec![
+            make_loaded_frame("a.arw", 20.0, 2.8, 1600, "2024-01-01 01:00:00"),
+            make_loaded_frame("b.arw", 20.0, 2.8, 1600, "2024-01-01 01:00:25"),
+        ];
+        frames[0].interval_seconds = Some(2.0);
+        frames[1].interval_seconds = Some(4.0);
+        let threshold = Trawls::interval_warning_threshold(&frames).unwrap();
+        assert!((threshold - 4.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn interval_warning_none_above_threshold() {
+        let mut frames = vec![
+            make_loaded_frame("a.arw", 20.0, 2.8, 1600, "2024-01-01 01:00:00"),
+            make_loaded_frame("b.arw", 20.0, 2.8, 1600, "2024-01-01 01:00:25"),
+        ];
+        frames[0].interval_seconds = Some(2.0);
+        frames[1].interval_seconds = Some(2.0);
+        assert!(!Trawls::interval_warning(&frames));
+    }
+
+    #[test]
+    fn interval_warning_one_above_threshold() {
+        let mut frames = vec![
+            make_loaded_frame("a.arw", 20.0, 2.8, 1600, "2024-01-01 01:00:00"),
+            make_loaded_frame("b.arw", 20.0, 2.8, 1600, "2024-01-01 01:00:25"),
+            make_loaded_frame("c.arw", 20.0, 2.8, 1600, "2024-01-01 01:01:00"),
+        ];
+        frames[0].interval_seconds = Some(2.0);
+        frames[1].interval_seconds = Some(2.0);
+        frames[2].interval_seconds = Some(20.0);
+        assert!(Trawls::interval_warning(&frames));
+    }
+
+    #[test]
+    fn recompute_intervals_empty() {
+        let mut frames: Vec<FrameInfo> = vec![];
+        recompute_intervals(&mut frames);
+    }
+
+    #[test]
+    fn recompute_intervals_single_frame() {
+        let mut frames = vec![make_loaded_frame("a.arw", 20.0, 2.8, 1600, "2024-01-01 01:00:00")];
+        recompute_intervals(&mut frames);
+        assert!(frames[0].interval_seconds.is_none());
+    }
+
+    #[test]
+    fn recompute_intervals_two_frames() {
+        let mut frames = vec![
+            make_loaded_frame("a.arw", 20.0, 2.8, 1600, "2024-01-01 01:00:00"),
+            make_loaded_frame("b.arw", 20.0, 2.8, 1600, "2024-01-01 01:00:25"),
+        ];
+        recompute_intervals(&mut frames);
+        assert!(frames[0].interval_seconds.is_none());
+        assert!((frames[1].interval_seconds.unwrap() - 5.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn recompute_intervals_out_of_order() {
+        let mut frames = vec![
+            make_loaded_frame("b.arw", 20.0, 2.8, 1600, "2024-01-01 01:00:25"),
+            make_loaded_frame("a.arw", 20.0, 2.8, 1600, "2024-01-01 01:00:00"),
+        ];
+        recompute_intervals(&mut frames);
+        assert!(frames[1].interval_seconds.is_none());
+        assert!((frames[0].interval_seconds.unwrap() - 5.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn recompute_intervals_ignores_pending() {
+        let mut frames = vec![
+            make_loaded_frame("a.arw", 20.0, 2.8, 1600, "2024-01-01 01:00:00"),
+            make_frame("b.arw", MetadataStatus::Pending),
+            make_loaded_frame("c.arw", 20.0, 2.8, 1600, "2024-01-01 01:00:25"),
+        ];
+        recompute_intervals(&mut frames);
+        assert!(frames[0].interval_seconds.is_none());
+        assert!(frames[1].interval_seconds.is_none());
+        assert!((frames[2].interval_seconds.unwrap() - 5.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn lightframe_stats_empty() {
+        assert!(Trawls::lightframe_stats(&[]).is_none());
+    }
+
+    #[test]
+    fn lightframe_stats_only_pending() {
+        assert!(Trawls::lightframe_stats(&[make_frame("a.arw", MetadataStatus::Pending)]).is_none());
+    }
+
+    #[test]
+    fn lightframe_stats_basic() {
+        let frames = vec![
+            make_loaded_frame("a.arw", 20.0, 2.8, 1600, "2024-01-01 01:00:00"),
+            make_loaded_frame("b.arw", 20.0, 2.8, 1600, "2024-01-01 01:00:25"),
+            make_loaded_frame("c.arw", 20.0, 2.8, 1600, "2024-01-01 01:00:50"),
+        ];
+        let stats = Trawls::lightframe_stats(&frames).unwrap();
+        assert_eq!(stats.total_count, 3);
+        assert_eq!(stats.valid_count, 3);
+        assert_eq!(stats.error_count, 0);
+        assert!((stats.total_exposure_seconds - 60.0).abs() < 0.01);
+        assert!((stats.total_time_seconds - 50.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn lightframe_stats_with_errors() {
+        let mut error_frame = make_frame("bad.arw", MetadataStatus::Failed);
+        error_frame.error = Some("corrupt".to_string());
+        let frames = vec![
+            make_loaded_frame("a.arw", 20.0, 2.8, 1600, "2024-01-01 01:00:00"),
+            error_frame,
+            make_loaded_frame("c.arw", 20.0, 2.8, 1600, "2024-01-01 01:00:25"),
+        ];
+        let stats = Trawls::lightframe_stats(&frames).unwrap();
+        assert_eq!(stats.total_count, 3);
+        assert_eq!(stats.valid_count, 2);
+        assert_eq!(stats.error_count, 1);
+    }
+
+    #[test]
+    fn resolve_path_absolute() {
+        assert_eq!(resolve_path("/some/path").to_str().unwrap(), "/some/path");
+    }
+
+    #[test]
+    fn resolve_path_tilde() {
+        if let Ok(home) = std::env::var("HOME") {
+            assert_eq!(resolve_path("~/test/file.dng").to_str().unwrap(), format!("{home}/test/file.dng"));
+        }
+    }
+
+    #[test]
+    fn resolve_path_relative() {
+        assert_eq!(resolve_path("relative/path").to_str().unwrap(), "relative/path");
+    }
+}

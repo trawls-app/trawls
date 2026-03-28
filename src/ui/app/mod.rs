@@ -7,7 +7,7 @@ use crate::processing::status::ProcessingCounters;
 use crate::ui::model::{FrameInfo, FramePreview, MergeMode, PreviewData, SortKey};
 
 mod logic;
-pub(crate) mod views;
+mod views;
 
 use views::image_viewer::ImageViewerState;
 

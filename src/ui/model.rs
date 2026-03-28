@@ -86,3 +86,15 @@ pub struct LargestGap {
     pub to: String,
     pub seconds: f32,
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn merge_mode_labels() {
+        assert_eq!(MergeMode::Normal.label(), "Normal");
+        assert_eq!(MergeMode::Falling.label(), "Falling Comets");
+        assert_eq!(MergeMode::Raising.label(), "Raising Comets");
+    }
+}
