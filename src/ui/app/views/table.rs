@@ -18,6 +18,8 @@ use crate::ui::{
     model::{FrameInfo, MetadataStatus, SortKey},
 };
 
+use super::light_dark;
+
 impl TrawlsDummy {
     pub(crate) fn render_frame_table(
         &self,
@@ -102,11 +104,7 @@ impl TrawlsDummy {
                             .gap_2()
                             .items_center()
                             .child(
-                                Button::new(if is_light {
-                                    "select-all-light-rows"
-                                } else {
-                                    "select-all-dark-rows"
-                                })
+                                Button::new(light_dark(is_light, "select-all-light-rows", "select-all-dark-rows"))
                                 .small()
                                 .icon(IconName::Check)
                                 .label("Select all")
@@ -121,11 +119,7 @@ impl TrawlsDummy {
                                 })),
                             )
                             .child(
-                                Button::new(if is_light {
-                                    "clear-light-selection"
-                                } else {
-                                    "clear-dark-selection"
-                                })
+                                Button::new(light_dark(is_light, "clear-light-selection", "clear-dark-selection"))
                                 .small()
                                 .icon(IconName::Close)
                                 .label("Clear selection")
@@ -137,11 +131,7 @@ impl TrawlsDummy {
                                 )),
                             )
                             .child(
-                                Button::new(if is_light {
-                                    "remove-selected-light"
-                                } else {
-                                    "remove-selected-dark"
-                                })
+                                Button::new(light_dark(is_light, "remove-selected-light", "remove-selected-dark"))
                                 .small()
                                 .warning()
                                 .icon(IconName::Minus)
@@ -185,11 +175,7 @@ impl TrawlsDummy {
                     .text_xs()
                     .child(
                         div().w(px(select_col_w)).child(
-                            Checkbox::new(if is_light {
-                                "header-select-all-light"
-                            } else {
-                                "header-select-all-dark"
-                            })
+                            Checkbox::new(light_dark(is_light, "header-select-all-light", "header-select-all-dark"))
                             .checked(all_visible_selected)
                             .on_click(cx.listener({
                                 let visible_paths = visible_paths.clone();
@@ -204,11 +190,7 @@ impl TrawlsDummy {
                     )
                     .child(
                         div().w(px(filename_col_w)).child(
-                            Button::new(if is_light {
-                                "header-sort-light-filename"
-                            } else {
-                                "header-sort-dark-filename"
-                            })
+                            Button::new(light_dark(is_light, "header-sort-light-filename", "header-sort-dark-filename"))
                             .ghost()
                             .xsmall()
                             .label(filename_label)
@@ -232,11 +214,7 @@ impl TrawlsDummy {
                     .child(div().w(px(iso_col_w)).text_center().child("ISO"))
                     .child(
                         div().w(px(time_col_w)).child(
-                            Button::new(if is_light {
-                                "header-sort-light-time"
-                            } else {
-                                "header-sort-dark-time"
-                            })
+                            Button::new(light_dark(is_light, "header-sort-light-time", "header-sort-dark-time"))
                             .ghost()
                             .xsmall()
                             .label(time_label)
@@ -261,11 +239,7 @@ impl TrawlsDummy {
                     .child(
                         v_virtual_list(
                             cx.entity().clone(),
-                            if is_light {
-                                "frame-table-virtual-light"
-                            } else {
-                                "frame-table-virtual-dark"
-                            },
+                            light_dark(is_light, "frame-table-virtual-light", "frame-table-virtual-dark"),
                             item_sizes,
                             move |this, visible_range, _, cx| {
                                 visible_range

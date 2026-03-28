@@ -20,6 +20,8 @@ use crate::ui::{
     model::{LightframeStats, MergeMode},
 };
 
+use super::light_dark;
+
 impl TrawlsDummy {
     pub(crate) fn render_image_step(
         &self,
@@ -45,11 +47,7 @@ impl TrawlsDummy {
             .when(Self::error_warning(&rows), |this| {
                 this.child(
                     Alert::warning(
-                        if is_light {
-                            "warn-light-error"
-                        } else {
-                            "warn-dark-error"
-                        },
+                        light_dark(is_light, "warn-light-error", "warn-dark-error"),
                         "The metadata of some files could not be loaded.",
                     )
                     .banner(),
@@ -58,11 +56,7 @@ impl TrawlsDummy {
             .when(Self::camera_setting_warning(&rows), |this| {
                 this.child(
                     Alert::warning(
-                        if is_light {
-                            "warn-light-settings"
-                        } else {
-                            "warn-dark-settings"
-                        },
+                        light_dark(is_light, "warn-light-settings", "warn-dark-settings"),
                         "The camera settings between some frames changed.",
                     )
                     .banner(),
@@ -92,11 +86,7 @@ impl TrawlsDummy {
                         h_flex()
                             .gap_2()
                             .child(
-                                Button::new(if is_light {
-                                    "pick-lights"
-                                } else {
-                                    "pick-darks"
-                                })
+                                Button::new(light_dark(is_light, "pick-lights", "pick-darks"))
                                 .success()
                                 .icon(IconName::Search)
                                 .label("Add images")
@@ -107,11 +97,7 @@ impl TrawlsDummy {
                                 )),
                             )
                             .child(
-                                Button::new(if is_light {
-                                    "add-dummy-lights"
-                                } else {
-                                    "add-dummy-darks"
-                                })
+                                Button::new(light_dark(is_light, "add-dummy-lights", "add-dummy-darks"))
                                 .icon(IconName::Plus)
                                 .label("Add dummy frames")
                                 .on_click(cx.listener(
@@ -121,11 +107,7 @@ impl TrawlsDummy {
                                 )),
                             )
                             .child(
-                                Button::new(if is_light {
-                                    "clear-lights"
-                                } else {
-                                    "clear-darks"
-                                })
+                                Button::new(light_dark(is_light, "clear-lights", "clear-darks"))
                                 .warning()
                                 .icon(IconName::Minus)
                                 .label("Clear list")
