@@ -20,7 +20,7 @@ use crate::ui::{
     model::{LightframeStats, MergeMode},
 };
 
-use super::light_dark;
+use super::{format_duration, light_dark};
 
 impl TrawlsDummy {
     pub(crate) fn render_image_step(
@@ -181,7 +181,7 @@ impl TrawlsDummy {
                             .child(
                                 div()
                                     .text_sm()
-                                    .child(format!("{:.1} s", stats.total_exposure_seconds)),
+                                    .child(format_duration(stats.total_exposure_seconds)),
                             ),
                     )
                     .child(
@@ -196,7 +196,7 @@ impl TrawlsDummy {
                             .child(
                                 div()
                                     .text_sm()
-                                    .child(format!("{:.1} s", stats.total_time_seconds)),
+                                    .child(format_duration(stats.total_time_seconds)),
                             ),
                     )
                     .child(
@@ -211,7 +211,7 @@ impl TrawlsDummy {
                             .child(
                                 div()
                                     .text_sm()
-                                    .child(format!("{:.1} s", stats.non_exposing_seconds)),
+                                    .child(format_duration(stats.non_exposing_seconds)),
                             ),
                     ),
             )
@@ -263,8 +263,8 @@ impl TrawlsDummy {
                             )
                             .child(match &stats.largest_gap {
                                 Some(gap) => div().text_sm().child(format!(
-                                    "{:.1} s ({} -> {})",
-                                    gap.seconds, gap.from, gap.to
+                                    "{} ({} -> {})",
+                                    format_duration(gap.seconds), gap.from, gap.to
                                 )),
                                 None => div()
                                     .text_sm()

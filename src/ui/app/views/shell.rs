@@ -3,7 +3,7 @@ use gpui::{
     Render, StatefulInteractiveElement as _, Styled as _, Window, div, img, px, relative,
 };
 use gpui_component::{
-    ActiveTheme as _, IconName, StyledExt as _, TitleBar,
+    ActiveTheme as _, Icon, IconName, Sizable as _, StyledExt as _, TitleBar,
     button::{Button, ButtonVariants as _},
     h_flex,
     sidebar::{Sidebar, SidebarFooter, SidebarGroup, SidebarHeader, SidebarMenu, SidebarMenuItem},
@@ -97,24 +97,48 @@ impl TrawlsDummy {
                                     cx.notify();
                                 })),
                         )
-                        .child(
-                            SidebarMenuItem::new("Processing")
+                        .child({
+                            let item = SidebarMenuItem::new("Processing")
                                 .icon(IconName::Settings2)
                                 .active(self.active_step == 2)
                                 .on_click(cx.listener(|this, _, _, cx| {
                                     this.active_step = 2;
                                     cx.notify();
-                                })),
-                        )
-                        .child(
-                            SidebarMenuItem::new("Preview")
+                                }));
+                            if self.processing_running {
+                                item.suffix(
+                                    Icon::new(IconName::LoaderCircle)
+                                        .xsmall()
+                                        .text_color(cx.theme().muted_foreground),
+                                )
+                            } else if self.preview.is_some() {
+                                item.suffix(
+                                    Icon::new(IconName::CircleCheck)
+                                        .xsmall()
+                                        .text_color(cx.theme().success),
+                                )
+                            } else {
+                                item
+                            }
+                        })
+                        .child({
+                            let item = SidebarMenuItem::new("Preview")
                                 .icon(IconName::BookOpen)
                                 .active(self.active_step == 3)
                                 .on_click(cx.listener(|this, _, _, cx| {
                                     this.active_step = 3;
                                     cx.notify();
-                                })),
-                        ),
+                                }));
+                            if self.preview.is_some() {
+                                item.suffix(
+                                    Icon::new(IconName::CircleCheck)
+                                        .xsmall()
+                                        .text_color(cx.theme().success),
+                                )
+                            } else {
+                                item
+                            }
+                        }),
                 ),
             )
             .footer(

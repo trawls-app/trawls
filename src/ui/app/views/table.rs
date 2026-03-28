@@ -27,7 +27,36 @@ impl TrawlsDummy {
         show_interval: bool,
         is_light: bool,
         cx: &mut Context<Self>,
-    ) -> impl IntoElement {
+    ) -> gpui::AnyElement {
+        if rows.is_empty() {
+            return v_flex()
+                .w_full()
+                .flex_1()
+                .min_h_0()
+                .items_center()
+                .justify_center()
+                .gap_2()
+                .py_12()
+                .rounded(cx.theme().radius)
+                .border_1()
+                .border_color(cx.theme().border)
+                .child(
+                    Icon::new(IconName::Inbox)
+                        .text_color(cx.theme().muted_foreground),
+                )
+                .child(
+                    div()
+                        .text_sm()
+                        .text_color(cx.theme().muted_foreground)
+                        .child(if is_light {
+                            "No lightframes added yet. Click \"Add images\" above to get started."
+                        } else {
+                            "No darkframes added yet. Click \"Add images\" above to add optional darkframes."
+                        }),
+                )
+                .into_any_element();
+        }
+
         let threshold = Self::interval_warning_threshold(rows).unwrap_or(9999.0);
         let filename_col_w = rows
             .iter()
@@ -446,5 +475,6 @@ impl TrawlsDummy {
                         ),
                     ),
             )
+            .into_any_element()
     }
 }
