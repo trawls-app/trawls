@@ -10,9 +10,9 @@ use gpui_component::{
     v_flex,
 };
 
-use crate::ui::app::TrawlsDummy;
+use crate::ui::app::Trawls;
 
-impl TrawlsDummy {
+impl Trawls {
     fn render_active_step(&self, cx: &mut Context<Self>) -> gpui::AnyElement {
         match self.active_step {
             0 => self.render_image_step(true, cx).into_any_element(),
@@ -199,18 +199,18 @@ impl TrawlsDummy {
     }
 }
 
-impl Focusable for TrawlsDummy {
+impl Focusable for Trawls {
     fn focus_handle(&self, _: &App) -> FocusHandle {
         self.focus_handle.clone()
     }
 }
 
-impl Render for TrawlsDummy {
+impl Render for Trawls {
     fn render(&mut self, _: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         let content = self.render_active_step(cx);
 
         div()
-            .id("trawls-dummy")
+            .id("trawls-app")
             .size_full()
             .track_focus(&self.focus_handle)
             .bg(cx.theme().background)

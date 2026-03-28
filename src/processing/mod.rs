@@ -1,5 +1,4 @@
 pub mod dng_writing;
-pub mod dummy;
 pub mod image;
 pub mod interface;
 pub mod merge;

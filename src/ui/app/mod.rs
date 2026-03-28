@@ -9,7 +9,7 @@ use crate::ui::model::{FrameInfo, MergeMode, PreviewData, SortKey};
 mod logic;
 mod views;
 
-pub struct TrawlsDummy {
+pub struct Trawls {
     pub(crate) focus_handle: FocusHandle,
     pub(crate) active_step: usize,
     pub(crate) lightframes: Vec<FrameInfo>,
@@ -31,7 +31,7 @@ pub struct TrawlsDummy {
     pub(crate) table_scroll_state: ScrollbarState,
 }
 
-impl TrawlsDummy {
+impl Trawls {
     pub fn new(window: &mut Window, cx: &mut Context<Self>) -> Self {
         let output_input =
             cx.new(|cx| InputState::new(window, cx).placeholder("No output path selected"));

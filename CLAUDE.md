@@ -27,23 +27,21 @@ Trawls-GPUI is a desktop application for merging astronomical startrail photogra
 ### Two-layer design: `ui/` and `processing/`
 
 **`processing/`** — Image processing, decoupled from the UI:
-- `interface.rs`: `Processor` trait — the contract between UI and processing. Takes `ProcessingInput` (frame lists + validation flags), returns `ProcessingStartResult`.
+- `interface.rs`: `FrameIdentifier` — wrapper around file paths for frame identification.
 - `status.rs`: `MetadataStatus` and `ProcessingStatus` callback traits. The UI implements these to receive progress updates without the processing layer depending on UI types.
 - `metadata.rs`: `FrameMetadataLoader` trait for EXIF extraction. Concrete impl uses `rawler`.
 - `image.rs`: `Frame` and `Image` structs. `Mergable` trait with two modes: `Maximize` (pixel max for stacking) and `WeightedAverage` (for darkframes).
 - `merge.rs`: `run_merge()` — Rayon parallel pipeline. Loads frames in parallel, reduces via sequential merge. Status updates through `Arc<Mutex<impl ProcessingStatus>>`.
 - `dng_writing.rs`: `ImageWriter` — writes TIFF-based DNG output with EXIF data and JPEG preview.
-- `dummy/`: Mock processor and metadata loader for UI development without real RAW files.
 
 **`ui/`** — GPUI interface (uses Zed's `gpui` crate + `gpui-component`):
-- `app/mod.rs`: `TrawlsDummy` — single state root for the entire application. Holds lightframes, darkframes, processing counters, preview, and UI state. Mutations call `cx.notify()` to trigger re-renders.
-- `app/logic.rs`: Event handlers — file picking, async metadata loading, processing dispatch (both mock and real pipelines), preview zoom/pan, statistics computation. Implements `MetadataStatus` and `ProcessingStatus` traits.
+- `app/mod.rs`: `Trawls` — single state root for the entire application. Holds lightframes, darkframes, processing counters, preview, and UI state. Mutations call `cx.notify()` to trigger re-renders.
+- `app/logic.rs`: Event handlers — file picking, async metadata loading, processing dispatch, preview zoom/pan, statistics computation. Implements `MetadataStatus` and `ProcessingStatus` traits.
 - `app/views/`: Rendering — `shell.rs` (sidebar + content layout), `steps.rs` (4-step workflow: lightframes → darkframes → processing → preview), `table.rs` (virtual-scrolling frame table).
 - `model.rs`: Shared data types (`FrameInfo`, `MergeMode`, `PreviewData`, `LightframeStats`).
 
 ### Key patterns
 
 - **Trait-based decoupling**: Processing communicates back to the UI exclusively through `MetadataStatus` and `ProcessingStatus` traits, never importing UI types directly.
-- **Dual-mode processing**: A `DUMMY_PROCESSOR` flag in `logic.rs` switches between mock (simulated state machine) and real (rawler + Rayon) pipelines.
-- **Thread communication**: Real processing runs on a separate thread. Status updates flow through `Arc<Mutex<>>` and are polled/forwarded to the GPUI entity via `cx.spawn()`.
-- **GPUI entity model**: `TrawlsDummy` is created as a GPUI entity (`cx.new()`). Views read its fields and render; mutations go through methods that take `&mut self` + context.
+- **Thread communication**: Processing runs on a separate thread. Status updates flow through `Arc<Mutex<>>` and are polled/forwarded to the GPUI entity via `cx.spawn()`.
+- **GPUI entity model**: `Trawls` is created as a GPUI entity (`cx.new()`). Views read its fields and render; mutations go through methods that take `&mut self` + context.

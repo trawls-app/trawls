@@ -16,13 +16,13 @@ use gpui_component::{
 };
 
 use crate::ui::{
-    app::TrawlsDummy,
+    app::Trawls,
     model::{LightframeStats, MergeMode},
 };
 
 use super::{format_duration, format_file_size, light_dark};
 
-impl TrawlsDummy {
+impl Trawls {
     pub(crate) fn render_image_step(
         &self,
         is_light: bool,
@@ -93,16 +93,6 @@ impl TrawlsDummy {
                                 .on_click(cx.listener(
                                     move |this, _, window, cx| {
                                         this.pick_image_files(is_light, window, cx);
-                                    },
-                                )),
-                            )
-                            .child(
-                                Button::new(light_dark(is_light, "add-dummy-lights", "add-dummy-darks"))
-                                .icon(IconName::Plus)
-                                .label("Add dummy frames")
-                                .on_click(cx.listener(
-                                    move |this, _, _, cx| {
-                                        this.queue_mock_metadata_loading(is_light, cx);
                                     },
                                 )),
                             )
@@ -365,7 +355,7 @@ impl TrawlsDummy {
                                     .icon(IconName::Search)
                                     .label("Choose output")
                                     .on_click(cx.listener(|this, _, window, cx| {
-                                        this.choose_dummy_output(window, cx);
+                                        this.choose_output(window, cx);
                                     })),
                             )
                             .child(
@@ -461,7 +451,7 @@ impl TrawlsDummy {
                                     })
                                     .disabled(self.processing_running)
                                     .on_click(cx.listener(|this, _, window, cx| {
-                                        this.run_dummy_processing(window, cx);
+                                        this.start_processing(window, cx);
                                     })),
                             )
                             .when(self.processing_running, |this| {
@@ -469,7 +459,7 @@ impl TrawlsDummy {
                                     div()
                                         .text_xs()
                                         .text_color(cx.theme().muted_foreground)
-                                        .child("Simulating background processing..."),
+                                        .child("Processing in progress..."),
                                 )
                             }),
                     )
@@ -668,7 +658,7 @@ impl TrawlsDummy {
                 .text_sm()
                 .text_color(cx.theme().muted_foreground)
                 .child(Icon::new(IconName::Info).small())
-                .child("Run a dummy merge in step 3 to generate an example preview."),
+                .child("Run a merge in step 3 to generate a preview."),
         )
     }
 }

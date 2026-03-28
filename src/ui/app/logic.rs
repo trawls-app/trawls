@@ -5,19 +5,11 @@ use std::{
     time::Duration,
 };
 
-use gpui::{
-    Context, ParentElement as _, PathPromptOptions, Pixels, Point, Size, Styled as _, Timer,
-    Window, div, point, px,
-};
-use gpui_component::{
-    WindowExt as _,
-    button::{Button, ButtonVariants as _},
-    v_flex,
-};
+use gpui::{Context, PathPromptOptions, Pixels, Point, Size, Timer, Window, point, px};
+use gpui_component::WindowExt as _;
 
 use crate::processing::{
-    dummy::{DUMMY_METADATA_PROCESSOR, DUMMY_PROCESSOR},
-    interface::{FrameIdentifier, ProcessingInput, Processor},
+    interface::FrameIdentifier,
     merge::{Comets, run_merge},
     metadata::{FrameMetadata, FrameMetadataLoader, RawlerMetadataLoader},
     status::{
@@ -29,15 +21,14 @@ use crate::ui::{
     model::{
         FrameInfo, LargestGap, LightframeStats, MetadataStatus, PreviewData, SortKey,
     },
-    samples::{MockFrameSeed, sample_darkframe_seeds, sample_lightframe_seeds},
 };
 
-use super::TrawlsDummy;
+use super::Trawls;
 
 const MIN_PREVIEW_ZOOM: f32 = 0.02;
 const MAX_PREVIEW_ZOOM: f32 = 8.0;
 
-impl TrawlsDummy {
+impl Trawls {
     pub(crate) fn sorted_frames(frames: &[FrameInfo], sort: SortKey) -> Vec<FrameInfo> {
         let mut rows: Vec<FrameInfo> = frames.to_vec();
         rows.sort_by(|a, b| {
@@ -109,7 +100,7 @@ impl TrawlsDummy {
         false
     }
 
-    pub(crate) fn choose_dummy_output(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+    pub(crate) fn choose_output(&mut self, window: &mut Window, cx: &mut Context<Self>) {
         let default_dir = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
         let path = cx.prompt_for_new_path(&default_dir, Some("trawls_output.dng"));
         let view = cx.entity();
@@ -163,48 +154,6 @@ impl TrawlsDummy {
         cx.notify();
     }
 
-
-    pub(crate) fn queue_mock_metadata_loading(&mut self, is_light: bool, cx: &mut Context<Self>) {
-        let seeds = if is_light {
-            sample_lightframe_seeds()
-        } else {
-            sample_darkframe_seeds()
-        };
-
-        let rows = seeds
-            .iter()
-            .map(MockFrameSeed::as_pending_row)
-            .collect::<Vec<_>>();
-        if is_light {
-            self.lightframes = rows;
-            self.selected_light_paths.clear();
-        } else {
-            self.darkframes = rows;
-            self.selected_dark_paths.clear();
-        }
-        self.reset_processing_state_for_selection();
-        for seed in &seeds {
-            self.metadata_queued(&FrameIdentifier::from(seed.path));
-        }
-        cx.notify();
-
-        for (ix, seed) in seeds.into_iter().enumerate() {
-            let delay_ms = mock_metadata_delay_ms(seed.path, ix);
-            let frame_id = FrameIdentifier::from(seed.path);
-            cx.spawn(async move |this, cx| {
-                Timer::after(Duration::from_millis(delay_ms)).await;
-                let load_result = DUMMY_METADATA_PROCESSOR.load_metadata(&frame_id);
-                let _ = this.update(cx, |this, cx| {
-                    match load_result {
-                        Ok(metadata) => this.metadata_loaded(&frame_id, metadata),
-                        Err(error) => this.metadata_failed(&frame_id, error.to_string()),
-                    }
-                    cx.notify();
-                });
-            })
-            .detach();
-        }
-    }
 
     pub(crate) fn pick_image_files(
         &mut self,
@@ -320,109 +269,11 @@ impl TrawlsDummy {
         }
     }
 
-    pub(crate) fn run_dummy_processing(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+    pub(crate) fn start_processing(&mut self, window: &mut Window, cx: &mut Context<Self>) {
         if self.processing_running {
             return;
         }
 
-        let uses_mock_inputs = self
-            .lightframes
-            .iter()
-            .chain(self.darkframes.iter())
-            .all(|f| f.path.starts_with("/mock/"));
-        if !uses_mock_inputs {
-            self.run_real_processing(window, cx);
-            return;
-        }
-
-        let result = DUMMY_PROCESSOR.start(ProcessingInput {
-            lightframes: &self.lightframes,
-            darkframes: &self.darkframes,
-            output_path_set: self.output_path.is_some(),
-            has_metadata_errors: Self::error_warning(&self.lightframes)
-                || Self::error_warning(&self.darkframes),
-            has_pending_metadata: self
-                .lightframes
-                .iter()
-                .chain(self.darkframes.iter())
-                .any(|row| row.metadata_status == MetadataStatus::Pending),
-        });
-
-        if !result.issues.is_empty() {
-            window.open_dialog(cx, move |dialog, _, _| {
-                dialog
-                    .title("Can't start processing")
-                    .child(
-                        v_flex().gap_2().children(
-                            result
-                                .issues
-                                .iter()
-                                .map(|item| div().text_sm().child(format!("- {item}"))),
-                        ),
-                    )
-                    .footer(|_, _, _, _| {
-                        vec![
-                            Button::new("ready-ok")
-                                .primary()
-                                .label("OK")
-                                .on_click(|_, window, cx| window.close_dialog(cx)),
-                        ]
-                    })
-            });
-            return;
-        }
-
-        self.processing = result.state;
-        self.preview = None;
-        self.processing_running = true;
-        let preview = result.preview.map(|mut p| {
-            p.merge_mode = self.merge_mode;
-            p
-        });
-        let should_go_to_preview = self.active_step != 3;
-        let viewport_size = window.viewport_size();
-
-        cx.spawn(async move |this, cx| {
-            loop {
-                let phase = match this.update(cx, |this, _| {
-                    DUMMY_PROCESSOR.current_phase(&this.processing)
-                }) {
-                    Ok(phase) => phase,
-                    Err(_) => return,
-                };
-
-                let Some(delay_ms) = DUMMY_PROCESSOR.phase_delay_ms(phase) else {
-                    break;
-                };
-                Timer::after(Duration::from_millis(delay_ms)).await;
-
-                let _ = this.update(cx, |this, cx| {
-                    let mut state = std::mem::take(&mut this.processing);
-                    DUMMY_PROCESSOR.emulate_step(&mut state, this);
-                    this.processing = state;
-                    cx.notify();
-                });
-            }
-
-            let _ = this.update(cx, |this, cx| {
-                this.processing_running = false;
-                this.preview = preview.clone();
-                if this.preview.is_some() {
-                    this.preview_zoom = this.fit_preview_zoom_for_viewport(viewport_size);
-                }
-                if should_go_to_preview {
-                    this.active_step = 3;
-                }
-                cx.notify();
-            });
-        })
-        .detach();
-
-        window.push_notification("Dummy processing started.", cx);
-        cx.notify();
-    }
-
-    fn run_real_processing(&mut self, window: &mut Window, cx: &mut Context<Self>) {
         let output_path = match self.output_path.as_ref().map(|s| resolve_path(s.as_ref())) {
             Some(path) => path,
             None => {
@@ -761,7 +612,7 @@ impl TrawlsDummy {
     }
 }
 
-impl MetadataStatusSink for TrawlsDummy {
+impl MetadataStatusSink for Trawls {
     fn metadata_queued(&mut self, frame_id: &FrameIdentifier) {
         if let Some(row) = find_frame_mut(self, frame_id) {
             row.metadata_status = MetadataStatus::Pending;
@@ -799,7 +650,7 @@ impl MetadataStatusSink for TrawlsDummy {
     }
 }
 
-impl ProcessingStatusSink for TrawlsDummy {
+impl ProcessingStatusSink for Trawls {
     fn processing_updated(&mut self, counters: ProcessingCounters) {
         self.processing = counters;
     }
@@ -824,7 +675,7 @@ fn frame_rank(frame: &FrameInfo) -> u8 {
 }
 
 fn find_frame_mut<'a>(
-    app: &'a mut TrawlsDummy,
+    app: &'a mut Trawls,
     frame_id: &FrameIdentifier,
 ) -> Option<&'a mut FrameInfo> {
     let target = frame_id.as_path().to_string_lossy();
@@ -832,15 +683,6 @@ fn find_frame_mut<'a>(
         .iter_mut()
         .find(|row| row.path == target)
         .or_else(|| app.darkframes.iter_mut().find(|row| row.path == target))
-}
-
-fn mock_metadata_delay_ms(path: &str, index: usize) -> u64 {
-    let mut hash = 1469598103934665603u64;
-    for byte in path.as_bytes() {
-        hash ^= u64::from(*byte);
-        hash = hash.wrapping_mul(1099511628211);
-    }
-    150 + ((hash.wrapping_add((index as u64) * 97)) % 850)
 }
 
 fn resolve_path(path: &str) -> PathBuf {

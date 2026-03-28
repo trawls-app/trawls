@@ -14,13 +14,13 @@ use gpui_component::{
 };
 
 use crate::ui::{
-    app::TrawlsDummy,
+    app::Trawls,
     model::{FrameInfo, MetadataStatus, SortKey},
 };
 
 use super::light_dark;
 
-impl TrawlsDummy {
+impl Trawls {
     pub(crate) fn render_frame_table(
         &self,
         rows: &[FrameInfo],

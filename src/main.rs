@@ -3,7 +3,7 @@ mod ui;
 
 use gpui::{AppContext, Application, WindowOptions, px};
 use gpui_component::{Root, Theme, ThemeMode, TitleBar};
-use ui::{app::TrawlsDummy, assets::Assets};
+use ui::{app::Trawls, assets::Assets};
 
 fn program_description() -> String {
     format!("{} v{}", env!("CARGO_PKG_NAME"), env!("CARGO_PKG_VERSION"))
@@ -30,7 +30,7 @@ fn main() {
 
             cx.open_window(options, |window, cx| {
                 Theme::change(ThemeMode::Dark, Some(window), cx);
-                let view = cx.new(|cx| TrawlsDummy::new(window, cx));
+                let view = cx.new(|cx| Trawls::new(window, cx));
                 cx.new(|cx| Root::new(view, window, cx))
             })?;
 
