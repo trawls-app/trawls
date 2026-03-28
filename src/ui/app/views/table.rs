@@ -57,11 +57,7 @@ impl TrawlsDummy {
         } else {
             self.dark_sort
         };
-        let selected_paths = if is_light {
-            &self.selected_light_paths
-        } else {
-            &self.selected_dark_paths
-        };
+        let selected_paths = self.selected_paths(is_light);
         let visible_paths: Vec<String> = rows.iter().map(|row| row.path.to_string()).collect();
         let selected_visible_count = rows
             .iter()
@@ -117,14 +113,8 @@ impl TrawlsDummy {
                                 .on_click(cx.listener({
                                     let visible_paths = visible_paths.clone();
                                     move |this, _, _, cx| {
-                                        if is_light {
-                                            for path in &visible_paths {
-                                                this.selected_light_paths.insert(path.clone());
-                                            }
-                                        } else {
-                                            for path in &visible_paths {
-                                                this.selected_dark_paths.insert(path.clone());
-                                            }
+                                        for path in &visible_paths {
+                                            this.set_selection(path, is_light, true);
                                         }
                                         cx.notify();
                                     }
@@ -141,11 +131,7 @@ impl TrawlsDummy {
                                 .label("Clear selection")
                                 .on_click(cx.listener(
                                     move |this, _, _, cx| {
-                                        if is_light {
-                                            this.selected_light_paths.clear();
-                                        } else {
-                                            this.selected_dark_paths.clear();
-                                        }
+                                        this.selected_paths_mut(is_light).clear();
                                         cx.notify();
                                     },
                                 )),
@@ -163,17 +149,14 @@ impl TrawlsDummy {
                                 .disabled(selected_visible_count == 0)
                                 .on_click(cx.listener(
                                     move |this, _, _, cx| {
-                                        if is_light {
-                                            let selected = this.selected_light_paths.clone();
-                                            this.lightframes
-                                                .retain(|f| !selected.contains(f.path.as_str()));
-                                            this.selected_light_paths.clear();
+                                        let selected = this.selected_paths(is_light).clone();
+                                        let frames = if is_light {
+                                            &mut this.lightframes
                                         } else {
-                                            let selected = this.selected_dark_paths.clone();
-                                            this.darkframes
-                                                .retain(|f| !selected.contains(f.path.as_str()));
-                                            this.selected_dark_paths.clear();
-                                        }
+                                            &mut this.darkframes
+                                        };
+                                        frames.retain(|f| !selected.contains(f.path.as_str()));
+                                        this.selected_paths_mut(is_light).clear();
                                         cx.notify();
                                     },
                                 )),
@@ -211,24 +194,8 @@ impl TrawlsDummy {
                             .on_click(cx.listener({
                                 let visible_paths = visible_paths.clone();
                                 move |this, checked, _, cx| {
-                                    if is_light {
-                                        if *checked {
-                                            for path in &visible_paths {
-                                                this.selected_light_paths.insert(path.clone());
-                                            }
-                                        } else {
-                                            for path in &visible_paths {
-                                                this.selected_light_paths.remove(path);
-                                            }
-                                        }
-                                    } else if *checked {
-                                        for path in &visible_paths {
-                                            this.selected_dark_paths.insert(path.clone());
-                                        }
-                                    } else {
-                                        for path in &visible_paths {
-                                            this.selected_dark_paths.remove(path);
-                                        }
+                                    for path in &visible_paths {
+                                        this.set_selection(path, is_light, *checked);
                                     }
                                     cx.notify();
                                 }
@@ -304,11 +271,7 @@ impl TrawlsDummy {
                                 visible_range
                                     .map(|ix| {
                                         let row = &rows_vec[ix];
-                                        let selected_paths = if is_light {
-                                            &this.selected_light_paths
-                                        } else {
-                                            &this.selected_dark_paths
-                                        };
+                                        let selected_paths = this.selected_paths(is_light);
 
                                         if let Some(error) = &row.error {
                                             return h_flex()
@@ -329,27 +292,7 @@ impl TrawlsDummy {
                                                     cx.listener({
                                                         let path = row.path.to_string();
                                                         move |this, _, _, cx| {
-                                                            if is_light {
-                                                                if this
-                                                                    .selected_light_paths
-                                                                    .contains(&path)
-                                                                {
-                                                                    this.selected_light_paths
-                                                                        .remove(&path);
-                                                                } else {
-                                                                    this.selected_light_paths
-                                                                        .insert(path.clone());
-                                                                }
-                                                            } else if this
-                                                                .selected_dark_paths
-                                                                .contains(&path)
-                                                            {
-                                                                this.selected_dark_paths
-                                                                    .remove(&path);
-                                                            } else {
-                                                                this.selected_dark_paths
-                                                                    .insert(path.clone());
-                                                            }
+                                                            this.toggle_selection(&path, is_light);
                                                             cx.notify();
                                                         }
                                                     }),
@@ -369,21 +312,7 @@ impl TrawlsDummy {
                                                         .on_click(cx.listener({
                                                             let path = row.path.to_string();
                                                             move |this, checked, _, cx| {
-                                                                if is_light {
-                                                                    if *checked {
-                                                                        this.selected_light_paths
-                                                                            .insert(path.clone());
-                                                                    } else {
-                                                                        this.selected_light_paths
-                                                                            .remove(&path);
-                                                                    }
-                                                                } else if *checked {
-                                                                    this.selected_dark_paths
-                                                                        .insert(path.clone());
-                                                                } else {
-                                                                    this.selected_dark_paths
-                                                                        .remove(&path);
-                                                                }
+                                                                this.set_selection(&path, is_light, *checked);
                                                                 cx.notify();
                                                             }
                                                         })),
@@ -420,26 +349,7 @@ impl TrawlsDummy {
                                                 cx.listener({
                                                     let path = row.path.to_string();
                                                     move |this, _, _, cx| {
-                                                        if is_light {
-                                                            if this
-                                                                .selected_light_paths
-                                                                .contains(&path)
-                                                            {
-                                                                this.selected_light_paths
-                                                                    .remove(&path);
-                                                            } else {
-                                                                this.selected_light_paths
-                                                                    .insert(path.clone());
-                                                            }
-                                                        } else if this
-                                                            .selected_dark_paths
-                                                            .contains(&path)
-                                                        {
-                                                            this.selected_dark_paths.remove(&path);
-                                                        } else {
-                                                            this.selected_dark_paths
-                                                                .insert(path.clone());
-                                                        }
+                                                        this.toggle_selection(&path, is_light);
                                                         cx.notify();
                                                     }
                                                 }),
@@ -458,21 +368,7 @@ impl TrawlsDummy {
                                                     .on_click(cx.listener({
                                                         let path = row.path.to_string();
                                                         move |this, checked, _, cx| {
-                                                            if is_light {
-                                                                if *checked {
-                                                                    this.selected_light_paths
-                                                                        .insert(path.clone());
-                                                                } else {
-                                                                    this.selected_light_paths
-                                                                        .remove(&path);
-                                                                }
-                                                            } else if *checked {
-                                                                this.selected_dark_paths
-                                                                    .insert(path.clone());
-                                                            } else {
-                                                                this.selected_dark_paths
-                                                                    .remove(&path);
-                                                            }
+                                                            this.set_selection(&path, is_light, *checked);
                                                             cx.notify();
                                                         }
                                                     })),

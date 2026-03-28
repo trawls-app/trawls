@@ -59,6 +59,38 @@ impl TrawlsDummy {
         }
     }
 
+    pub(crate) fn selected_paths_mut(&mut self, is_light: bool) -> &mut HashSet<String> {
+        if is_light {
+            &mut self.selected_light_paths
+        } else {
+            &mut self.selected_dark_paths
+        }
+    }
+
+    pub(crate) fn selected_paths(&self, is_light: bool) -> &HashSet<String> {
+        if is_light {
+            &self.selected_light_paths
+        } else {
+            &self.selected_dark_paths
+        }
+    }
+
+    pub(crate) fn toggle_selection(&mut self, path: &str, is_light: bool) {
+        let set = self.selected_paths_mut(is_light);
+        if !set.remove(path) {
+            set.insert(path.to_string());
+        }
+    }
+
+    pub(crate) fn set_selection(&mut self, path: &str, is_light: bool, selected: bool) {
+        let set = self.selected_paths_mut(is_light);
+        if selected {
+            set.insert(path.to_string());
+        } else {
+            set.remove(path);
+        }
+    }
+
     pub(crate) fn step_title(&self) -> &'static str {
         match self.active_step {
             0 => "1. Add Lightframes",

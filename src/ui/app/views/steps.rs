@@ -133,11 +133,10 @@ impl TrawlsDummy {
                                     move |this, _, _, cx| {
                                         if is_light {
                                             this.lightframes.clear();
-                                            this.selected_light_paths.clear();
                                         } else {
                                             this.darkframes.clear();
-                                            this.selected_dark_paths.clear();
                                         }
+                                        this.selected_paths_mut(is_light).clear();
                                         cx.notify();
                                     },
                                 )),
