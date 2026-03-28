@@ -272,77 +272,25 @@ impl TrawlsDummy {
                                     .map(|ix| {
                                         let row = &rows_vec[ix];
                                         let selected_paths = this.selected_paths(is_light);
+                                        let is_selected = selected_paths.contains(row.path.as_str());
+                                        let has_error = row.error.is_some();
 
-                                        if let Some(error) = &row.error {
-                                            return h_flex()
-                                                .min_w(px(table_total_w))
-                                                .w_full()
-                                                .px_2()
-                                                .py_1()
-                                                .border_b_1()
-                                                .border_color(cx.theme().border)
-                                                .bg(cx.theme().danger.alpha(0.18))
-                                                .when(
-                                                    selected_paths.contains(row.path.as_str()),
-                                                    |this| this.bg(cx.theme().primary.alpha(0.18)),
-                                                )
-                                                .cursor_pointer()
-                                                .on_mouse_down(
-                                                    MouseButton::Left,
-                                                    cx.listener({
-                                                        let path = row.path.to_string();
-                                                        move |this, _, _, cx| {
-                                                            this.toggle_selection(&path, is_light);
-                                                            cx.notify();
-                                                        }
-                                                    }),
-                                                )
-                                                .text_xs()
-                                                .child(
-                                                    div().w(px(select_col_w)).child(
-                                                        Checkbox::new(if is_light {
-                                                            ("select-err-light", ix)
-                                                        } else {
-                                                            ("select-err-dark", ix)
-                                                        })
-                                                        .checked(
-                                                            selected_paths
-                                                                .contains(row.path.as_str()),
-                                                        )
-                                                        .on_click(cx.listener({
-                                                            let path = row.path.to_string();
-                                                            move |this, checked, _, cx| {
-                                                                this.set_selection(&path, is_light, *checked);
-                                                                cx.notify();
-                                                            }
-                                                        })),
-                                                    ),
-                                                )
-                                                .child(
-                                                    div()
-                                                        .w(px(filename_col_w))
-                                                        .child(row.filename.clone()),
-                                                )
-                                                .child(
-                                                    div().w(px(error_col_w)).child(error.clone()),
-                                                )
-                                                .into_any_element();
-                                        }
-
-                                        h_flex()
+                                        let base = h_flex()
                                             .min_w(px(table_total_w))
                                             .w_full()
                                             .px_2()
                                             .py_1()
                                             .border_b_1()
                                             .border_color(cx.theme().border)
-                                            .when(ix % 2 == 1, |this| {
-                                                this.bg(cx.theme().sidebar_accent.alpha(0.35))
+                                            .when(has_error, |el| {
+                                                el.bg(cx.theme().danger.alpha(0.18))
                                             })
-                                            .when(
-                                                selected_paths.contains(row.path.as_str()),
-                                                |this| this.bg(cx.theme().primary.alpha(0.18)),
-                                            )
+                                            .when(!has_error && ix % 2 == 1, |el| {
+                                                el.bg(cx.theme().sidebar_accent.alpha(0.35))
+                                            })
+                                            .when(is_selected, |el| {
+                                                el.bg(cx.theme().primary.alpha(0.18))
+                                            })
                                             .cursor_pointer()
                                             .on_mouse_down(
                                                 MouseButton::Left,
@@ -362,9 +310,7 @@ impl TrawlsDummy {
                                                     } else {
                                                         ("select-dark", ix)
                                                     })
-                                                    .checked(
-                                                        selected_paths.contains(row.path.as_str()),
-                                                    )
+                                                    .checked(is_selected)
                                                     .on_click(cx.listener({
                                                         let path = row.path.to_string();
                                                         move |this, checked, _, cx| {
@@ -403,7 +349,17 @@ impl TrawlsDummy {
                                                         })
                                                         .child(row.filename.clone()),
                                                 ),
-                                            )
+                                            );
+
+                                        if let Some(error) = &row.error {
+                                            return base
+                                                .child(
+                                                    div().w(px(error_col_w)).child(error.clone()),
+                                                )
+                                                .into_any_element();
+                                        }
+
+                                        base
                                             .child(
                                                 div()
                                                     .w(px(exposure_col_w))
