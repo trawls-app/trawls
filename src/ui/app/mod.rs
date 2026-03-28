@@ -3,7 +3,8 @@ use std::collections::HashSet;
 use gpui::{AppContext, Context, Entity, FocusHandle, ScrollHandle, SharedString, Window};
 use gpui_component::{VirtualListScrollHandle, input::InputState, scroll::ScrollbarState};
 
-use crate::ui::model::{FrameInfo, MergeMode, PreviewData, ProcessingMock, SortKey};
+use crate::processing::status::ProcessingCounters;
+use crate::ui::model::{FrameInfo, MergeMode, PreviewData, SortKey};
 
 mod logic;
 mod views;
@@ -20,7 +21,7 @@ pub struct TrawlsDummy {
     pub(crate) output_path: Option<SharedString>,
     pub(crate) output_input: Entity<InputState>,
     pub(crate) merge_mode: MergeMode,
-    pub(crate) processing: ProcessingMock,
+    pub(crate) processing: ProcessingCounters,
     pub(crate) processing_running: bool,
     pub(crate) preview: Option<PreviewData>,
     pub(crate) preview_zoom: f32,
@@ -47,7 +48,7 @@ impl TrawlsDummy {
             output_path: None,
             output_input,
             merge_mode: MergeMode::Normal,
-            processing: ProcessingMock::default(),
+            processing: ProcessingCounters::default(),
             processing_running: false,
             preview: None,
             preview_zoom: 1.0,

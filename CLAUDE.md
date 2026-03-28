@@ -39,7 +39,7 @@ Trawls-GPUI is a desktop application for merging astronomical startrail photogra
 - `app/mod.rs`: `TrawlsDummy` — single state root for the entire application. Holds lightframes, darkframes, processing counters, preview, and UI state. Mutations call `cx.notify()` to trigger re-renders.
 - `app/logic.rs`: Event handlers — file picking, async metadata loading, processing dispatch (both mock and real pipelines), preview zoom/pan, statistics computation. Implements `MetadataStatus` and `ProcessingStatus` traits.
 - `app/views/`: Rendering — `shell.rs` (sidebar + content layout), `steps.rs` (4-step workflow: lightframes → darkframes → processing → preview), `table.rs` (virtual-scrolling frame table).
-- `model.rs`: Shared data types (`FrameInfo`, `MergeMode`, `PreviewData`, `ProcessingMock`, `LightframeStats`).
+- `model.rs`: Shared data types (`FrameInfo`, `MergeMode`, `PreviewData`, `LightframeStats`).
 
 ### Key patterns
 

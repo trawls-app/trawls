@@ -2,7 +2,8 @@ use crate::processing::{
     interface::{ProcessingInput, ProcessingStartResult, Processor},
     status::{ProcessingCounters, ProcessingStatus},
 };
-use crate::ui::model::{PreviewData, PreviewImageSource, ProcessingMock};
+
+use crate::ui::model::{PreviewData, PreviewImageSource};
 
 pub static DUMMY_PROCESSOR: DummyProcessor = DummyProcessor;
 
@@ -14,7 +15,7 @@ impl Processor for DummyProcessor {
         if !issues.is_empty() {
             return ProcessingStartResult {
                 issues,
-                state: ProcessingMock::default(),
+                state: ProcessingCounters::default(),
                 preview: None,
             };
         }
@@ -43,7 +44,7 @@ pub enum ProcessingPhase {
 }
 
 impl DummyProcessor {
-    pub fn current_phase(&self, state: &ProcessingMock) -> ProcessingPhase {
+    pub fn current_phase(&self, state: &ProcessingCounters) -> ProcessingPhase {
         let loading_total = state.count_lights + state.count_darks;
         let merge_total =
             state.count_lights.saturating_sub(1) + state.count_darks.saturating_sub(1);
@@ -64,20 +65,13 @@ impl DummyProcessor {
         }
     }
 
-    pub fn emulate_step<S: ProcessingStatus>(&self, state: &mut ProcessingMock, status: &mut S) {
+    pub fn emulate_step<S: ProcessingStatus>(&self, state: &mut ProcessingCounters, status: &mut S) {
         let phase = self.current_phase(state);
         self.advance_phase(state, phase);
-        status.processing_updated(ProcessingCounters {
-            count_lights: state.count_lights,
-            count_darks: state.count_darks,
-            count_loaded: state.count_loaded,
-            count_loading: state.count_loading,
-            count_merged: state.count_merged,
-            count_merging: state.count_merging,
-        });
+        status.processing_updated(*state);
     }
 
-    fn advance_phase(&self, state: &mut ProcessingMock, phase: ProcessingPhase) {
+    fn advance_phase(&self, state: &mut ProcessingCounters, phase: ProcessingPhase) {
         let loading_total = state.count_lights + state.count_darks;
         let merge_total =
             state.count_lights.saturating_sub(1) + state.count_darks.saturating_sub(1);
@@ -123,10 +117,10 @@ fn readiness_issues(input: &ProcessingInput<'_>) -> Vec<String> {
     issues
 }
 
-fn initial_state(count_lights: usize, count_darks: usize) -> ProcessingMock {
+fn initial_state(count_lights: usize, count_darks: usize) -> ProcessingCounters {
     let loading_total = count_lights + count_darks;
 
-    ProcessingMock {
+    ProcessingCounters {
         count_lights,
         count_darks,
         count_loaded: 0,

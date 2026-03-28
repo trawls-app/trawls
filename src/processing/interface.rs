@@ -1,6 +1,7 @@
 use std::path::PathBuf;
 
-use crate::ui::model::{FrameInfo, PreviewData, ProcessingMock};
+use crate::processing::status::ProcessingCounters;
+use crate::ui::model::{FrameInfo, PreviewData};
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct FrameIdentifier(PathBuf);
@@ -37,7 +38,7 @@ pub struct ProcessingInput<'a> {
 
 pub struct ProcessingStartResult {
     pub issues: Vec<String>,
-    pub state: ProcessingMock,
+    pub state: ProcessingCounters,
     pub preview: Option<PreviewData>,
 }
 

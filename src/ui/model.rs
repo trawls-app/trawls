@@ -48,28 +48,6 @@ pub enum PreviewImageSource {
     FilePath(PathBuf),
 }
 
-#[derive(Clone)]
-pub struct ProcessingMock {
-    pub count_lights: usize,
-    pub count_darks: usize,
-    pub count_loaded: usize,
-    pub count_loading: usize,
-    pub count_merged: usize,
-    pub count_merging: usize,
-}
-
-impl Default for ProcessingMock {
-    fn default() -> Self {
-        Self {
-            count_lights: 0,
-            count_darks: 0,
-            count_loaded: 0,
-            count_loading: 0,
-            count_merged: 0,
-            count_merging: 0,
-        }
-    }
-}
 
 #[derive(Clone)]
 pub struct LightframeStats {

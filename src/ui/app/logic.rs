@@ -28,7 +28,7 @@ use crate::processing::{
 use crate::ui::{
     model::{
         FrameInfo, LargestGap, LightframeStats, MetadataStatus, PreviewData, PreviewImageSource,
-        ProcessingMock, SortKey,
+        SortKey,
     },
     samples::{MockFrameSeed, sample_darkframe_seeds, sample_lightframe_seeds},
 };
@@ -434,13 +434,10 @@ impl TrawlsDummy {
             crate::ui::model::MergeMode::Raising => Comets::Raising,
         };
 
-        self.processing = ProcessingMock {
+        self.processing = ProcessingCounters {
             count_lights: self.lightframes.len(),
             count_darks: self.darkframes.len(),
-            count_loaded: 0,
-            count_loading: 0,
-            count_merged: 0,
-            count_merging: 0,
+            ..Default::default()
         };
         self.processing_running = true;
         self.preview = None;
@@ -775,12 +772,7 @@ impl MetadataStatusSink for TrawlsDummy {
 
 impl ProcessingStatusSink for TrawlsDummy {
     fn processing_updated(&mut self, counters: ProcessingCounters) {
-        self.processing.count_lights = counters.count_lights;
-        self.processing.count_darks = counters.count_darks;
-        self.processing.count_loaded = counters.count_loaded;
-        self.processing.count_loading = counters.count_loading;
-        self.processing.count_merged = counters.count_merged;
-        self.processing.count_merging = counters.count_merging;
+        self.processing = counters;
     }
 }
 

@@ -1,7 +1,7 @@
 use crate::processing::interface::FrameIdentifier;
 use crate::processing::metadata::FrameMetadata;
 
-#[derive(Clone, Copy, Default)]
+#[derive(Clone, Copy, Default, Debug)]
 pub struct ProcessingCounters {
     pub count_lights: usize,
     pub count_darks: usize,
