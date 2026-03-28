@@ -10,3 +10,9 @@ gpui = "0.2.2"
 gpui-component = { path = "../gpui-component/crates/ui" }
 rust-embed = "8.5.0"
 rawler = { git = "https://github.com/trawls-app/dnglab" }
+image = "0.24.5"
+uuid = "1.22.0"
+num = "0.4.3"
+log = "0.4.29"
+pretty_env_logger = "0.5.0"
+rayon = "1.11.0"

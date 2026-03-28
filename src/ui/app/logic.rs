@@ -1,4 +1,9 @@
-use std::{path::PathBuf, time::Duration};
+use std::{
+    path::{Path, PathBuf},
+    sync::{Arc, Mutex, mpsc},
+    thread,
+    time::Duration,
+};
 
 use gpui::{
     Context, ParentElement as _, PathPromptOptions, Pixels, Point, Size, Styled as _, Timer,
@@ -13,6 +18,7 @@ use gpui_component::{
 use crate::processing::{
     dummy::{DUMMY_METADATA_PROCESSOR, DUMMY_PROCESSOR},
     interface::{FrameIdentifier, ProcessingInput, Processor},
+    merge::{Comets, run_merge},
     metadata::{FrameMetadata, FrameMetadataLoader, RawlerMetadataLoader},
     status::{
         MetadataStatus as MetadataStatusSink, ProcessingCounters,
@@ -20,7 +26,10 @@ use crate::processing::{
     },
 };
 use crate::ui::{
-    model::{FrameInfo, LargestGap, LightframeStats, MetadataStatus, SortKey},
+    model::{
+        FrameInfo, LargestGap, LightframeStats, MetadataStatus, PreviewData, PreviewImageSource,
+        ProcessingMock, SortKey,
+    },
     samples::{MockFrameSeed, sample_darkframe_seeds, sample_lightframe_seeds},
 };
 
@@ -102,17 +111,26 @@ impl TrawlsDummy {
     }
 
     pub(crate) fn choose_dummy_output(&mut self, window: &mut Window, cx: &mut Context<Self>) {
-        let next = if self.output_path.is_some() {
-            "~/Pictures/startrail_result.dng"
-        } else {
-            "~/Pictures/trawls_output.dng"
-        };
-
-        self.output_path = Some(next.into());
-        self.output_input.update(cx, |state, cx| {
-            state.set_value(next, window, cx);
-        });
-        cx.notify();
+        let default_dir = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
+        let path = cx.prompt_for_new_path(&default_dir, Some("trawls_output.dng"));
+        let view = cx.entity();
+        cx.spawn_in(window, async move |_, window| {
+            let path = path.await.ok()?.ok()??;
+            window
+                .update(|window, cx| {
+                    _ = view.update(cx, |this, cx| {
+                        let as_text = path.to_string_lossy().to_string();
+                        this.output_path = Some(as_text.clone().into());
+                        this.output_input.update(cx, |state, cx| {
+                            state.set_value(as_text, window, cx);
+                        });
+                        cx.notify();
+                    });
+                })
+                .ok();
+            Some(())
+        })
+        .detach();
     }
 
     pub(crate) fn clear_output(&mut self, window: &mut Window, cx: &mut Context<Self>) {
@@ -274,6 +292,16 @@ impl TrawlsDummy {
             return;
         }
 
+        let uses_mock_inputs = self
+            .lightframes
+            .iter()
+            .chain(self.darkframes.iter())
+            .all(|f| f.path.starts_with("/mock/"));
+        if !uses_mock_inputs {
+            self.run_real_processing(window, cx);
+            return;
+        }
+
         let result = DUMMY_PROCESSOR.start(ProcessingInput {
             lightframes: &self.lightframes,
             darkframes: &self.darkframes,
@@ -355,6 +383,135 @@ impl TrawlsDummy {
         .detach();
 
         window.push_notification("Dummy processing started.", cx);
+        cx.notify();
+    }
+
+    fn run_real_processing(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+        let output_path = match self.output_path.as_ref().map(|s| resolve_path(s.as_ref())) {
+            Some(path) => path,
+            None => {
+                window.push_notification("Select an output path first.", cx);
+                return;
+            }
+        };
+
+        if self
+            .lightframes
+            .iter()
+            .chain(self.darkframes.iter())
+            .any(|row| row.metadata_status == MetadataStatus::Pending)
+        {
+            window.push_notification("Metadata is still loading.", cx);
+            return;
+        }
+        if self
+            .lightframes
+            .iter()
+            .chain(self.darkframes.iter())
+            .any(|row| row.error.is_some())
+        {
+            window.push_notification("Some selected files have metadata errors.", cx);
+            return;
+        }
+        if self.lightframes.len() < 2 {
+            window.push_notification("Select at least two lightframes.", cx);
+            return;
+        }
+
+        let light_paths = self
+            .lightframes
+            .iter()
+            .map(|f| PathBuf::from(&f.path))
+            .collect::<Vec<_>>();
+        let dark_paths = self
+            .darkframes
+            .iter()
+            .map(|f| PathBuf::from(&f.path))
+            .collect::<Vec<_>>();
+        let mode = match self.merge_mode {
+            crate::ui::model::MergeMode::Normal => Comets::Normal,
+            crate::ui::model::MergeMode::Falling => Comets::Falling,
+            crate::ui::model::MergeMode::Raising => Comets::Raising,
+        };
+
+        self.processing = ProcessingMock {
+            count_lights: self.lightframes.len(),
+            count_darks: self.darkframes.len(),
+            count_loaded: 0,
+            count_loading: 0,
+            count_merged: 0,
+            count_merging: 0,
+        };
+        self.processing_running = true;
+        self.preview = None;
+        let viewport_size = window.viewport_size();
+        let view = cx.entity();
+        let (progress_tx, progress_rx) = mpsc::channel::<ProcessingCounters>();
+        let (done_tx, done_rx) = mpsc::channel::<anyhow::Result<PreviewData>>();
+
+        thread::spawn(move || {
+            let status = Arc::new(Mutex::new(ChannelProcessingStatus { tx: progress_tx }));
+            let result = run_merge(light_paths, dark_paths, mode, status).and_then(|image| {
+                let writer = image.get_image_writer()?;
+                writer.write_dng(output_path.clone())?;
+                let preview_path = output_path.with_extension("preview.jpg");
+                writer.write_preview_jpg(preview_path.clone())?;
+                let (width_px, height_px) = writer.preview_dimensions();
+                let exif = writer.preview_exif_summary();
+                Ok(PreviewData {
+                    image_source: PreviewImageSource::FilePath(preview_path),
+                    exif,
+                    width_px,
+                    height_px,
+                })
+            });
+            let _ = done_tx.send(result);
+        });
+
+        cx.spawn_in(window, async move |_, window| {
+            loop {
+                let mut latest = None;
+                while let Ok(counters) = progress_rx.try_recv() {
+                    latest = Some(counters);
+                }
+                if let Some(counters) = latest {
+                    _ = view.update_in(window, |this, _, cx| {
+                        this.processing_updated(counters);
+                        cx.notify();
+                    });
+                }
+
+                match done_rx.try_recv() {
+                    Ok(result) => {
+                        _ = view.update_in(window, |this, window, cx| {
+                            this.processing_running = false;
+                            match result {
+                                Ok(preview) => {
+                                    this.preview = Some(preview);
+                                    this.preview_zoom =
+                                        this.fit_preview_zoom_for_viewport(viewport_size);
+                                    this.active_step = 3;
+                                    window.push_notification("Processing finished.", cx);
+                                }
+                                Err(err) => {
+                                    this.preview = None;
+                                    window
+                                        .push_notification(format!("Processing failed: {err}"), cx);
+                                }
+                            }
+                            cx.notify();
+                        });
+                        break;
+                    }
+                    Err(mpsc::TryRecvError::Empty) => {}
+                    Err(mpsc::TryRecvError::Disconnected) => break,
+                }
+                Timer::after(Duration::from_millis(50)).await;
+            }
+        })
+        .detach();
+
+        window.push_notification("Processing started.", cx);
         cx.notify();
     }
 
@@ -627,6 +784,16 @@ impl ProcessingStatusSink for TrawlsDummy {
     }
 }
 
+struct ChannelProcessingStatus {
+    tx: mpsc::Sender<ProcessingCounters>,
+}
+
+impl ProcessingStatusSink for ChannelProcessingStatus {
+    fn processing_updated(&mut self, counters: ProcessingCounters) {
+        let _ = self.tx.send(counters);
+    }
+}
+
 fn frame_rank(frame: &FrameInfo) -> u8 {
     match frame.metadata_status {
         MetadataStatus::Failed => 0,
@@ -653,6 +820,15 @@ fn mock_metadata_delay_ms(path: &str, index: usize) -> u64 {
         hash = hash.wrapping_mul(1099511628211);
     }
     150 + ((hash.wrapping_add((index as u64) * 97)) % 850)
+}
+
+fn resolve_path(path: &str) -> PathBuf {
+    if let Some(stripped) = path.strip_prefix("~/") {
+        if let Ok(home) = std::env::var("HOME") {
+            return Path::new(&home).join(stripped);
+        }
+    }
+    PathBuf::from(path)
 }
 
 fn recompute_intervals(frames: &mut [FrameInfo]) {

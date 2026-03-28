@@ -1,4 +1,5 @@
 use chrono::NaiveDateTime;
+use std::path::PathBuf;
 
 #[derive(Clone)]
 pub struct FrameInfo {
@@ -35,10 +36,16 @@ pub enum MergeMode {
 
 #[derive(Clone)]
 pub struct PreviewData {
-    pub image_url: &'static str,
-    pub exif: &'static str,
+    pub image_source: PreviewImageSource,
+    pub exif: String,
     pub width_px: u32,
     pub height_px: u32,
+}
+
+#[derive(Clone)]
+pub enum PreviewImageSource {
+    Embedded(String),
+    FilePath(PathBuf),
 }
 
 #[derive(Clone)]

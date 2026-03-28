@@ -17,7 +17,7 @@ use gpui_component::{
 
 use crate::ui::{
     app::TrawlsDummy,
-    model::{LightframeStats, MergeMode},
+    model::{LightframeStats, MergeMode, PreviewImageSource},
 };
 
 impl TrawlsDummy {
@@ -736,9 +736,16 @@ impl TrawlsDummy {
                                 .size_full()
                                 .child(
                                     div().w(px(zoomed_w)).h(px(zoomed_h)).flex_shrink_0().child(
-                                        img(preview.image_url)
-                                            .size_full()
-                                            .object_fit(ObjectFit::Contain),
+                                        match &preview.image_source {
+                                            PreviewImageSource::Embedded(path) => img(path.clone())
+                                                .size_full()
+                                                .object_fit(ObjectFit::Contain)
+                                                .into_any_element(),
+                                            PreviewImageSource::FilePath(path) => img(path.clone())
+                                                .size_full()
+                                                .object_fit(ObjectFit::Contain)
+                                                .into_any_element(),
+                                        },
                                     ),
                                 ),
                         )
@@ -762,7 +769,7 @@ impl TrawlsDummy {
                     div()
                         .text_sm()
                         .text_color(cx.theme().muted_foreground)
-                        .child(preview.exif),
+                        .child(preview.exif.clone()),
                 );
         }
 

@@ -1,23 +1,25 @@
-use crate::anyhow::Context;
 use crate::program_description;
+use anyhow::Context;
 use std::io::Cursor;
 use std::{fs::File, path::PathBuf};
 
 use image::{DynamicImage, ImageBuffer, ImageFormat};
 use log::info;
 use rawler::{
+    RawImage, RawImageData,
     dng::{
         dngwriter::{
-            dng_put_preview, dng_put_raw_ljpeg, dng_put_thumbnail, fill_exif_ifd, fill_exif_root, matrix_to_tiff_value,
-            wbcoeff_to_tiff_value,
+            dng_put_preview, dng_put_raw_ljpeg, dng_put_thumbnail, fill_exif_ifd, fill_exif_root,
+            matrix_to_tiff_value, wbcoeff_to_tiff_value,
         },
         rect_to_dng_area,
     },
     exif::Exif,
-    formats::tiff::{CompressionMethod, DirectoryWriter, PhotometricInterpretation, Rational, TiffWriter},
-    imgop::{raw::develop_raw_srgb, rescale_f32_to_u16, xyz::Illuminant, Dim2, Point, Rect},
+    formats::tiff::{
+        CompressionMethod, DirectoryWriter, PhotometricInterpretation, Rational, TiffWriter,
+    },
+    imgop::{Dim2, Point, Rect, raw::develop_raw_srgb, rescale_f32_to_u16, xyz::Illuminant},
     tags::{DngTag, ExifTag, TiffCommonTag},
-    RawImage, RawImageData,
 };
 use uuid::Uuid;
 
@@ -44,7 +46,8 @@ impl ImageWriter {
         let (srgbf, dim) = develop_raw_srgb(buf, &params).unwrap(); // Use anyhow
         let output = rescale_f32_to_u16(&srgbf, 0, u16::MAX);
         let preview = DynamicImage::ImageRgb16(
-            ImageBuffer::from_raw(dim.w as u32, dim.h as u32, output).expect("Invalid ImageBuffer size"),
+            ImageBuffer::from_raw(dim.w as u32, dim.h as u32, output)
+                .expect("Invalid ImageBuffer size"),
         );
 
         Ok(Self {
@@ -57,8 +60,8 @@ impl ImageWriter {
     pub fn write_dng(&self, path: PathBuf) -> anyhow::Result<()> {
         info!("Writing DNG to {:?}...", path);
 
-        let mut output =
-            File::create(path.clone()).with_context(|| format!("Error while opening {:#?} for writing.", path))?;
+        let mut output = File::create(path.clone())
+            .with_context(|| format!("Error while opening {:#?} for writing.", path))?;
 
         let wb_coeff = wbcoeff_to_tiff_value(&self.raw_image);
 
@@ -81,9 +84,15 @@ impl ImageWriter {
         root_ifd.add_tag(DngTag::DNGBackwardVersion, &DNG_VERSION_V1_1[..])?;
         root_ifd.add_tag(TiffCommonTag::Make, self.raw_image.clean_make.as_str())?;
         root_ifd.add_tag(TiffCommonTag::Model, self.raw_image.clean_model.as_str())?;
-        let uq_model = format!("{} {}", self.raw_image.clean_make, self.raw_image.clean_model);
+        let uq_model = format!(
+            "{} {}",
+            self.raw_image.clean_make, self.raw_image.clean_model
+        );
         root_ifd.add_tag(DngTag::UniqueCameraModel, uq_model.as_str())?;
-        root_ifd.add_tag(ExifTag::ModifyDate, chrono::Local::now().format("%Y:%m:%d %H:%M:%S").to_string())?;
+        root_ifd.add_tag(
+            ExifTag::ModifyDate,
+            chrono::Local::now().format("%Y:%m:%d %H:%M:%S").to_string(),
+        )?;
 
         // Add matrix and illumninant
         let mut available_matrices = self.raw_image.color_matrix.clone();
@@ -94,14 +103,20 @@ impl ImageWriter {
                 .or_else(|| available_matrices.remove_entry(&first_key))
                 .expect("No matrix found");
             root_ifd.add_tag(DngTag::CalibrationIlluminant1, u16::from(first_matrix.0))?;
-            root_ifd.add_tag(DngTag::ColorMatrix1, matrix_to_tiff_value(&first_matrix.1, 10_000).as_slice())?;
+            root_ifd.add_tag(
+                DngTag::ColorMatrix1,
+                matrix_to_tiff_value(&first_matrix.1, 10_000).as_slice(),
+            )?;
 
             if let Some(second_matrix) = available_matrices
                 .remove_entry(&Illuminant::D65)
                 .or_else(|| available_matrices.remove_entry(&Illuminant::D50))
             {
                 root_ifd.add_tag(DngTag::CalibrationIlluminant2, u16::from(second_matrix.0))?;
-                root_ifd.add_tag(DngTag::ColorMatrix2, matrix_to_tiff_value(&second_matrix.1, 10_000).as_slice())?;
+                root_ifd.add_tag(
+                    DngTag::ColorMatrix2,
+                    matrix_to_tiff_value(&second_matrix.1, 10_000).as_slice(),
+                )?;
             }
         }
 
@@ -147,7 +162,10 @@ impl ImageWriter {
     }
 
     fn put_raw(&self, raw_ifd: &mut DirectoryWriter<'_, '_>) -> anyhow::Result<()> {
-        let full_size = Rect::new(Point::new(0, 0), Dim2::new(self.raw_image.width, self.raw_image.height));
+        let full_size = Rect::new(
+            Point::new(0, 0),
+            Dim2::new(self.raw_image.width, self.raw_image.height),
+        );
         let active_area = self.raw_image.active_area.unwrap_or(full_size);
 
         assert!(active_area.p.x + active_area.d.w <= self.raw_image.width);
@@ -164,23 +182,42 @@ impl ImageWriter {
         raw_ifd.add_tag(
             DngTag::DefaultScale,
             [
-                Rational::new(self.raw_image.camera.default_scale[0][0], self.raw_image.camera.default_scale[0][1]),
-                Rational::new(self.raw_image.camera.default_scale[1][0], self.raw_image.camera.default_scale[1][1]),
+                Rational::new(
+                    self.raw_image.camera.default_scale[0][0],
+                    self.raw_image.camera.default_scale[0][1],
+                ),
+                Rational::new(
+                    self.raw_image.camera.default_scale[1][0],
+                    self.raw_image.camera.default_scale[1][1],
+                ),
             ],
         )?;
         raw_ifd.add_tag(
             DngTag::BestQualityScale,
-            Rational::new(self.raw_image.camera.best_quality_scale[0], self.raw_image.camera.best_quality_scale[1]),
+            Rational::new(
+                self.raw_image.camera.best_quality_scale[0],
+                self.raw_image.camera.best_quality_scale[1],
+            ),
         )?;
 
         // Whitelevel
-        assert_eq!(self.raw_image.whitelevel.len(), self.raw_image.cpp, "Whitelevel sample count must match cpp");
+        assert_eq!(
+            self.raw_image.whitelevel.len(),
+            self.raw_image.cpp,
+            "Whitelevel sample count must match cpp"
+        );
         raw_ifd.add_tag(DngTag::WhiteLevel, &self.raw_image.whitelevel)?;
 
         // Blacklevel
-        let blacklevel = self.raw_image.blacklevel.shift(active_area.p.x, active_area.p.y);
+        let blacklevel = self
+            .raw_image
+            .blacklevel
+            .shift(active_area.p.x, active_area.p.y);
 
-        raw_ifd.add_tag(DngTag::BlackLevelRepeatDim, [blacklevel.height as u16, blacklevel.width as u16])?;
+        raw_ifd.add_tag(
+            DngTag::BlackLevelRepeatDim,
+            [blacklevel.height as u16, blacklevel.width as u16],
+        )?;
 
         assert!(
             blacklevel.sample_count() == self.raw_image.cpp
@@ -195,16 +232,27 @@ impl ImageWriter {
         }
 
         if !self.raw_image.blackareas.is_empty() {
-            let data: Vec<u16> = self.raw_image.blackareas.iter().flat_map(rect_to_dng_area).collect();
+            let data: Vec<u16> = self
+                .raw_image
+                .blackareas
+                .iter()
+                .flat_map(rect_to_dng_area)
+                .collect();
             raw_ifd.add_tag(DngTag::MaskedAreas, &data)?;
         }
-        raw_ifd.add_tag(TiffCommonTag::PhotometricInt, PhotometricInterpretation::CFA)?;
+        raw_ifd.add_tag(
+            TiffCommonTag::PhotometricInt,
+            PhotometricInterpretation::CFA,
+        )?;
         raw_ifd.add_tag(TiffCommonTag::SamplesPerPixel, 1_u16)?;
         raw_ifd.add_tag(TiffCommonTag::BitsPerSample, [16_u16])?;
 
         let cfa = self.raw_image.cfa.shift(active_area.p.x, active_area.p.y);
 
-        raw_ifd.add_tag(TiffCommonTag::CFARepeatPatternDim, [cfa.width as u16, cfa.height as u16])?;
+        raw_ifd.add_tag(
+            TiffCommonTag::CFARepeatPatternDim,
+            [cfa.width as u16, cfa.height as u16],
+        )?;
         raw_ifd.add_tag(TiffCommonTag::CFAPattern, &cfa.flat_pattern()[..])?;
         raw_ifd.add_tag(DngTag::CFALayout, 1_u16)?; // Square layout
 
@@ -235,5 +283,16 @@ impl ImageWriter {
         img.write_to(&mut cursor, ImageFormat::Jpeg)?;
 
         Ok(cursor.into_inner())
+    }
+
+    pub fn preview_dimensions(&self) -> (u32, u32) {
+        (self.preview.width(), self.preview.height())
+    }
+
+    pub fn preview_exif_summary(&self) -> String {
+        let iso = self.exif.iso_speed_ratings.unwrap_or_default();
+        let aperture = self.exif.fnumber.unwrap_or_default().as_f32();
+        let exposure_time = self.exif.exposure_time.unwrap_or_default().as_f32();
+        format!("ISO {iso}, f/{aperture:.1}, {exposure_time:.1}s")
     }
 }

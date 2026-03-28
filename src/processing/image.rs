@@ -1,19 +1,16 @@
 use anyhow;
 use log::info;
-use num::rational::Ratio;
 use num::ToPrimitive;
+use num::rational::Ratio;
 use rawler::decoders::RawDecodeParams;
 use rawler::formats::tiff;
-use rawler::{exif::Exif, RawFile, RawImage, RawImageData};
+use rawler::{RawFile, RawImage, RawImageData, exif::Exif};
 use std::cmp::max;
 use std::fs::File;
 use std::io::BufReader;
 use std::path::Path;
-use std::sync::{Arc, Mutex};
 
 use crate::processing::dng_writing::ImageWriter;
-
-use super::status;
 
 #[derive(Copy, Clone)]
 pub enum MergeMode {
@@ -22,7 +19,13 @@ pub enum MergeMode {
 }
 
 pub trait Mergable<Rhs = Self> {
-    fn weighted_merge(self, other: Rhs, weight_self: f32, weight_other: f32, mode: MergeMode) -> anyhow::Result<Rhs>;
+    fn weighted_merge(
+        self,
+        other: Rhs,
+        weight_self: f32,
+        weight_other: f32,
+        mode: MergeMode,
+    ) -> anyhow::Result<Rhs>;
     fn merge(self, other: Rhs, mode: MergeMode) -> anyhow::Result<Rhs>;
 }
 
@@ -61,16 +64,18 @@ impl Frame {
         }
     }
 
-    pub fn merge(self, other: Frame, state: Arc<Mutex<status::ProcessingStatus>>) -> anyhow::Result<Box<Frame>> {
+    pub fn merge(self, other: Frame) -> anyhow::Result<Box<Frame>> {
         let frame = Frame {
             lightframe: match (self.lightframe, other.lightframe) {
-                (Some(x), Some(y)) => Some(Frame::count_and_merge(x, y, MergeMode::Maximize, state.clone())?),
+                (Some(x), Some(y)) => Some(Frame::count_and_merge(x, y, MergeMode::Maximize)?),
                 (Some(x), None) => Some(x),
                 (None, Some(y)) => Some(y),
                 (None, None) => None,
             },
             darkframe: match (self.darkframe, other.darkframe) {
-                (Some(x), Some(y)) => Some(Frame::count_and_merge(x, y, MergeMode::WeightedAverage, state)?),
+                (Some(x), Some(y)) => {
+                    Some(Frame::count_and_merge(x, y, MergeMode::WeightedAverage)?)
+                }
                 (Some(x), None) => Some(x),
                 (None, Some(y)) => Some(y),
                 (None, None) => None,
@@ -80,16 +85,8 @@ impl Frame {
         Ok(Box::new(frame))
     }
 
-    fn count_and_merge(
-        x: Image,
-        y: Image,
-        mode: MergeMode,
-        state: Arc<Mutex<status::ProcessingStatus>>,
-    ) -> anyhow::Result<Image> {
-        state.lock().unwrap().start_merging();
+    fn count_and_merge(x: Image, y: Image, mode: MergeMode) -> anyhow::Result<Image> {
         let image = x.merge(y, mode);
-        state.lock().unwrap().finish_merging();
-
         image
     }
 }
@@ -113,7 +110,8 @@ impl Image {
 
         let light = self.get_image_data()?;
         let dark = darkframe.get_image_data()?;
-        let avg_black = (dark.iter().fold(0u64, |acc, x| acc + *x as u64) / dark.len() as u64) as i16;
+        let avg_black =
+            (dark.iter().fold(0u64, |acc, x| acc + *x as u64) / dark.len() as u64) as i16;
 
         let res = light
             .iter()
@@ -172,10 +170,12 @@ impl Image {
         // Apply intensity if applicable
         if (intensity - 1.0).abs() > 0.001 {
             raw_image.data = match raw_image.data {
-                RawImageData::Integer(d) => {
-                    RawImageData::Integer(d.iter().map(|x| (*x as f32 * intensity) as u16).collect())
+                RawImageData::Integer(d) => RawImageData::Integer(
+                    d.iter().map(|x| (*x as f32 * intensity) as u16).collect(),
+                ),
+                RawImageData::Float(d) => {
+                    RawImageData::Float(d.iter().map(|x| (*x as f32 * intensity)).collect())
                 }
-                RawImageData::Float(d) => RawImageData::Float(d.iter().map(|x| (*x as f32 * intensity)).collect()),
             };
         }
 
@@ -192,12 +192,23 @@ impl Image {
 }
 
 impl Mergable for Image {
-    fn weighted_merge(self, other: Self, weight_self: f32, weight_other: f32, mode: MergeMode) -> anyhow::Result<Self> {
+    fn weighted_merge(
+        self,
+        other: Self,
+        weight_self: f32,
+        weight_other: f32,
+        mode: MergeMode,
+    ) -> anyhow::Result<Self> {
         let img = Image {
-            raw_image: self
-                .raw_image
-                .weighted_merge(other.raw_image, weight_self, weight_other, mode)?,
-            exif: self.exif.weighted_merge(other.exif, weight_self, weight_other, mode)?,
+            raw_image: self.raw_image.weighted_merge(
+                other.raw_image,
+                weight_self,
+                weight_other,
+                mode,
+            )?,
+            exif: self
+                .exif
+                .weighted_merge(other.exif, weight_self, weight_other, mode)?,
             num_images: self.num_images + other.num_images,
         };
 
@@ -209,13 +220,21 @@ impl Mergable for Image {
         let weight_other = other.num_images as f32;
         match mode {
             MergeMode::Maximize => self.weighted_merge(other, 1.0, 1.0, mode),
-            MergeMode::WeightedAverage => self.weighted_merge(other, weight_self, weight_other, mode),
+            MergeMode::WeightedAverage => {
+                self.weighted_merge(other, weight_self, weight_other, mode)
+            }
         }
     }
 }
 
 impl Mergable for RawImage {
-    fn weighted_merge(self, other: Self, weight_self: f32, weight_other: f32, mode: MergeMode) -> anyhow::Result<Self> {
+    fn weighted_merge(
+        self,
+        other: Self,
+        weight_self: f32,
+        weight_other: f32,
+        mode: MergeMode,
+    ) -> anyhow::Result<Self> {
         anyhow::ensure!(
             self.width == other.width && self.height == other.height && self.cpp == other.cpp,
             "Images to merge have different dimensions"
@@ -237,7 +256,8 @@ impl Mergable for RawImage {
             .map(|(x, y)| match mode {
                 MergeMode::Maximize => max(*x, y),
                 MergeMode::WeightedAverage => {
-                    ((*x as f32 * weight_self + y as f32 * weight_other) / (weight_self + weight_other)) as u16
+                    ((*x as f32 * weight_self + y as f32 * weight_other)
+                        / (weight_self + weight_other)) as u16
                 }
             })
             .collect();
@@ -303,12 +323,21 @@ impl Mergable for Exif {
             exposure_program: equal_exif_entry(self.exposure_program, other.exposure_program),
             timezone_offset: equal_exif_entry(self.timezone_offset, other.timezone_offset),
             offset_time: equal_exif_entry(self.offset_time, other.offset_time),
-            offset_time_original: equal_exif_entry(self.offset_time_original, other.offset_time_original),
-            offset_time_digitized: equal_exif_entry(self.offset_time_digitized, other.offset_time_digitized),
+            offset_time_original: equal_exif_entry(
+                self.offset_time_original,
+                other.offset_time_original,
+            ),
+            offset_time_digitized: equal_exif_entry(
+                self.offset_time_digitized,
+                other.offset_time_digitized,
+            ),
             sub_sec_time: None,
             sub_sec_time_original: None,
             sub_sec_time_digitized: None,
-            shutter_speed_value: equal_exif_entry(self.shutter_speed_value, other.shutter_speed_value),
+            shutter_speed_value: equal_exif_entry(
+                self.shutter_speed_value,
+                other.shutter_speed_value,
+            ),
             max_aperture_value: equal_exif_entry(self.max_aperture_value, other.max_aperture_value),
             subject_distance: equal_exif_entry(self.subject_distance, other.subject_distance),
             metering_mode: equal_exif_entry(self.metering_mode, other.metering_mode),
@@ -321,7 +350,10 @@ impl Mergable for Exif {
             exposure_mode: equal_exif_entry(self.exposure_mode, other.exposure_mode),
             white_balance: equal_exif_entry(self.white_balance, other.white_balance),
             scene_capture_type: equal_exif_entry(self.scene_capture_type, other.scene_capture_type),
-            subject_distance_range: equal_exif_entry(self.subject_distance_range, other.subject_distance_range),
+            subject_distance_range: equal_exif_entry(
+                self.subject_distance_range,
+                other.subject_distance_range,
+            ),
             owner_name: equal_exif_entry(self.owner_name, other.owner_name),
             serial_number: equal_exif_entry(self.serial_number, other.serial_number),
             lens_serial_number: equal_exif_entry(self.lens_serial_number, other.lens_serial_number),
@@ -336,7 +368,10 @@ impl Mergable for Exif {
     }
 }
 
-fn add_tiff_rational(entry1: Option<tiff::Rational>, entry2: Option<tiff::Rational>) -> Option<tiff::Rational> {
+fn add_tiff_rational(
+    entry1: Option<tiff::Rational>,
+    entry2: Option<tiff::Rational>,
+) -> Option<tiff::Rational> {
     if entry1.is_none() || entry2.is_none() {
         return None;
     }
@@ -347,7 +382,10 @@ fn add_tiff_rational(entry1: Option<tiff::Rational>, entry2: Option<tiff::Ration
     let res = Ratio::new(x1.n, x1.d) + Ratio::new(x2.n, x2.d);
     let res = res.reduced();
 
-    Some(tiff::Rational::new(res.numer().to_u32().unwrap(), res.denom().to_u32().unwrap()))
+    Some(tiff::Rational::new(
+        res.numer().to_u32().unwrap(),
+        res.denom().to_u32().unwrap(),
+    ))
 }
 
 fn equal_exif_entry<T: std::cmp::PartialEq>(entry1: Option<T>, entry2: Option<T>) -> Option<T> {

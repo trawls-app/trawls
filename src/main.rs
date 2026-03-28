@@ -5,7 +5,12 @@ use gpui::{AppContext, Application, WindowOptions, px};
 use gpui_component::{Root, Theme, ThemeMode, TitleBar};
 use ui::{app::TrawlsDummy, assets::Assets};
 
+fn program_description() -> String {
+    format!("{} v{}", env!("CARGO_PKG_NAME"), env!("CARGO_PKG_VERSION"))
+}
+
 fn main() {
+    pretty_env_logger::init();
     let app = Application::new().with_assets(Assets);
 
     app.run(move |cx| {
