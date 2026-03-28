@@ -41,12 +41,15 @@ impl Trawls {
         } else {
             None
         };
+        let has_error_warning = Self::error_warning(&rows);
+        let has_setting_warning = Self::camera_setting_warning(&rows);
+        let has_interval_warning = is_light && Self::interval_warning(&rows);
 
         v_flex()
             .h_full()
             .min_h_0()
             .gap_4()
-            .when(Self::error_warning(&rows), |this| {
+            .when(has_error_warning, |this| {
                 this.child(
                     Alert::warning(
                         light_dark(is_light, "warn-light-error", "warn-dark-error"),
@@ -55,7 +58,7 @@ impl Trawls {
                     .banner(),
                 )
             })
-            .when(Self::camera_setting_warning(&rows), |this| {
+            .when(has_setting_warning, |this| {
                 this.child(
                     Alert::warning(
                         light_dark(is_light, "warn-light-settings", "warn-dark-settings"),
@@ -64,7 +67,7 @@ impl Trawls {
                     .banner(),
                 )
             })
-            .when(is_light && Self::interval_warning(&rows), |this| {
+            .when(has_interval_warning, |this| {
                 this.child(
                     Alert::warning(
                         "warn-light-interval",
@@ -122,7 +125,7 @@ impl Trawls {
             .when_some(light_stats, |this, stats| {
                 this.child(self.render_lightframe_stats(stats, cx))
             })
-            .child(self.render_frame_table(&rows, is_light, is_light, cx))
+            .child(self.render_frame_table(rows, is_light, is_light, cx))
             .into_any_element()
     }
 

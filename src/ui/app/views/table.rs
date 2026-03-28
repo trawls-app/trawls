@@ -24,7 +24,7 @@ use super::light_dark;
 impl Trawls {
     pub(crate) fn render_frame_table(
         &self,
-        rows: &[FrameInfo],
+        rows: Vec<FrameInfo>,
         show_interval: bool,
         is_light: bool,
         cx: &mut Context<Self>,
@@ -58,7 +58,7 @@ impl Trawls {
                 .into_any_element();
         }
 
-        let threshold = Self::interval_warning_threshold(rows).unwrap_or(9999.0);
+        let threshold = Self::interval_warning_threshold(&rows).unwrap_or(9999.0);
         let filename_col_w = rows
             .iter()
             .map(|row| row.filename.len() as f32 * 8.0 + 56.0)
@@ -92,7 +92,7 @@ impl Trawls {
             self.dark_sort
         };
         let selected_paths = self.selected_paths(is_light);
-        let visible_paths: Vec<String> = rows.iter().map(|row| row.path.to_string()).collect();
+        let visible_paths: Rc<Vec<String>> = Rc::new(rows.iter().map(|row| row.path.clone()).collect());
         let selected_visible_count = rows
             .iter()
             .filter(|row| selected_paths.contains(row.path.as_str()))
@@ -108,12 +108,9 @@ impl Trawls {
         } else {
             "Time"
         };
-        let rows_vec = rows.to_vec();
-        let item_sizes = Rc::new(
-            (0..rows_vec.len())
-                .map(|_| size(px(table_total_w), px(44.0)))
-                .collect::<Vec<_>>(),
-        );
+        let row_count = rows.len();
+        let rows_rc = Rc::new(rows);
+        let item_sizes = Rc::new(vec![size(px(table_total_w), px(44.0)); row_count]);
 
         v_flex()
             .w_full()
@@ -143,7 +140,7 @@ impl Trawls {
                                 .on_click(cx.listener({
                                     let visible_paths = visible_paths.clone();
                                     move |this, _, _, cx| {
-                                        for path in &visible_paths {
+                                        for path in visible_paths.iter() {
                                             this.set_selection(path, is_light, true);
                                         }
                                         cx.notify();
@@ -204,7 +201,7 @@ impl Trawls {
                             .on_click(cx.listener({
                                 let visible_paths = visible_paths.clone();
                                 move |this, checked, _, cx| {
-                                    for path in &visible_paths {
+                                    for path in visible_paths.iter() {
                                         this.set_selection(path, is_light, *checked);
                                     }
                                     cx.notify();
@@ -269,7 +266,7 @@ impl Trawls {
                             move |this, visible_range, _, cx| {
                                 visible_range
                                     .map(|ix| {
-                                        let row = &rows_vec[ix];
+                                        let row = &rows_rc[ix];
                                         let selected_paths = this.selected_paths(is_light);
                                         let is_selected = selected_paths.contains(row.path.as_str());
                                         let has_error = row.error.is_some();
