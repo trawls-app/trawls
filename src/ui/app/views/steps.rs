@@ -1,6 +1,5 @@
 use gpui::{
-    Context, InteractiveElement as _, IntoElement, Keystroke, MouseButton, ObjectFit,
-    ParentElement as _, ScrollDelta, ScrollWheelEvent, StatefulInteractiveElement as _,
+    Context, InteractiveElement as _, IntoElement, MouseButton, ObjectFit, ParentElement as _,
     Styled as _, StyledImage as _, div, img, prelude::FluentBuilder as _, px,
 };
 use gpui_component::{
@@ -9,9 +8,7 @@ use gpui_component::{
     button::{Button, ButtonVariants as _},
     h_flex,
     input::Input,
-    kbd::Kbd,
     progress::Progress,
-    scroll::{Scrollbar, ScrollbarShow},
     v_flex,
 };
 
@@ -21,6 +18,7 @@ use crate::ui::{
 };
 
 use super::{format_duration, format_file_size, light_dark};
+use super::image_viewer::{ImageViewerParams, render_image_viewer};
 
 impl Trawls {
     pub(crate) fn render_image_step(
@@ -494,177 +492,54 @@ impl Trawls {
 
     pub(crate) fn render_preview_step(&self, cx: &mut Context<Self>) -> impl IntoElement {
         if let Some(preview) = &self.preview {
-            let zoomed_w = preview.width_px as f32 * self.preview_zoom;
-            let zoomed_h = preview.height_px as f32 * self.preview_zoom;
-            return v_flex()
-                .w_full()
-                .h_full()
-                .gap_3()
-                .p_3()
-                .rounded(cx.theme().radius)
-                .bg(cx.theme().sidebar.alpha(0.45))
-                .border_1()
-                .border_color(cx.theme().border)
-                .child(
-                    h_flex()
-                        .justify_between()
-                        .items_center()
-                        .gap_2()
-                        .child(
-                            h_flex()
-                                .gap_2()
-                                .items_center()
-                                .child(
-                                    Button::new("preview-zoom-out")
-                                        .small()
-                                        .icon(IconName::Minus)
-                                        .label("Zoom out")
-                                        .on_click(cx.listener(|this, _, _, cx| {
-                                            this.zoom_preview(false, cx);
-                                        })),
-                                )
-                                .child(
-                                    Button::new("preview-zoom-fit")
-                                        .small()
-                                        .label("Fit to screen")
-                                        .on_click(cx.listener(|this, _, window, cx| {
-                                            this.fit_preview_to_window(window, cx);
-                                        })),
-                                )
-                                .child(
-                                    Button::new("preview-zoom-reset")
-                                        .small()
-                                        .label("Reset")
-                                        .on_click(cx.listener(|this, _, _, cx| {
-                                            this.set_preview_zoom(1.0, cx);
-                                        })),
-                                )
-                                .child(
-                                    Button::new("preview-zoom-in")
-                                        .small()
-                                        .icon(IconName::Plus)
-                                        .label("Zoom in")
-                                        .on_click(cx.listener(|this, _, _, cx| {
-                                            this.zoom_preview(true, cx);
-                                        })),
-                                ),
-                        )
-                        .child(
-                            h_flex()
-                                .gap_1()
-                                .items_center()
-                                .text_xs()
-                                .text_color(cx.theme().muted_foreground)
-                                .child("Hint: hold")
-                                .child(Kbd::new(
-                                    Keystroke::parse(if cfg!(target_os = "macos") {
-                                        "cmd"
-                                    } else {
-                                        "ctrl"
-                                    })
-                                    .expect("valid keystroke"),
-                                ))
-                                .child("and scroll to zoom."),
-                        )
-                        .child(
-                            div()
-                                .text_sm()
-                                .text_color(cx.theme().muted_foreground)
-                                .child(format!("{:.0}%", self.preview_zoom * 100.0)),
-                        ),
-                )
-                .child(
-                    v_flex()
-                        .id("preview-image-panel")
-                        .relative()
-                        .flex_1()
-                        .min_h_0()
-                        .w_full()
-                        .scrollbar_width(px(12.0))
-                        .on_scroll_wheel(cx.listener(
-                            |this, event: &ScrollWheelEvent, window, cx| {
-                                if !event.modifiers.secondary() {
-                                    return;
-                                }
-
-                                let delta_y = match event.delta {
-                                    ScrollDelta::Pixels(delta) => f32::from(delta.y),
-                                    ScrollDelta::Lines(delta) => delta.y * 16.0,
-                                };
-
-                                if delta_y < 0.0 {
-                                    this.zoom_preview_at_cursor(event.position, true, window, cx);
-                                } else if delta_y > 0.0 {
-                                    this.zoom_preview_at_cursor(event.position, false, window, cx);
-                                }
-
-                                cx.stop_propagation();
-                            },
-                        ))
-                        .child(
-                            div()
-                                .id("preview-image-scroll-content")
-                                .track_scroll(&self.preview_scroll_handle)
-                                .overflow_x_scroll()
-                                .overflow_y_scroll()
-                                .size_full()
-                                .child(
-                                    div().w(px(zoomed_w)).h(px(zoomed_h)).flex_shrink_0().child(
-                                        img(preview.image_path.clone())
-                                            .size_full()
-                                            .object_fit(ObjectFit::Contain),
-                                    ),
-                                ),
-                        )
-                        .child(
-                            div()
-                                .absolute()
-                                .top_0()
-                                .left_0()
-                                .right_0()
-                                .bottom_0()
-                                .child(
-                                    Scrollbar::both(
-                                        &self.preview_scroll_state,
-                                        &self.preview_scroll_handle,
-                                    )
-                                    .scrollbar_show(ScrollbarShow::Always),
-                                ),
-                        ),
-                )
-                .child(
-                    h_flex()
-                        .gap_4()
-                        .text_sm()
-                        .text_color(cx.theme().muted_foreground)
-                        .child(preview.exif.clone())
-                        .child(format!(
-                            "{} frames",
-                            preview.frame_count,
-                        ))
-                        .child(format!(
-                            "Total exposure: {}",
-                            format_duration(preview.total_exposure_seconds),
-                        ))
-                        .child(format!("Mode: {}", preview.merge_mode.label()))
-                        .when(preview.output_file_size > 0, |el| {
-                            el.child(format!(
-                                "Output: {}",
-                                format_file_size(preview.output_file_size),
-                            ))
-                        }),
-                );
-        }
-
-        v_flex().gap_3().child(
-            h_flex()
-                .gap_2()
-                .items_center()
+            let info_bar = h_flex()
+                .gap_4()
                 .text_sm()
                 .text_color(cx.theme().muted_foreground)
-                .child(Icon::new(IconName::Info).small())
-                .child("Run a merge in step 3 to generate a preview."),
-        )
+                .child(preview.exif.clone())
+                .child(format!("{} frames", preview.frame_count))
+                .child(format!(
+                    "Total exposure: {}",
+                    format_duration(preview.total_exposure_seconds),
+                ))
+                .child(format!("Mode: {}", preview.merge_mode.label()))
+                .when(preview.output_file_size > 0, |el| {
+                    el.child(format!(
+                        "Output: {}",
+                        format_file_size(preview.output_file_size),
+                    ))
+                });
+
+            return render_image_viewer(
+                ImageViewerParams {
+                    id_prefix: "result-preview",
+                    image_source: img(preview.image_path.clone())
+                        .size_full()
+                        .object_fit(ObjectFit::Contain)
+                        .into_any_element(),
+                    image_width: preview.width_px,
+                    image_height: preview.height_px,
+                    info_bar: Some(info_bar.into_any_element()),
+                    left_header: None,
+                },
+                &self.preview_viewer,
+                |t| &mut t.preview_viewer,
+                cx,
+            );
+        }
+
+        v_flex()
+            .gap_3()
+            .child(
+                h_flex()
+                    .gap_2()
+                    .items_center()
+                    .text_sm()
+                    .text_color(cx.theme().muted_foreground)
+                    .child(Icon::new(IconName::Info).small())
+                    .child("Run a merge in step 3 to generate a preview."),
+            )
+            .into_any_element()
     }
 
     fn render_frame_preview(&self, cx: &mut Context<Self>) -> gpui::AnyElement {
@@ -688,134 +563,43 @@ impl Trawls {
             return div().into_any_element();
         };
 
-        let zoomed_w = preview.width_px as f32 * self.frame_preview_zoom;
-        let zoomed_h = preview.height_px as f32 * self.frame_preview_zoom;
+        let left_header = h_flex()
+            .gap_2()
+            .items_center()
+            .child(
+                Button::new("frame-preview-close")
+                    .small()
+                    .icon(IconName::ArrowLeft)
+                    .label("Back")
+                    .on_click(cx.listener(|this, _, _, cx| {
+                        this.close_frame_preview(cx);
+                    })),
+            )
+            .child(div().font_semibold().child(preview.filename.clone()));
 
-        v_flex()
-            .w_full()
-            .h_full()
-            .gap_3()
-            .child(
-                h_flex()
-                    .justify_between()
-                    .items_center()
-                    .gap_2()
-                    .child(
-                        h_flex()
-                            .gap_2()
-                            .items_center()
-                            .child(
-                                Button::new("frame-preview-close")
-                                    .small()
-                                    .icon(IconName::ArrowLeft)
-                                    .label("Back")
-                                    .on_click(cx.listener(|this, _, _, cx| {
-                                        this.close_frame_preview(cx);
-                                    })),
-                            )
-                            .child(
-                                div()
-                                    .font_semibold()
-                                    .child(preview.filename.clone()),
-                            ),
-                    )
-                    .child(
-                        h_flex()
-                            .gap_2()
-                            .items_center()
-                            .child(
-                                Button::new("frame-preview-zoom-out")
-                                    .small()
-                                    .icon(IconName::Minus)
-                                    .on_click(cx.listener(|this, _, _, cx| {
-                                        this.frame_preview_zoom = (this.frame_preview_zoom / 1.25).max(0.02);
-                                        cx.notify();
-                                    })),
-                            )
-                            .child(
-                                Button::new("frame-preview-zoom-fit")
-                                    .small()
-                                    .label("Fit")
-                                    .on_click(cx.listener(|this, _, window, cx| {
-                                        if let Some(preview) = &this.frame_preview {
-                                            let vp = window.viewport_size();
-                                            let available_w = (f32::from(vp.width) - 360.0).max(220.0);
-                                            let available_h = (f32::from(vp.height) - 250.0).max(180.0);
-                                            let zoom_w = available_w / preview.width_px as f32;
-                                            let zoom_h = available_h / preview.height_px as f32;
-                                            this.frame_preview_zoom = zoom_w.min(zoom_h).clamp(0.02, 8.0);
-                                        }
-                                        cx.notify();
-                                    })),
-                            )
-                            .child(
-                                Button::new("frame-preview-zoom-in")
-                                    .small()
-                                    .icon(IconName::Plus)
-                                    .on_click(cx.listener(|this, _, _, cx| {
-                                        this.frame_preview_zoom = (this.frame_preview_zoom * 1.25).min(8.0);
-                                        cx.notify();
-                                    })),
-                            )
-                            .child(
-                                div()
-                                    .text_sm()
-                                    .text_color(cx.theme().muted_foreground)
-                                    .child(format!("{:.0}%", self.frame_preview_zoom * 100.0)),
-                            ),
-                    ),
-            )
-            .child(
-                v_flex()
-                    .id("frame-preview-panel")
-                    .relative()
-                    .flex_1()
-                    .min_h_0()
-                    .w_full()
-                    .child(
-                        div()
-                            .id("frame-preview-scroll-content")
-                            .track_scroll(&self.frame_preview_scroll_handle)
-                            .overflow_x_scroll()
-                            .overflow_y_scroll()
-                            .size_full()
-                            .child(
-                                div()
-                                    .w(px(zoomed_w))
-                                    .h(px(zoomed_h))
-                                    .flex_shrink_0()
-                                    .child(
-                                        img(preview.image.clone())
-                                            .size_full()
-                                            .object_fit(ObjectFit::Contain),
-                                    ),
-                            ),
-                    )
-                    .child(
-                        div()
-                            .absolute()
-                            .top_0()
-                            .left_0()
-                            .right_0()
-                            .bottom_0()
-                            .child(
-                                Scrollbar::both(
-                                    &self.frame_preview_scroll_state,
-                                    &self.frame_preview_scroll_handle,
-                                )
-                                .scrollbar_show(ScrollbarShow::Always),
-                            ),
-                    ),
-            )
-            .child(
-                div()
-                    .text_sm()
-                    .text_color(cx.theme().muted_foreground)
-                    .child(format!(
-                        "{}  |  {}x{}",
-                        preview.exif_summary, preview.width_px, preview.height_px
-                    )),
-            )
-            .into_any_element()
+        let info_bar = div()
+            .text_sm()
+            .text_color(cx.theme().muted_foreground)
+            .child(format!(
+                "{}  |  {}x{}",
+                preview.exif_summary, preview.width_px, preview.height_px
+            ));
+
+        render_image_viewer(
+            ImageViewerParams {
+                id_prefix: "frame-preview",
+                image_source: img(preview.image.clone())
+                    .size_full()
+                    .object_fit(ObjectFit::Contain)
+                    .into_any_element(),
+                image_width: preview.width_px,
+                image_height: preview.height_px,
+                info_bar: Some(info_bar.into_any_element()),
+                left_header: Some(left_header.into_any_element()),
+            },
+            &self.frame_preview_viewer,
+            |t| &mut t.frame_preview_viewer,
+            cx,
+        )
     }
 }

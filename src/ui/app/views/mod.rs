@@ -1,3 +1,4 @@
+pub(crate) mod image_viewer;
 mod shell;
 mod steps;
 mod table;

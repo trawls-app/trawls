@@ -5,7 +5,7 @@ use std::{
     time::Duration,
 };
 
-use gpui::{Context, PathPromptOptions, Pixels, Point, Size, Timer, Window, point, px};
+use gpui::{Context, PathPromptOptions, Timer, Window};
 use gpui_component::WindowExt as _;
 
 use crate::processing::{
@@ -24,9 +24,6 @@ use crate::ui::{
 };
 
 use super::Trawls;
-
-const MIN_PREVIEW_ZOOM: f32 = 0.02;
-const MAX_PREVIEW_ZOOM: f32 = 8.0;
 
 impl Trawls {
     pub(crate) fn sorted_frames(frames: &[FrameInfo], sort: SortKey) -> Vec<FrameInfo> {
@@ -175,7 +172,7 @@ impl Trawls {
 
         self.frame_preview = None;
         self.frame_preview_loading = true;
-        self.frame_preview_zoom = 1.0;
+        self.frame_preview_viewer = Default::default();
         let viewport_size = window.viewport_size();
         cx.notify();
 
@@ -191,11 +188,11 @@ impl Trawls {
             let _ = this.update(cx, |this, cx| {
                 this.frame_preview_loading = false;
                 if let Ok(preview) = result {
-                    let available_w = (f32::from(viewport_size.width) - 360.0).max(220.0);
-                    let available_h = (f32::from(viewport_size.height) - 250.0).max(180.0);
-                    let zoom_w = available_w / preview.width_px as f32;
-                    let zoom_h = available_h / preview.height_px as f32;
-                    this.frame_preview_zoom = zoom_w.min(zoom_h).clamp(0.02, 8.0);
+                    this.frame_preview_viewer.fit_to_viewport(
+                        viewport_size,
+                        preview.width_px,
+                        preview.height_px,
+                    );
 
                     this.frame_preview = Some(crate::ui::model::FramePreview {
                         filename,
@@ -499,9 +496,12 @@ impl Trawls {
                             this.processing_running = false;
                             match result {
                                 Ok(preview) => {
+                                    this.preview_viewer.fit_to_viewport(
+                                        viewport_size,
+                                        preview.width_px,
+                                        preview.height_px,
+                                    );
                                     this.preview = Some(preview);
-                                    this.preview_zoom =
-                                        this.fit_preview_zoom_for_viewport(viewport_size);
                                     this.active_step = 3;
                                     window.push_notification("Processing finished.", cx);
                                 }
@@ -525,83 +525,6 @@ impl Trawls {
 
         window.push_notification("Processing started.", cx);
         cx.notify();
-    }
-
-    pub(crate) fn set_preview_zoom(&mut self, zoom: f32, cx: &mut Context<Self>) {
-        self.preview_zoom = zoom.clamp(MIN_PREVIEW_ZOOM, MAX_PREVIEW_ZOOM);
-        cx.notify();
-    }
-
-    pub(crate) fn zoom_preview(&mut self, zoom_in: bool, cx: &mut Context<Self>) {
-        self.set_preview_zoom(self.next_preview_zoom(zoom_in), cx);
-    }
-
-    pub(crate) fn zoom_preview_at_cursor(
-        &mut self,
-        cursor: Point<Pixels>,
-        zoom_in: bool,
-        window: &mut Window,
-        cx: &mut Context<Self>,
-    ) {
-        let old_zoom = self.preview_zoom;
-        let new_zoom = self.next_preview_zoom(zoom_in);
-        if (new_zoom - old_zoom).abs() < f32::EPSILON {
-            return;
-        }
-
-        let viewport_bounds = self.preview_scroll_handle.bounds();
-        let old_offset = self.preview_scroll_handle.offset();
-
-        let local_x = (f32::from(cursor.x) - f32::from(viewport_bounds.origin.x))
-            .clamp(0.0, f32::from(viewport_bounds.size.width));
-        let local_y = (f32::from(cursor.y) - f32::from(viewport_bounds.origin.y))
-            .clamp(0.0, f32::from(viewport_bounds.size.height));
-
-        let offset_x = f32::from(old_offset.x);
-        let offset_y = f32::from(old_offset.y);
-        let scale = new_zoom / old_zoom.max(0.0001);
-
-        let target_offset = point(
-            px(offset_x * scale + local_x * (1.0 - scale)),
-            px(offset_y * scale + local_y * (1.0 - scale)),
-        );
-
-        self.preview_zoom = new_zoom;
-        self.preview_scroll_handle.set_offset(target_offset);
-        window.defer(cx, {
-            let handle = self.preview_scroll_handle.clone();
-            move |_, _| {
-                handle.set_offset(target_offset);
-            }
-        });
-        cx.notify();
-    }
-
-    pub(crate) fn fit_preview_to_window(&mut self, window: &Window, cx: &mut Context<Self>) {
-        self.preview_zoom = self.fit_preview_zoom_for_viewport(window.viewport_size());
-        cx.notify();
-    }
-
-    fn fit_preview_zoom_for_viewport(&self, viewport: Size<Pixels>) -> f32 {
-        let Some(preview) = &self.preview else {
-            return 1.0;
-        };
-
-        let available_w = (f32::from(viewport.width) - 360.0).max(220.0);
-        let available_h = (f32::from(viewport.height) - 250.0).max(180.0);
-
-        let zoom_w = available_w / preview.width_px as f32;
-        let zoom_h = available_h / preview.height_px as f32;
-        zoom_w.min(zoom_h).clamp(MIN_PREVIEW_ZOOM, MAX_PREVIEW_ZOOM)
-    }
-
-    fn next_preview_zoom(&self, zoom_in: bool) -> f32 {
-        if zoom_in {
-            self.preview_zoom * 1.25
-        } else {
-            self.preview_zoom / 1.25
-        }
-        .clamp(MIN_PREVIEW_ZOOM, MAX_PREVIEW_ZOOM)
     }
 
     pub(crate) fn loading_percent(&self) -> f32 {

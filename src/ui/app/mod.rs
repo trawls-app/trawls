@@ -1,13 +1,15 @@
 use std::collections::HashSet;
 
-use gpui::{AppContext, Context, Entity, FocusHandle, ScrollHandle, SharedString, Window};
-use gpui_component::{VirtualListScrollHandle, input::InputState, scroll::ScrollbarState};
+use gpui::{AppContext, Context, Entity, FocusHandle, SharedString, Window};
+use gpui_component::{VirtualListScrollHandle, input::InputState};
 
 use crate::processing::status::ProcessingCounters;
 use crate::ui::model::{FrameInfo, FramePreview, MergeMode, PreviewData, SortKey};
 
 mod logic;
-mod views;
+pub(crate) mod views;
+
+use views::image_viewer::ImageViewerState;
 
 pub struct Trawls {
     pub(crate) focus_handle: FocusHandle,
@@ -24,15 +26,11 @@ pub struct Trawls {
     pub(crate) processing: ProcessingCounters,
     pub(crate) processing_running: bool,
     pub(crate) preview: Option<PreviewData>,
-    pub(crate) preview_zoom: f32,
-    pub(crate) preview_scroll_handle: ScrollHandle,
-    pub(crate) preview_scroll_state: ScrollbarState,
+    pub(crate) preview_viewer: ImageViewerState,
     pub(crate) table_scroll_handle: VirtualListScrollHandle,
-    pub(crate) table_scroll_state: ScrollbarState,
+    pub(crate) table_scroll_state: gpui_component::scroll::ScrollbarState,
     pub(crate) frame_preview: Option<FramePreview>,
-    pub(crate) frame_preview_zoom: f32,
-    pub(crate) frame_preview_scroll_handle: ScrollHandle,
-    pub(crate) frame_preview_scroll_state: ScrollbarState,
+    pub(crate) frame_preview_viewer: ImageViewerState,
     pub(crate) frame_preview_loading: bool,
 }
 
@@ -56,15 +54,11 @@ impl Trawls {
             processing: ProcessingCounters::default(),
             processing_running: false,
             preview: None,
-            preview_zoom: 1.0,
-            preview_scroll_handle: ScrollHandle::new(),
-            preview_scroll_state: ScrollbarState::default(),
+            preview_viewer: ImageViewerState::default(),
             table_scroll_handle: VirtualListScrollHandle::new(),
-            table_scroll_state: ScrollbarState::default(),
+            table_scroll_state: gpui_component::scroll::ScrollbarState::default(),
             frame_preview: None,
-            frame_preview_zoom: 1.0,
-            frame_preview_scroll_handle: ScrollHandle::new(),
-            frame_preview_scroll_state: ScrollbarState::default(),
+            frame_preview_viewer: ImageViewerState::default(),
             frame_preview_loading: false,
         }
     }
