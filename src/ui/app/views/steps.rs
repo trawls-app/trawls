@@ -294,6 +294,73 @@ impl TrawlsDummy {
             )
     }
 
+    fn render_mode_card(
+        &self,
+        id: &'static str,
+        image: &str,
+        title: &str,
+        description: &str,
+        mode: MergeMode,
+        cx: &mut Context<Self>,
+    ) -> impl IntoElement {
+        let selected = self.merge_mode == mode;
+        div()
+            .id(id)
+            .relative()
+            .flex_1()
+            .min_w(px(360.0))
+            .h(px(190.0))
+            .overflow_hidden()
+            .rounded(cx.theme().radius)
+            .border_1()
+            .border_color(if selected {
+                cx.theme().primary
+            } else {
+                cx.theme().border
+            })
+            .cursor_pointer()
+            .on_mouse_down(
+                MouseButton::Left,
+                cx.listener(move |this, _, _, cx| {
+                    this.merge_mode = mode;
+                    cx.notify();
+                }),
+            )
+            .child(
+                img(image.to_string())
+                    .size_full()
+                    .object_fit(ObjectFit::Cover),
+            )
+            .child(
+                v_flex()
+                    .absolute()
+                    .bottom_0()
+                    .left_0()
+                    .right_0()
+                    .p_2()
+                    .bg(cx.theme().background.alpha(0.6))
+                    .child(div().text_sm().font_semibold().child(title.to_string()))
+                    .child(
+                        h_flex()
+                            .gap_1()
+                            .items_center()
+                            .child(
+                                Icon::new(if selected {
+                                    IconName::CircleCheck
+                                } else {
+                                    IconName::CircleUser
+                                })
+                                .xsmall(),
+                            )
+                            .child(
+                                div()
+                                    .text_xs()
+                                    .child(description.to_string()),
+                            ),
+                    ),
+            )
+    }
+
     pub(crate) fn render_processing_step(&self, cx: &mut Context<Self>) -> impl IntoElement {
         v_flex()
             .gap_4()
@@ -364,193 +431,30 @@ impl TrawlsDummy {
                         h_flex()
                             .gap_4()
                             .flex_wrap()
-                            .child(
-                                v_flex()
-                                    .id("mode-normal-card")
-                                    .flex_1()
-                                    .min_w(px(360.0))
-                                    .overflow_hidden()
-                                    .rounded(cx.theme().radius)
-                                    .border_1()
-                                    .border_color(if self.merge_mode == MergeMode::Normal {
-                                        cx.theme().primary
-                                    } else {
-                                        cx.theme().border
-                                    })
-                                    .bg(if self.merge_mode == MergeMode::Normal {
-                                        cx.theme().primary.alpha(0.08)
-                                    } else {
-                                        cx.theme().sidebar.alpha(0.35)
-                                    })
-                                    .cursor_pointer()
-                                    .on_mouse_down(
-                                        MouseButton::Left,
-                                        cx.listener(|this, _, _, cx| {
-                                            this.merge_mode = MergeMode::Normal;
-                                            cx.notify();
-                                        }),
-                                    )
-                                    .child(
-                                        img("examples/mode_normal.jpg")
-                                            .w_full()
-                                            .h(px(190.0))
-                                            .object_fit(ObjectFit::Cover),
-                                    )
-                                    .child(
-                                        v_flex()
-                                            .gap_2()
-                                            .p_4()
-                                            .child(div().text_xl().font_semibold().child("Normal"))
-                                            .child(
-                                                h_flex()
-                                                    .gap_2()
-                                                    .items_start()
-                                                    .child(
-                                                        Icon::new(if self.merge_mode == MergeMode::Normal {
-                                                            IconName::CircleCheck
-                                                        } else {
-                                                            IconName::CircleUser
-                                                        })
-                                                        .small(),
-                                                    )
-                                                    .child(
-                                                        div()
-                                                            .flex_1()
-                                                            .whitespace_normal()
-                                                            .text_base()
-                                                            .child("All images will be weighted identically."),
-                                                    ),
-                                            ),
-                                    ),
-                            )
-                            .child(
-                                v_flex()
-                                    .id("mode-falling-card")
-                                    .flex_1()
-                                    .min_w(px(360.0))
-                                    .overflow_hidden()
-                                    .rounded(cx.theme().radius)
-                                    .border_1()
-                                    .border_color(if self.merge_mode == MergeMode::Falling {
-                                        cx.theme().primary
-                                    } else {
-                                        cx.theme().border
-                                    })
-                                    .bg(if self.merge_mode == MergeMode::Falling {
-                                        cx.theme().primary.alpha(0.08)
-                                    } else {
-                                        cx.theme().sidebar.alpha(0.35)
-                                    })
-                                    .cursor_pointer()
-                                    .on_mouse_down(
-                                        MouseButton::Left,
-                                        cx.listener(|this, _, _, cx| {
-                                            this.merge_mode = MergeMode::Falling;
-                                            cx.notify();
-                                        }),
-                                    )
-                                    .child(
-                                        img("examples/mode_falling.jpg")
-                                            .w_full()
-                                            .h(px(190.0))
-                                            .object_fit(ObjectFit::Cover),
-                                    )
-                                    .child(
-                                        v_flex()
-                                            .gap_2()
-                                            .p_4()
-                                            .child(
-                                                div()
-                                                    .text_xl()
-                                                    .font_semibold()
-                                                    .child("Falling Comets"),
-                                            )
-                                            .child(
-                                                h_flex()
-                                                    .gap_2()
-                                                    .items_start()
-                                                    .child(
-                                                        Icon::new(if self.merge_mode == MergeMode::Falling {
-                                                            IconName::CircleCheck
-                                                        } else {
-                                                            IconName::CircleUser
-                                                        })
-                                                        .small(),
-                                                    )
-                                                    .child(
-                                                        div()
-                                                            .flex_1()
-                                                            .whitespace_normal()
-                                                            .text_base()
-                                                            .child("Later images become darker, such that stars will fade away."),
-                                                    ),
-                                            ),
-                                    ),
-                            )
-                            .child(
-                                v_flex()
-                                    .id("mode-raising-card")
-                                    .flex_1()
-                                    .min_w(px(360.0))
-                                    .overflow_hidden()
-                                    .rounded(cx.theme().radius)
-                                    .border_1()
-                                    .border_color(if self.merge_mode == MergeMode::Raising {
-                                        cx.theme().primary
-                                    } else {
-                                        cx.theme().border
-                                    })
-                                    .bg(if self.merge_mode == MergeMode::Raising {
-                                        cx.theme().primary.alpha(0.08)
-                                    } else {
-                                        cx.theme().sidebar.alpha(0.35)
-                                    })
-                                    .cursor_pointer()
-                                    .on_mouse_down(
-                                        MouseButton::Left,
-                                        cx.listener(|this, _, _, cx| {
-                                            this.merge_mode = MergeMode::Raising;
-                                            cx.notify();
-                                        }),
-                                    )
-                                    .child(
-                                        img("examples/mode_raising.jpg")
-                                            .w_full()
-                                            .h(px(190.0))
-                                            .object_fit(ObjectFit::Cover),
-                                    )
-                                    .child(
-                                        v_flex()
-                                            .gap_2()
-                                            .p_4()
-                                            .child(
-                                                div()
-                                                    .text_xl()
-                                                    .font_semibold()
-                                                    .child("Raising Comets"),
-                                            )
-                                            .child(
-                                                h_flex()
-                                                    .gap_2()
-                                                    .items_start()
-                                                    .child(
-                                                        Icon::new(if self.merge_mode == MergeMode::Raising {
-                                                            IconName::CircleCheck
-                                                        } else {
-                                                            IconName::CircleUser
-                                                        })
-                                                        .small(),
-                                                    )
-                                                    .child(
-                                                        div()
-                                                            .flex_1()
-                                                            .whitespace_normal()
-                                                            .text_base()
-                                                            .child("Earlier images are darker, such that stars will fade in."),
-                                                    ),
-                                            ),
-                                    ),
-                            ),
+                            .child(self.render_mode_card(
+                                "mode-normal-card",
+                                "examples/mode_normal.jpg",
+                                "Normal",
+                                "All images will be weighted identically.",
+                                MergeMode::Normal,
+                                cx,
+                            ))
+                            .child(self.render_mode_card(
+                                "mode-falling-card",
+                                "examples/mode_falling.jpg",
+                                "Falling Comets",
+                                "Later images become darker, such that stars will fade away.",
+                                MergeMode::Falling,
+                                cx,
+                            ))
+                            .child(self.render_mode_card(
+                                "mode-raising-card",
+                                "examples/mode_raising.jpg",
+                                "Raising Comets",
+                                "Earlier images are darker, such that stars will fade in.",
+                                MergeMode::Raising,
+                                cx,
+                            )),
                     ),
             )
             .child(
