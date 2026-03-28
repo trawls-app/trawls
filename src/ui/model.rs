@@ -36,16 +36,10 @@ pub enum MergeMode {
 
 #[derive(Clone)]
 pub struct PreviewData {
-    pub image_source: PreviewImageSource,
+    pub image_path: PathBuf,
     pub exif: String,
     pub width_px: u32,
     pub height_px: u32,
-}
-
-#[derive(Clone)]
-pub enum PreviewImageSource {
-    Embedded(String),
-    FilePath(PathBuf),
 }
 
 

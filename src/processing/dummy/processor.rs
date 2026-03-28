@@ -1,9 +1,11 @@
+use std::path::PathBuf;
+
 use crate::processing::{
     interface::{ProcessingInput, ProcessingStartResult, Processor},
     status::{ProcessingCounters, ProcessingStatus},
 };
 
-use crate::ui::model::{PreviewData, PreviewImageSource};
+use crate::ui::model::PreviewData;
 
 pub static DUMMY_PROCESSOR: DummyProcessor = DummyProcessor;
 
@@ -22,7 +24,7 @@ impl Processor for DummyProcessor {
 
         let state = initial_state(input.lightframes.len(), input.darkframes.len());
         let preview = Some(PreviewData {
-            image_source: PreviewImageSource::Embedded("examples/dummy_preview.jpg".to_string()),
+            image_path: PathBuf::from("examples/dummy_preview.jpg"),
             exif: "ISO 1600, f/2.8, 20s".to_string(),
             width_px: 6000,
             height_px: 4000,

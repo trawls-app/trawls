@@ -27,8 +27,7 @@ use crate::processing::{
 };
 use crate::ui::{
     model::{
-        FrameInfo, LargestGap, LightframeStats, MetadataStatus, PreviewData, PreviewImageSource,
-        SortKey,
+        FrameInfo, LargestGap, LightframeStats, MetadataStatus, PreviewData, SortKey,
     },
     samples::{MockFrameSeed, sample_darkframe_seeds, sample_lightframe_seeds},
 };
@@ -456,7 +455,7 @@ impl TrawlsDummy {
                 let (width_px, height_px) = writer.preview_dimensions();
                 let exif = writer.preview_exif_summary();
                 Ok(PreviewData {
-                    image_source: PreviewImageSource::FilePath(preview_path),
+                    image_path: preview_path,
                     exif,
                     width_px,
                     height_px,
