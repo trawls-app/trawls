@@ -34,12 +34,26 @@ pub enum MergeMode {
     Raising,
 }
 
+impl MergeMode {
+    pub fn label(self) -> &'static str {
+        match self {
+            MergeMode::Normal => "Normal",
+            MergeMode::Falling => "Falling Comets",
+            MergeMode::Raising => "Raising Comets",
+        }
+    }
+}
+
 #[derive(Clone)]
 pub struct PreviewData {
     pub image_path: PathBuf,
     pub exif: String,
     pub width_px: u32,
     pub height_px: u32,
+    pub frame_count: usize,
+    pub total_exposure_seconds: f32,
+    pub merge_mode: MergeMode,
+    pub output_file_size: u64,
 }
 
 

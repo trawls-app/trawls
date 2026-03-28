@@ -23,11 +23,21 @@ impl Processor for DummyProcessor {
         }
 
         let state = initial_state(input.lightframes.len(), input.darkframes.len());
+        let frame_count = input.lightframes.len();
+        let total_exposure: f32 = input
+            .lightframes
+            .iter()
+            .filter_map(|f| f.exposure_seconds)
+            .sum();
         let preview = Some(PreviewData {
             image_path: PathBuf::from("examples/dummy_preview.jpg"),
             exif: "ISO 1600, f/2.8, 20s".to_string(),
             width_px: 6000,
             height_px: 4000,
+            frame_count,
+            total_exposure_seconds: total_exposure,
+            merge_mode: crate::ui::model::MergeMode::Normal,
+            output_file_size: 0,
         });
 
         ProcessingStartResult {

@@ -20,7 +20,7 @@ use crate::ui::{
     model::{LightframeStats, MergeMode},
 };
 
-use super::{format_duration, light_dark};
+use super::{format_duration, format_file_size, light_dark};
 
 impl TrawlsDummy {
     pub(crate) fn render_image_step(
@@ -113,13 +113,7 @@ impl TrawlsDummy {
                                 .label("Clear list")
                                 .on_click(cx.listener(
                                     move |this, _, _, cx| {
-                                        if is_light {
-                                            this.lightframes.clear();
-                                        } else {
-                                            this.darkframes.clear();
-                                        }
-                                        this.selected_paths_mut(is_light).clear();
-                                        cx.notify();
+                                        this.clear_frames(is_light, cx);
                                     },
                                 )),
                             ),
@@ -644,10 +638,26 @@ impl TrawlsDummy {
                         ),
                 )
                 .child(
-                    div()
+                    h_flex()
+                        .gap_4()
                         .text_sm()
                         .text_color(cx.theme().muted_foreground)
-                        .child(preview.exif.clone()),
+                        .child(preview.exif.clone())
+                        .child(format!(
+                            "{} frames",
+                            preview.frame_count,
+                        ))
+                        .child(format!(
+                            "Total exposure: {}",
+                            format_duration(preview.total_exposure_seconds),
+                        ))
+                        .child(format!("Mode: {}", preview.merge_mode.label()))
+                        .when(preview.output_file_size > 0, |el| {
+                            el.child(format!(
+                                "Output: {}",
+                                format_file_size(preview.output_file_size),
+                            ))
+                        }),
                 );
         }
 

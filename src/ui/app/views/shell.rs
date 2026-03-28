@@ -3,7 +3,7 @@ use gpui::{
     Render, StatefulInteractiveElement as _, Styled as _, Window, div, img, px, relative,
 };
 use gpui_component::{
-    ActiveTheme as _, Icon, IconName, Sizable as _, StyledExt as _, TitleBar,
+    ActiveTheme as _, Disableable as _, Icon, IconName, Sizable as _, StyledExt as _, TitleBar,
     button::{Button, ButtonVariants as _},
     h_flex,
     sidebar::{Sidebar, SidebarFooter, SidebarGroup, SidebarHeader, SidebarMenu, SidebarMenuItem},
@@ -155,7 +155,7 @@ impl TrawlsDummy {
         h_flex()
             .id("header")
             .justify_between()
-            .items_start()
+            .items_center()
             .p_4()
             .border_b_1()
             .border_color(cx.theme().border)
@@ -169,7 +169,33 @@ impl TrawlsDummy {
                             .child(self.step_description()),
                     ),
             )
-            .child(div())
+            .child(
+                h_flex()
+                    .gap_2()
+                    .child(
+                        Button::new("prev-step")
+                            .small()
+                            .icon(IconName::ChevronLeft)
+                            .label("Previous")
+                            .disabled(self.active_step == 0)
+                            .on_click(cx.listener(|this, _, _, cx| {
+                                this.active_step = this.active_step.saturating_sub(1);
+                                cx.notify();
+                            })),
+                    )
+                    .child(
+                        Button::new("next-step")
+                            .small()
+                            .primary()
+                            .icon(IconName::ChevronRight)
+                            .label("Next")
+                            .disabled(self.active_step >= 3)
+                            .on_click(cx.listener(|this, _, _, cx| {
+                                this.active_step = (this.active_step + 1).min(3);
+                                cx.notify();
+                            })),
+                    ),
+            )
     }
 }
 

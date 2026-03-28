@@ -140,6 +140,30 @@ impl TrawlsDummy {
         cx.notify();
     }
 
+    pub(crate) fn clear_frames(&mut self, is_light: bool, cx: &mut Context<Self>) {
+        if is_light {
+            self.lightframes.clear();
+        } else {
+            self.darkframes.clear();
+        }
+        self.selected_paths_mut(is_light).clear();
+        cx.notify();
+    }
+
+    pub(crate) fn remove_selected_frames(&mut self, is_light: bool, cx: &mut Context<Self>) {
+        let selected = self.selected_paths(is_light).clone();
+        let frames = if is_light {
+            &mut self.lightframes
+        } else {
+            &mut self.darkframes
+        };
+        frames.retain(|f| !selected.contains(f.path.as_str()));
+        recompute_intervals(frames);
+        self.selected_paths_mut(is_light).clear();
+        cx.notify();
+    }
+
+
     pub(crate) fn queue_mock_metadata_loading(&mut self, is_light: bool, cx: &mut Context<Self>) {
         let seeds = if is_light {
             sample_lightframe_seeds()
@@ -204,8 +228,18 @@ impl TrawlsDummy {
             }
 
             window
-                .update(|_, cx| {
+                .update(|window, cx| {
                     _ = view.update(cx, |this, cx| {
+                        if is_light && this.output_path.is_none() {
+                            if let Some(dir) = files.first().and_then(|f| f.parent()) {
+                                let default_output = dir.join("trawls_output.dng");
+                                let as_text = default_output.to_string_lossy().to_string();
+                                this.output_path = Some(as_text.clone().into());
+                                this.output_input.update(cx, |state, cx| {
+                                    state.set_value(as_text, window, cx);
+                                });
+                            }
+                        }
                         this.queue_selected_metadata_loading(files, is_light, cx);
                     });
                 })
@@ -341,7 +375,10 @@ impl TrawlsDummy {
         self.processing = result.state;
         self.preview = None;
         self.processing_running = true;
-        let preview = result.preview;
+        let preview = result.preview.map(|mut p| {
+            p.merge_mode = self.merge_mode;
+            p
+        });
         let should_go_to_preview = self.active_step != 3;
         let viewport_size = window.viewport_size();
 
@@ -427,6 +464,13 @@ impl TrawlsDummy {
             .iter()
             .map(|f| PathBuf::from(&f.path))
             .collect::<Vec<_>>();
+        let frame_count = self.lightframes.len();
+        let total_exposure: f32 = self
+            .lightframes
+            .iter()
+            .filter_map(|f| f.exposure_seconds)
+            .sum();
+        let ui_merge_mode = self.merge_mode;
         let mode = match self.merge_mode {
             crate::ui::model::MergeMode::Normal => Comets::Normal,
             crate::ui::model::MergeMode::Falling => Comets::Falling,
@@ -450,6 +494,9 @@ impl TrawlsDummy {
             let result = run_merge(light_paths, dark_paths, mode, status).and_then(|image| {
                 let writer = image.get_image_writer()?;
                 writer.write_dng(output_path.clone())?;
+                let output_file_size = std::fs::metadata(&output_path)
+                    .map(|m| m.len())
+                    .unwrap_or(0);
                 let preview_path = output_path.with_extension("preview.jpg");
                 writer.write_preview_jpg(preview_path.clone())?;
                 let (width_px, height_px) = writer.preview_dimensions();
@@ -459,6 +506,10 @@ impl TrawlsDummy {
                     exif,
                     width_px,
                     height_px,
+                    frame_count,
+                    total_exposure_seconds: total_exposure,
+                    merge_mode: ui_merge_mode,
+                    output_file_size,
                 })
             });
             let _ = done_tx.send(result);

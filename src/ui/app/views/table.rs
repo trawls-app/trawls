@@ -168,15 +168,7 @@ impl TrawlsDummy {
                                 .disabled(selected_visible_count == 0)
                                 .on_click(cx.listener(
                                     move |this, _, _, cx| {
-                                        let selected = this.selected_paths(is_light).clone();
-                                        let frames = if is_light {
-                                            &mut this.lightframes
-                                        } else {
-                                            &mut this.darkframes
-                                        };
-                                        frames.retain(|f| !selected.contains(f.path.as_str()));
-                                        this.selected_paths_mut(is_light).clear();
-                                        cx.notify();
+                                        this.remove_selected_frames(is_light, cx);
                                     },
                                 )),
                             ),
