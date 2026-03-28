@@ -549,7 +549,7 @@ impl TrawlsDummy {
                                         .icon(IconName::Minus)
                                         .label("Zoom out")
                                         .on_click(cx.listener(|this, _, _, cx| {
-                                            this.zoom_preview_out(cx);
+                                            this.zoom_preview(false, cx);
                                         })),
                                 )
                                 .child(
@@ -574,7 +574,7 @@ impl TrawlsDummy {
                                         .icon(IconName::Plus)
                                         .label("Zoom in")
                                         .on_click(cx.listener(|this, _, _, cx| {
-                                            this.zoom_preview_in(cx);
+                                            this.zoom_preview(true, cx);
                                         })),
                                 ),
                         )

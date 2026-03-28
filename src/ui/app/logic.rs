@@ -516,18 +516,8 @@ impl TrawlsDummy {
         cx.notify();
     }
 
-    pub(crate) fn zoom_preview_in(&mut self, cx: &mut Context<Self>) {
-        self.preview_zoom = self
-            .next_preview_zoom(true)
-            .clamp(MIN_PREVIEW_ZOOM, MAX_PREVIEW_ZOOM);
-        cx.notify();
-    }
-
-    pub(crate) fn zoom_preview_out(&mut self, cx: &mut Context<Self>) {
-        self.preview_zoom = self
-            .next_preview_zoom(false)
-            .clamp(MIN_PREVIEW_ZOOM, MAX_PREVIEW_ZOOM);
-        cx.notify();
+    pub(crate) fn zoom_preview(&mut self, zoom_in: bool, cx: &mut Context<Self>) {
+        self.set_preview_zoom(self.next_preview_zoom(zoom_in), cx);
     }
 
     pub(crate) fn zoom_preview_at_cursor(
