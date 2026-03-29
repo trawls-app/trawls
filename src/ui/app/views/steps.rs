@@ -347,7 +347,7 @@ impl Trawls {
                         h_flex()
                             .gap_2()
                             .items_center()
-                            .child(Icon::new(IconName::BookOpen))
+                            .child(Icon::new(IconName::FolderOpen))
                             .child(div().font_semibold().child("Output path")),
                     )
                     .child(
@@ -440,7 +440,7 @@ impl Trawls {
                         h_flex()
                             .gap_2()
                             .items_center()
-                            .child(Icon::new(IconName::Bot))
+                            .child(Icon::new(IconName::Loader))
                             .child(div().font_semibold().child("Execution")),
                     )
                     .child(
@@ -449,7 +449,7 @@ impl Trawls {
                             .child(
                                 Button::new("start-processing")
                                     .success()
-                                    .icon(IconName::Bot)
+                                    .icon(IconName::Loader)
                                     .label(if self.processing_running {
                                         "Processing..."
                                     } else {
@@ -516,7 +516,7 @@ impl Trawls {
             return render_image_viewer(
                 ImageViewerParams {
                     id_prefix: "result-preview",
-                    image_source: img(preview.image_path.clone())
+                    image_source: img(preview.image.clone())
                         .size_full()
                         .object_fit(ObjectFit::Contain)
                         .into_any_element(),

@@ -79,7 +79,7 @@ impl Trawls {
                     SidebarMenu::new()
                         .child(
                             SidebarMenuItem::new("Lightframes")
-                                .icon(IconName::SquareTerminal)
+                                .icon(IconName::Star)
                                 .active(self.active_step == 0)
                                 .suffix(format!("{}", self.lightframes.len()))
                                 .on_click(cx.listener(|this, _, _, cx| {
@@ -88,7 +88,7 @@ impl Trawls {
                         )
                         .child(
                             SidebarMenuItem::new("Darkframes")
-                                .icon(IconName::Bot)
+                                .icon(IconName::Moon)
                                 .active(self.active_step == 1)
                                 .suffix(format!("{}", self.darkframes.len()))
                                 .on_click(cx.listener(|this, _, _, cx| {
@@ -120,7 +120,7 @@ impl Trawls {
                         })
                         .child({
                             let item = SidebarMenuItem::new("Preview")
-                                .icon(IconName::BookOpen)
+                                .icon(IconName::Eye)
                                 .active(self.active_step == 3)
                                 .on_click(cx.listener(|this, _, _, cx| {
                                     this.set_active_step(3, cx);
