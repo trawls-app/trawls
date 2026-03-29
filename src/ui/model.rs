@@ -1,5 +1,4 @@
 use chrono::NaiveDateTime;
-use std::path::PathBuf;
 use std::sync::Arc;
 
 #[derive(Clone)]
@@ -48,7 +47,7 @@ impl MergeMode {
 
 #[derive(Clone)]
 pub struct PreviewData {
-    pub image_path: PathBuf,
+    pub image: Arc<gpui::Image>,
     pub exif: String,
     pub width_px: u32,
     pub height_px: u32,

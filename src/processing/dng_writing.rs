@@ -267,26 +267,19 @@ impl ImageWriter {
         Ok(())
     }
 
-    pub fn write_preview_jpg(&self, path: PathBuf) -> anyhow::Result<()> {
-        info!("Writing preview to {:?}...", path);
+    pub fn preview_as_gpui_image(&self) -> anyhow::Result<(std::sync::Arc<gpui::Image>, u32, u32)> {
+        info!("Encoding preview image...");
         let img = self.preview.clone().into_rgb8();
-        img.save(path)?;
-
-        Ok(())
-    }
-
-    pub fn get_preview_bytes(&self) -> anyhow::Result<Vec<u8>> {
-        info!("Creating preview file in memory...");
-
-        let img = self.preview.clone().into_rgb8();
+        let width = img.width();
+        let height = img.height();
         let mut cursor = Cursor::new(Vec::new());
         img.write_to(&mut cursor, ImageFormat::Jpeg)?;
-
-        Ok(cursor.into_inner())
-    }
-
-    pub fn preview_dimensions(&self) -> (u32, u32) {
-        (self.preview.width(), self.preview.height())
+        let bytes = cursor.into_inner();
+        Ok((
+            std::sync::Arc::new(gpui::Image::from_bytes(gpui::ImageFormat::Jpeg, bytes)),
+            width,
+            height,
+        ))
     }
 
     pub fn preview_exif_summary(&self) -> String {

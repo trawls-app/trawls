@@ -459,12 +459,10 @@ impl Trawls {
                 let output_file_size = std::fs::metadata(&output_path)
                     .map(|m| m.len())
                     .unwrap_or(0);
-                let preview_path = output_path.with_extension("preview.jpg");
-                writer.write_preview_jpg(preview_path.clone())?;
-                let (width_px, height_px) = writer.preview_dimensions();
+                let (image, width_px, height_px) = writer.preview_as_gpui_image()?;
                 let exif = writer.preview_exif_summary();
                 Ok(PreviewData {
-                    image_path: preview_path,
+                    image,
                     exif,
                     width_px,
                     height_px,
