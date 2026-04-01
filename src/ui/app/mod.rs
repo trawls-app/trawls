@@ -1,4 +1,6 @@
 use std::collections::HashSet;
+use std::sync::Arc;
+use std::sync::atomic::AtomicBool;
 
 use gpui::{AppContext, Context, Entity, FocusHandle, SharedString, Window};
 use gpui_component::{VirtualListScrollHandle, input::InputState};
@@ -25,6 +27,7 @@ pub struct Trawls {
     pub(crate) merge_mode: MergeMode,
     pub(crate) processing: ProcessingCounters,
     pub(crate) processing_running: bool,
+    pub(crate) processing_cancel: Arc<AtomicBool>,
     pub(crate) preview: Option<PreviewData>,
     pub(crate) preview_viewer: ImageViewerState,
     pub(crate) table_scroll_handle: VirtualListScrollHandle,
@@ -53,6 +56,7 @@ impl Trawls {
             merge_mode: MergeMode::Normal,
             processing: ProcessingCounters::default(),
             processing_running: false,
+            processing_cancel: Arc::new(AtomicBool::new(false)),
             preview: None,
             preview_viewer: ImageViewerState::default(),
             table_scroll_handle: VirtualListScrollHandle::new(),

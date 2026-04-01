@@ -1,6 +1,6 @@
 use std::{
     path::{Path, PathBuf},
-    sync::{Arc, Mutex, mpsc},
+    sync::{Arc, Mutex, atomic::Ordering, mpsc},
     thread,
     time::Duration,
 };
@@ -46,6 +46,14 @@ impl Trawls {
             state.set_value("", window, cx);
         });
         cx.notify();
+    }
+
+    pub(crate) fn cancel_processing(&mut self, cx: &mut Context<Self>) {
+        if self.processing_running {
+            self.processing_cancel.store(true, Ordering::Relaxed);
+            self.processing_running = false;
+            cx.notify();
+        }
     }
 
     pub(crate) fn start_processing(&mut self, window: &mut Window, cx: &mut Context<Self>) {
@@ -112,10 +120,12 @@ impl Trawls {
             count_darks: self.darkframes.len(),
             ..Default::default()
         };
+        self.processing_cancel.store(false, Ordering::Relaxed);
         self.processing_running = true;
         self.preview = None;
         let viewport_size = window.viewport_size();
         let view = cx.entity();
+        let cancel = self.processing_cancel.clone();
         let (progress_tx, progress_rx) = mpsc::channel::<ProcessingCounters>();
         let (done_tx, done_rx) = mpsc::channel::<anyhow::Result<PreviewData>>();
 
@@ -154,6 +164,15 @@ impl Trawls {
                         this.processing_updated(counters);
                         cx.notify();
                     });
+                }
+
+                if cancel.load(Ordering::Relaxed) {
+                    _ = view.update_in(window, |this, window, cx| {
+                        this.processing_running = false;
+                        window.push_notification("Processing cancelled.", cx);
+                        cx.notify();
+                    });
+                    break;
                 }
 
                 match done_rx.try_recv() {

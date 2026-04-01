@@ -70,7 +70,7 @@ impl Trawls {
         let interval_col_w = if show_interval { 90.0 } else { 0.0 };
         let aperture_col_w = 90.0_f32;
         let iso_col_w = 90.0_f32;
-        let time_col_w = 210.0_f32;
+        let time_col_w = 100.0_f32;
         let table_total_w = select_col_w
             + thumb_col_w
             + filename_col_w
@@ -270,6 +270,7 @@ impl Trawls {
                                         let selected_paths = this.selected_paths(is_light);
                                         let is_selected = selected_paths.contains(row.path.as_str());
                                         let has_error = row.error.is_some();
+                                        let is_pending = row.metadata_status == MetadataStatus::Pending;
 
                                         let base = h_flex()
                                             .min_w(px(table_total_w))
@@ -418,7 +419,8 @@ impl Trawls {
                                                     )
                                                     .child(match row.exposure_seconds {
                                                         Some(value) => format!("{value:.1}s"),
-                                                        None => "...".to_string(),
+                                                        None if is_pending => "...".to_string(),
+                                                        None => String::new(),
                                                     }),
                                             )
                                             .when(show_interval, |this| {
@@ -439,7 +441,8 @@ impl Trawls {
                                                         )
                                                         .child(match row.interval_seconds {
                                                             Some(value) => format!("{value:.1}s"),
-                                                            None => "...".to_string(),
+                                                            None if is_pending => "...".to_string(),
+                                                            None => String::new(),
                                                         }),
                                                 )
                                             })
@@ -461,7 +464,8 @@ impl Trawls {
                                                     )
                                                     .child(match row.aperture {
                                                         Some(value) => format!("f/{value:.1}"),
-                                                        None => "...".to_string(),
+                                                        None if is_pending => "...".to_string(),
+                                                        None => String::new(),
                                                     }),
                                             )
                                             .child(
@@ -482,17 +486,18 @@ impl Trawls {
                                                     )
                                                     .child(match row.iso {
                                                         Some(value) => value.to_string(),
-                                                        None => "...".to_string(),
+                                                        None if is_pending => "...".to_string(),
+                                                        None => String::new(),
                                                     }),
                                             )
                                             .child(
                                                 div().w(px(time_col_w)).text_center().child(
                                                     row.creation_time
                                                         .map(|dt| {
-                                                            dt.format("%Y-%m-%dT%H:%M:%S")
+                                                            dt.format("%H:%M:%S")
                                                                 .to_string()
                                                         })
-                                                        .unwrap_or_else(|| "...".to_string()),
+                                                        .unwrap_or_else(|| "".to_string()),
                                                 ),
                                             )
                                             .into_any_element()

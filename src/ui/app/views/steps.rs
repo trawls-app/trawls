@@ -460,12 +460,16 @@ impl Trawls {
                                         this.start_processing(window, cx);
                                     })),
                             )
-                            .when(self.processing_running, |this| {
-                                this.child(
-                                    div()
-                                        .text_xs()
-                                        .text_color(cx.theme().muted_foreground)
-                                        .child("Processing in progress..."),
+                            .when(self.processing_running, |el| {
+                                el.child(
+                                    Button::new("cancel-processing")
+                                        .warning()
+                                        .small()
+                                        .icon(IconName::Close)
+                                        .label("Cancel")
+                                        .on_click(cx.listener(|this, _, _, cx| {
+                                            this.cancel_processing(cx);
+                                        })),
                                 )
                             }),
                     )

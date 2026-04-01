@@ -1,6 +1,7 @@
 use gpui::{
-    App, Context, FocusHandle, Focusable, InteractiveElement as _, IntoElement, ParentElement as _,
-    Render, StatefulInteractiveElement as _, Styled as _, Window, div, img, px, relative,
+    App, Context, FocusHandle, Focusable, InteractiveElement as _, IntoElement, KeyDownEvent,
+    ParentElement as _, Render, StatefulInteractiveElement as _, Styled as _, Window, div, img, px,
+    relative,
 };
 use gpui_component::{
     ActiveTheme as _, Disableable as _, Icon, IconName, Sizable as _, StyledExt as _, TitleBar,
@@ -178,17 +179,19 @@ impl Trawls {
                                 this.set_active_step(this.active_step.saturating_sub(1), cx);
                             })),
                     )
-                    .child(
+                    .child({
+                        let next_disabled = self.active_step >= 3
+                            || (self.active_step == 0 && self.lightframes.is_empty());
                         Button::new("next-step")
                             .small()
                             .primary()
                             .icon(IconName::ChevronRight)
                             .label("Next")
-                            .disabled(self.active_step >= 3)
+                            .disabled(next_disabled)
                             .on_click(cx.listener(|this, _, _, cx| {
                                 this.set_active_step((this.active_step + 1).min(3), cx);
-                            })),
-                    ),
+                            }))
+                    }),
             )
     }
 }
@@ -207,6 +210,13 @@ impl Render for Trawls {
             .id("trawls-app")
             .size_full()
             .track_focus(&self.focus_handle)
+            .on_key_down(cx.listener(|this, event: &KeyDownEvent, _, cx| {
+                if event.keystroke.key.as_str() == "escape" {
+                    if this.frame_preview.is_some() || this.frame_preview_loading {
+                        this.close_frame_preview(cx);
+                    }
+                }
+            }))
             .bg(cx.theme().background)
             .child(
                 v_flex().size_full().child(self.render_titlebar()).child(
