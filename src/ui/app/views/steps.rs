@@ -134,135 +134,73 @@ impl Trawls {
         stats: LightframeStats,
         cx: &mut Context<Self>,
     ) -> impl IntoElement {
-        v_flex()
-            .gap_2()
+        let idle_seconds = stats.non_exposing_seconds;
+        let idle_display = format!(
+            "{} idle ({})",
+            format_duration(idle_seconds),
+            if stats.total_time_seconds > 0.0 {
+                format!(
+                    "{:.0}%",
+                    (idle_seconds / stats.total_time_seconds * 100.0).clamp(0.0, 100.0)
+                )
+            } else {
+                "0%".to_string()
+            }
+        );
+
+        h_flex()
+            .gap_4()
+            .flex_wrap()
             .p_3()
             .rounded(cx.theme().radius)
             .bg(cx.theme().sidebar.alpha(0.45))
             .border_1()
             .border_color(cx.theme().border)
-            .child(div().font_semibold().child("Lightframe statistics"))
+            .child(self.render_stat_cell("Frames", format!(
+                "{} total, {} valid, {} errors",
+                stats.total_count, stats.valid_count, stats.error_count
+            ), cx))
+            .child(self.render_stat_cell(
+                "Shutter open",
+                format_duration(stats.total_exposure_seconds),
+                cx,
+            ))
+            .child(self.render_stat_cell(
+                "Session span",
+                format_duration(stats.total_time_seconds),
+                cx,
+            ))
+            .child(self.render_stat_cell(
+                "Efficiency",
+                format!("{:.0}%", stats.duty_cycle_percent),
+                cx,
+            ))
+            .child(self.render_stat_cell("Gaps", idle_display, cx))
+            .child(match &stats.largest_gap {
+                Some(gap) => self.render_stat_cell(
+                    "Largest gap",
+                    format!("{} ({} -> {})", format_duration(gap.seconds), gap.from, gap.to),
+                    cx,
+                ),
+                None => self.render_stat_cell("Largest gap", "none".to_string(), cx),
+            })
+    }
+
+    fn render_stat_cell(
+        &self,
+        label: &str,
+        value: String,
+        cx: &mut Context<Self>,
+    ) -> impl IntoElement {
+        v_flex()
+            .gap_0p5()
             .child(
-                h_flex()
-                    .gap_4()
-                    .child(
-                        v_flex()
-                            .gap_1()
-                            .child(
-                                div()
-                                    .text_xs()
-                                    .text_color(cx.theme().muted_foreground)
-                                    .child("Frames"),
-                            )
-                            .child(div().text_sm().child(format!(
-                                "{} total, {} valid, {} errors",
-                                stats.total_count, stats.valid_count, stats.error_count
-                            ))),
-                    )
-                    .child(
-                        v_flex()
-                            .gap_1()
-                            .child(
-                                div()
-                                    .text_xs()
-                                    .text_color(cx.theme().muted_foreground)
-                                    .child("Total exposure"),
-                            )
-                            .child(
-                                div()
-                                    .text_sm()
-                                    .child(format_duration(stats.total_exposure_seconds)),
-                            ),
-                    )
-                    .child(
-                        v_flex()
-                            .gap_1()
-                            .child(
-                                div()
-                                    .text_xs()
-                                    .text_color(cx.theme().muted_foreground)
-                                    .child("Total time"),
-                            )
-                            .child(
-                                div()
-                                    .text_sm()
-                                    .child(format_duration(stats.total_time_seconds)),
-                            ),
-                    )
-                    .child(
-                        v_flex()
-                            .gap_1()
-                            .child(
-                                div()
-                                    .text_xs()
-                                    .text_color(cx.theme().muted_foreground)
-                                    .child("Time not exposing"),
-                            )
-                            .child(
-                                div()
-                                    .text_sm()
-                                    .child(format_duration(stats.non_exposing_seconds)),
-                            ),
-                    ),
+                div()
+                    .text_xs()
+                    .text_color(cx.theme().muted_foreground)
+                    .child(label.to_string()),
             )
-            .child(
-                h_flex()
-                    .gap_4()
-                    .child(
-                        v_flex()
-                            .gap_1()
-                            .child(
-                                div()
-                                    .text_xs()
-                                    .text_color(cx.theme().muted_foreground)
-                                    .child("Duty cycle"),
-                            )
-                            .child(
-                                div()
-                                    .text_sm()
-                                    .child(format!("{:.1}%", stats.duty_cycle_percent)),
-                            ),
-                    )
-                    .child(
-                        v_flex()
-                            .gap_1()
-                            .child(
-                                div()
-                                    .text_xs()
-                                    .text_color(cx.theme().muted_foreground)
-                                    .child("Not exposing"),
-                            )
-                            .child(div().text_sm().child(format!(
-                                "{:.1}%",
-                                if stats.total_time_seconds > 0.0 {
-                                    (stats.non_exposing_seconds / stats.total_time_seconds * 100.0)
-                                        .clamp(0.0, 100.0)
-                                } else {
-                                    0.0
-                                }
-                            ))),
-                    )
-                    .child(
-                        v_flex()
-                            .gap_1()
-                            .child(
-                                div()
-                                    .text_xs()
-                                    .text_color(cx.theme().muted_foreground)
-                                    .child("Largest gap"),
-                            )
-                            .child(match &stats.largest_gap {
-                                Some(gap) => div().text_sm().child(format!(
-                                    "{} ({} -> {})",
-                                    format_duration(gap.seconds), gap.from, gap.to
-                                )),
-                                None => div()
-                                    .text_sm()
-                                    .text_color(cx.theme().muted_foreground)
-                                    .child("n/a"),
-                            }),
-                    ),
-            )
+            .child(div().text_sm().child(value))
     }
 
     fn render_mode_card(
@@ -477,9 +415,10 @@ impl Trawls {
                         v_flex()
                             .gap_2()
                             .child(div().text_sm().child(format!(
-                                "Loading images: {} / {}",
+                                "Loading: {} / {} ({:.0}%)",
                                 self.processing.count_loaded,
-                                self.processing.count_lights + self.processing.count_darks
+                                self.processing.count_lights + self.processing.count_darks,
+                                self.loading_percent(),
                             )))
                             .child(Progress::new().value(self.loading_percent())),
                     )
@@ -487,13 +426,34 @@ impl Trawls {
                         v_flex()
                             .gap_2()
                             .child(div().text_sm().child(format!(
-                                "Merging images: {} / {}",
+                                "Merging: {} / {} ({:.0}%)",
                                 self.processing.count_merged,
                                 self.processing.count_lights.saturating_sub(1)
-                                    + self.processing.count_darks.saturating_sub(1)
+                                    + self.processing.count_darks.saturating_sub(1),
+                                self.merge_percent(),
                             )))
                             .child(Progress::new().value(self.merge_percent())),
-                    ),
+                    )
+                    .when_some(self.processing_elapsed_seconds(), |el, elapsed| {
+                        el.child(
+                            h_flex()
+                                .gap_4()
+                                .text_xs()
+                                .text_color(cx.theme().muted_foreground)
+                                .child(format!(
+                                    "{}: {}",
+                                    if self.processing_running { "Elapsed" } else { "Completed in" },
+                                    format_duration(elapsed),
+                                ))
+                                .when(self.processing_running, |el| {
+                                    if let Some(eta) = self.processing_eta_seconds() {
+                                        el.child(format!("ETA: ~{}", format_duration(eta)))
+                                    } else {
+                                        el
+                                    }
+                                }),
+                        )
+                    }),
             )
     }
 
@@ -512,10 +472,11 @@ impl Trawls {
                 .child(format!("Mode: {}", preview.merge_mode.label()))
                 .when(preview.output_file_size > 0, |el| {
                     el.child(format!(
-                        "Output: {}",
+                        "Size: {}",
                         format_file_size(preview.output_file_size),
                     ))
-                });
+                })
+                .child(format!("Saved to: {}", preview.output_path));
 
             return render_image_viewer(
                 ImageViewerParams {

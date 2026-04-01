@@ -122,6 +122,8 @@ impl Trawls {
         };
         self.processing_cancel.store(false, Ordering::Relaxed);
         self.processing_running = true;
+        self.processing_started_at = Some(std::time::Instant::now());
+        self.processing_elapsed = None;
         self.preview = None;
         let viewport_size = window.viewport_size();
         let view = cx.entity();
@@ -148,6 +150,7 @@ impl Trawls {
                     total_exposure_seconds: total_exposure,
                     merge_mode: ui_merge_mode,
                     output_file_size,
+                    output_path: output_path.to_string_lossy().to_string(),
                 })
             });
             let _ = done_tx.send(result);
@@ -168,6 +171,8 @@ impl Trawls {
 
                 if cancel.load(Ordering::Relaxed) {
                     _ = view.update_in(window, |this, window, cx| {
+                        this.processing_elapsed = this.processing_started_at
+                            .map(|t| t.elapsed().as_secs_f32());
                         this.processing_running = false;
                         window.push_notification("Processing cancelled.", cx);
                         cx.notify();
@@ -178,6 +183,8 @@ impl Trawls {
                 match done_rx.try_recv() {
                     Ok(result) => {
                         _ = view.update_in(window, |this, window, cx| {
+                            this.processing_elapsed = this.processing_started_at
+                                .map(|t| t.elapsed().as_secs_f32());
                             this.processing_running = false;
                             match result {
                                 Ok(preview) => {

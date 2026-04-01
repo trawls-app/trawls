@@ -55,6 +55,7 @@ pub struct PreviewData {
     pub total_exposure_seconds: f32,
     pub merge_mode: MergeMode,
     pub output_file_size: u64,
+    pub output_path: String,
 }
 
 

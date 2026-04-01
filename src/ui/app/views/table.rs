@@ -335,11 +335,33 @@ impl Trawls {
                                                         }
                                                     }))
                                                     .child(if let Some(thumb) = &row.thumbnail {
-                                                        img(thumb.clone())
+                                                        div()
+                                                            .relative()
                                                             .w(px(56.0))
                                                             .h(px(38.0))
-                                                            .rounded(px(2.0))
-                                                            .object_fit(ObjectFit::Cover)
+                                                            .child(
+                                                                img(thumb.clone())
+                                                                    .size_full()
+                                                                    .rounded(px(2.0))
+                                                                    .object_fit(ObjectFit::Cover),
+                                                            )
+                                                            .child(
+                                                                div()
+                                                                    .absolute()
+                                                                    .top_0()
+                                                                    .left_0()
+                                                                    .size_full()
+                                                                    .rounded(px(2.0))
+                                                                    .flex()
+                                                                    .items_center()
+                                                                    .justify_center()
+                                                                    .hover(|s| s.bg(cx.theme().background.alpha(0.5)))
+                                                                    .child(
+                                                                        Icon::new(IconName::Maximize)
+                                                                            .xsmall()
+                                                                            .text_color(gpui::transparent_black())
+                                                                    ),
+                                                            )
                                                             .into_any_element()
                                                     } else {
                                                         div()
@@ -351,7 +373,7 @@ impl Trawls {
                                                             .items_center()
                                                             .justify_center()
                                                             .when(
-                                                                row.metadata_status == MetadataStatus::Pending,
+                                                                is_pending,
                                                                 |el| el.child(
                                                                     Icon::new(IconName::LoaderCircle)
                                                                         .xsmall()

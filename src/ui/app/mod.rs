@@ -1,6 +1,7 @@
 use std::collections::HashSet;
 use std::sync::Arc;
 use std::sync::atomic::AtomicBool;
+use std::time::Instant;
 
 use gpui::{AppContext, Context, Entity, FocusHandle, SharedString, Window};
 use gpui_component::{VirtualListScrollHandle, input::InputState};
@@ -28,6 +29,8 @@ pub struct Trawls {
     pub(crate) processing: ProcessingCounters,
     pub(crate) processing_running: bool,
     pub(crate) processing_cancel: Arc<AtomicBool>,
+    pub(crate) processing_started_at: Option<Instant>,
+    pub(crate) processing_elapsed: Option<f32>,
     pub(crate) preview: Option<PreviewData>,
     pub(crate) preview_viewer: ImageViewerState,
     pub(crate) table_scroll_handle: VirtualListScrollHandle,
@@ -57,6 +60,8 @@ impl Trawls {
             processing: ProcessingCounters::default(),
             processing_running: false,
             processing_cancel: Arc::new(AtomicBool::new(false)),
+            processing_started_at: None,
+            processing_elapsed: None,
             preview: None,
             preview_viewer: ImageViewerState::default(),
             table_scroll_handle: VirtualListScrollHandle::new(),

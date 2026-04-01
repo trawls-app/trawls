@@ -35,6 +35,41 @@ impl Trawls {
         (current / total * 100.0).clamp(0.0, 100.0)
     }
 
+    /// Overall processing progress as 0.0..1.0, combining loading and merging phases.
+    pub(crate) fn overall_progress(&self) -> f32 {
+        let load_total = (self.processing.count_lights + self.processing.count_darks).max(1) as f32;
+        let merge_total = (self.processing.count_lights.saturating_sub(1)
+            + self.processing.count_darks.saturating_sub(1))
+        .max(1) as f32;
+        let total_work = load_total + merge_total;
+
+        let load_done = self.processing.count_loaded as f32;
+        let merge_done =
+            self.processing.count_merged as f32 + self.processing.count_merging as f32 * 0.5;
+
+        ((load_done + merge_done) / total_work).clamp(0.0, 1.0)
+    }
+
+    /// Estimated time remaining in seconds, based on elapsed time and overall progress.
+    pub(crate) fn processing_eta_seconds(&self) -> Option<f32> {
+        let elapsed = self.processing_started_at?.elapsed().as_secs_f32();
+        let progress = self.overall_progress();
+        if progress < 0.01 || elapsed < 0.5 {
+            return None;
+        }
+        let total_estimated = elapsed / progress;
+        Some((total_estimated - elapsed).max(0.0))
+    }
+
+    /// Elapsed time since processing started, or frozen total if finished.
+    pub(crate) fn processing_elapsed_seconds(&self) -> Option<f32> {
+        if self.processing_running {
+            Some(self.processing_started_at?.elapsed().as_secs_f32())
+        } else {
+            self.processing_elapsed
+        }
+    }
+
     pub(crate) fn lightframe_stats(rows: &[FrameInfo]) -> Option<LightframeStats> {
         let total_count = rows.len();
         let error_count = rows.iter().filter(|r| r.error.is_some()).count();
