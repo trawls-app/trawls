@@ -23,6 +23,8 @@ pub struct Trawls {
     pub(crate) selected_dark_paths: HashSet<String>,
     pub(crate) light_sort: SortKey,
     pub(crate) dark_sort: SortKey,
+    pub(crate) last_clicked_light: Option<usize>,
+    pub(crate) last_clicked_dark: Option<usize>,
     pub(crate) output_path: Option<SharedString>,
     pub(crate) output_input: Entity<InputState>,
     pub(crate) merge_mode: MergeMode,
@@ -54,6 +56,8 @@ impl Trawls {
             selected_dark_paths: HashSet::new(),
             light_sort: SortKey::CreationTime,
             dark_sort: SortKey::CreationTime,
+            last_clicked_light: None,
+            last_clicked_dark: None,
             output_path: None,
             output_input,
             merge_mode: MergeMode::Normal,
@@ -102,6 +106,43 @@ impl Trawls {
         } else {
             set.remove(path);
         }
+    }
+
+    pub(crate) fn last_clicked_mut(&mut self, is_light: bool) -> &mut Option<usize> {
+        if is_light {
+            &mut self.last_clicked_light
+        } else {
+            &mut self.last_clicked_dark
+        }
+    }
+
+    pub(crate) fn row_clicked(
+        &mut self,
+        ix: usize,
+        path: &str,
+        is_light: bool,
+        shift: bool,
+        sorted_paths: &[String],
+    ) {
+        let last = self.last_clicked_mut(is_light);
+        if shift {
+            if let Some(anchor) = *last {
+                // Match the selection state of the anchor row
+                let anchor_selected = sorted_paths
+                    .get(anchor)
+                    .is_some_and(|p| self.selected_paths(is_light).contains(p.as_str()));
+                let from = anchor.min(ix);
+                let to = anchor.max(ix);
+                for i in from..=to {
+                    if let Some(p) = sorted_paths.get(i) {
+                        self.set_selection(p, is_light, anchor_selected);
+                    }
+                }
+                return;
+            }
+        }
+        self.toggle_selection(path, is_light);
+        *self.last_clicked_mut(is_light) = Some(ix);
     }
 
     pub(crate) fn set_active_step(&mut self, step: usize, cx: &mut Context<Self>) {

@@ -1,8 +1,8 @@
 use std::rc::Rc;
 
 use gpui::{
-    Context, InteractiveElement as _, IntoElement, MouseButton, ObjectFit, ParentElement as _,
-    StatefulInteractiveElement as _, Styled as _, StyledImage as _, div, img,
+    Context, InteractiveElement as _, IntoElement, MouseButton, MouseDownEvent, ObjectFit,
+    ParentElement as _, StatefulInteractiveElement as _, Styled as _, StyledImage as _, div, img,
     prelude::FluentBuilder as _, px, size,
 };
 use gpui_component::{
@@ -263,6 +263,8 @@ impl Trawls {
                             cx.entity().clone(),
                             light_dark(is_light, "frame-table-virtual-light", "frame-table-virtual-dark"),
                             item_sizes,
+                            {
+                            let visible_paths = visible_paths.clone();
                             move |this, visible_range, _, cx| {
                                 visible_range
                                     .map(|ix| {
@@ -293,8 +295,15 @@ impl Trawls {
                                                 MouseButton::Left,
                                                 cx.listener({
                                                     let path = row.path.to_string();
-                                                    move |this, _, _, cx| {
-                                                        this.toggle_selection(&path, is_light);
+                                                    let sorted_paths = visible_paths.clone();
+                                                    move |this, event: &MouseDownEvent, _, cx| {
+                                                        this.row_clicked(
+                                                            ix,
+                                                            &path,
+                                                            is_light,
+                                                            event.modifiers.shift,
+                                                            &sorted_paths,
+                                                        );
                                                         cx.notify();
                                                     }
                                                 }),
@@ -525,7 +534,7 @@ impl Trawls {
                                             .into_any_element()
                                     })
                                     .collect::<Vec<_>>()
-                            },
+                            }},
                         )
                         .track_scroll(&self.table_scroll_handle),
                     )

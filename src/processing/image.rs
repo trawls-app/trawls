@@ -56,6 +56,10 @@ impl Frame {
         }
     }
 
+    pub fn is_identity(&self) -> bool {
+        self.lightframe.is_none() && self.darkframe.is_none()
+    }
+
     pub fn get_image(self) -> anyhow::Result<Image> {
         match (self.lightframe, self.darkframe) {
             (Some(light), Some(dark)) => light.apply_darkframe(dark),

@@ -428,8 +428,8 @@ impl Trawls {
                             .child(div().text_sm().child(format!(
                                 "Merging: {} / {} ({:.0}%)",
                                 self.processing.count_merged,
-                                self.processing.count_lights.saturating_sub(1)
-                                    + self.processing.count_darks.saturating_sub(1),
+                                (self.processing.count_lights + self.processing.count_darks)
+                                    .saturating_sub(1),
                                 self.merge_percent(),
                             )))
                             .child(Progress::new().value(self.merge_percent())),
@@ -496,16 +496,58 @@ impl Trawls {
             );
         }
 
+        let has_lightframes = !self.lightframes.is_empty();
+        let has_output = self.output_path.is_some();
+
         v_flex()
+            .w_full()
+            .flex_1()
+            .items_center()
+            .justify_center()
             .gap_3()
+            .py_12()
             .child(
-                h_flex()
-                    .gap_2()
-                    .items_center()
+                Icon::new(IconName::Eye)
+                    .text_color(cx.theme().muted_foreground),
+            )
+            .child(
+                div()
                     .text_sm()
                     .text_color(cx.theme().muted_foreground)
-                    .child(Icon::new(IconName::Info).small())
-                    .child("Run a merge in step 3 to generate a preview."),
+                    .child("No preview available yet."),
+            )
+            .child(
+                v_flex()
+                    .gap_1()
+                    .items_center()
+                    .text_xs()
+                    .text_color(cx.theme().muted_foreground)
+                    .when(!has_lightframes, |el| {
+                        el.child("1. Add lightframes in step 1")
+                    })
+                    .when(has_lightframes && !has_output, |el| {
+                        el.child("2. Set an output path in step 3")
+                    })
+                    .when(has_lightframes && has_output, |el| {
+                        el.child("Run processing in step 3 to generate a preview")
+                    }),
+            )
+            .child(
+                Button::new("go-to-processing")
+                    .small()
+                    .primary()
+                    .label(if !has_lightframes {
+                        "Go to Lightframes"
+                    } else {
+                        "Go to Processing"
+                    })
+                    .on_click(cx.listener(move |this, _, _, cx| {
+                        if !has_lightframes {
+                            this.set_active_step(0, cx);
+                        } else {
+                            this.set_active_step(2, cx);
+                        }
+                    })),
             )
             .into_any_element()
     }

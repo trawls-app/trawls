@@ -49,8 +49,8 @@ pub fn run_merge<S: ProcessingStatus + Send>(
         path: p.to_path_buf(),
     }));
 
-    let merge_total =
-        lightframe_files.len().saturating_sub(1) + darkframe_files.len().saturating_sub(1);
+    let total_tasks = tasks.len();
+    let merge_total = total_tasks.saturating_sub(1);
     let counters = Arc::new(Mutex::new(ProcessingCounters {
         count_lights: lightframe_files.len(),
         count_darks: darkframe_files.len(),
@@ -69,9 +69,14 @@ pub fn run_merge<S: ProcessingStatus + Send>(
             |left, right| {
                 let left = left?;
                 let right = right?;
-                start_merge(&status, &counters);
+                let is_real_merge = !left.is_identity() && !right.is_identity();
+                if is_real_merge {
+                    start_merge(&status, &counters);
+                }
                 let merged = left.merge(*right);
-                finish_merge(&status, &counters);
+                if is_real_merge {
+                    finish_merge(&status, &counters);
+                }
                 merged
             },
         );

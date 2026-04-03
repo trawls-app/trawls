@@ -27,25 +27,29 @@ impl Trawls {
     }
 
     pub(crate) fn merge_percent(&self) -> f32 {
-        let total = (self.processing.count_lights.saturating_sub(1)
-            + self.processing.count_darks.saturating_sub(1))
-        .max(1) as f32;
+        let total = (self.processing.count_lights + self.processing.count_darks)
+            .saturating_sub(1)
+            .max(1) as f32;
+        let max_possible = self.processing.count_loaded.saturating_sub(1) as f32;
         let current =
-            self.processing.count_merged as f32 + (self.processing.count_merging as f32 * 0.5);
+            (self.processing.count_merged as f32 + self.processing.count_merging as f32 * 0.5)
+                .min(total)
+                .min(max_possible);
         (current / total * 100.0).clamp(0.0, 100.0)
     }
 
     /// Overall processing progress as 0.0..1.0, combining loading and merging phases.
     pub(crate) fn overall_progress(&self) -> f32 {
         let load_total = (self.processing.count_lights + self.processing.count_darks).max(1) as f32;
-        let merge_total = (self.processing.count_lights.saturating_sub(1)
-            + self.processing.count_darks.saturating_sub(1))
-        .max(1) as f32;
+        let merge_total = (self.processing.count_lights + self.processing.count_darks)
+            .saturating_sub(1)
+            .max(1) as f32;
         let total_work = load_total + merge_total;
 
-        let load_done = self.processing.count_loaded as f32;
+        let load_done = (self.processing.count_loaded as f32).min(load_total);
         let merge_done =
-            self.processing.count_merged as f32 + self.processing.count_merging as f32 * 0.5;
+            (self.processing.count_merged as f32 + self.processing.count_merging as f32 * 0.5)
+                .min(merge_total);
 
         ((load_done + merge_done) / total_work).clamp(0.0, 1.0)
     }

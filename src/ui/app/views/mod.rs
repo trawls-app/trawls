@@ -23,6 +23,9 @@ fn format_file_size(bytes: u64) -> String {
 }
 
 fn format_duration(seconds: f32) -> String {
+    if seconds < 10.0 {
+        return format!("{seconds:.1}s");
+    }
     let total = seconds.round() as u64;
     let h = total / 3600;
     let m = (total % 3600) / 60;
@@ -41,9 +44,17 @@ mod tests {
     use super::*;
 
     #[test]
+    fn format_duration_subsecond() {
+        assert_eq!(format_duration(0.0), "0.0s");
+        assert_eq!(format_duration(0.8), "0.8s");
+        assert_eq!(format_duration(1.0), "1.0s");
+        assert_eq!(format_duration(5.5), "5.5s");
+        assert_eq!(format_duration(9.9), "9.9s");
+    }
+
+    #[test]
     fn format_duration_seconds_only() {
-        assert_eq!(format_duration(0.0), "0s");
-        assert_eq!(format_duration(1.0), "1s");
+        assert_eq!(format_duration(10.0), "10s");
         assert_eq!(format_duration(45.0), "45s");
         assert_eq!(format_duration(59.4), "59s");
     }
