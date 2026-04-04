@@ -41,10 +41,6 @@ impl Trawls {
 
     fn render_sidebar(&self, cx: &mut Context<Self>) -> impl IntoElement {
         Sidebar::left()
-            .w(px(250.0))
-            .h_full()
-            .border_r_1()
-            .border_color(cx.theme().border)
             .header(
                 SidebarHeader::new()
                     .child(
