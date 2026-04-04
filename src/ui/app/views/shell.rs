@@ -52,7 +52,7 @@ impl Trawls {
                             .bg(cx.theme().sidebar_accent)
                             .size_8()
                             .flex_shrink_0()
-                            .child(img("examples/trawls-logo.png").w(px(22.0)).h(px(22.0))),
+                            .child(img("trawls-logo.png").w(px(22.0)).h(px(22.0))),
                     )
                     .child(
                         v_flex()

@@ -8,6 +8,7 @@ anyhow = "1"
 chrono = "0.4"
 gpui = "0.2.2"
 gpui-component = "0.4.1"
+gpui-component-assets = "0.4.1"
 rust-embed = "8.5.0"
 rawler = { git = "https://github.com/trawls-app/dnglab" }
 image = "0.24.5"
