@@ -7,13 +7,30 @@ on:
 
 jobs:
   build:
-    name: Build release binary
-    runs-on: ubuntu-latest
+    name: Build (${{ matrix.name }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: Linux x86_64
+            os: ubuntu-latest
+            artifact: trawls-linux-x86_64
+            binary: target/release/trawls-gpui
+          - name: macOS aarch64
+            os: macos-latest
+            artifact: trawls-macos-aarch64
+            binary: target/release/trawls-gpui
+          - name: Windows x86_64
+            os: windows-latest
+            artifact: trawls-windows-x86_64
+            binary: target/release/trawls-gpui.exe
+    runs-on: ${{ matrix.os }}
     permissions:
       contents: write
     steps:
       - uses: actions/checkout@v4
-      - name: Install system dependencies
+      - name: Install system dependencies (Linux)
+        if: matrix.os == 'ubuntu-latest'
         run: |
           sudo apt-get update
           sudo apt-get install -y libvulkan1 libwayland-dev libxkbcommon-x11-dev libfontconfig-dev libssl-dev libgit2-dev cmake
@@ -22,5 +39,5 @@ jobs:
       - run: cargo build --release
       - uses: actions/upload-artifact@v4
         with:
-          name: trawls-linux-x86_64
-          path: target/release/trawls-gpui
+          name: ${{ matrix.artifact }}
+          path: ${{ matrix.binary }}
