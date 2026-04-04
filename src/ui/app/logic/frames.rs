@@ -140,15 +140,16 @@ impl Trawls {
             window
                 .update(|window, cx| {
                     view.update(cx, |this, cx| {
-                        if is_light && this.output_path.is_none() {
-                            if let Some(dir) = files.first().and_then(|f| f.parent()) {
-                                let default_output = dir.join("trawls_output.dng");
-                                let as_text = default_output.to_string_lossy().to_string();
-                                this.output_path = Some(as_text.clone().into());
-                                this.output_input.update(cx, |state, cx| {
-                                    state.set_value(as_text, window, cx);
-                                });
-                            }
+                        if is_light
+                            && this.output_path.is_none()
+                            && let Some(dir) = files.first().and_then(|f| f.parent())
+                        {
+                            let default_output = dir.join("trawls_output.dng");
+                            let as_text = default_output.to_string_lossy().to_string();
+                            this.output_path = Some(as_text.clone().into());
+                            this.output_input.update(cx, |state, cx| {
+                                state.set_value(as_text, window, cx);
+                            });
                         }
                         this.queue_selected_metadata_loading(files, is_light, cx);
                     });

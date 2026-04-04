@@ -177,7 +177,7 @@ impl Image {
                     d.iter().map(|x| (*x as f32 * intensity) as u16).collect(),
                 ),
                 RawImageData::Float(d) => {
-                    RawImageData::Float(d.iter().map(|x| (*x * intensity)).collect())
+                    RawImageData::Float(d.iter().map(|x| *x * intensity).collect())
                 }
             };
         }
@@ -392,29 +392,21 @@ fn add_tiff_rational(
 }
 
 fn equal_exif_entry<T: std::cmp::PartialEq>(entry1: Option<T>, entry2: Option<T>) -> Option<T> {
-    // if-let syntax does not work due to bug: https://github.com/rust-lang/rust/issues/53667
-
-    if entry1.is_some() && entry2.is_some() {
-        let x1 = entry1.unwrap();
-        let x2 = entry2.unwrap();
-
-        if x1 == x2 {
-            return Some(x1);
-        }
+    if let (Some(x1), Some(x2)) = (entry1, entry2)
+        && x1 == x2
+    {
+        return Some(x1);
     }
 
     None
 }
 
 fn min_exif_entry<T: std::cmp::Ord>(entry1: Option<T>, entry2: Option<T>) -> Option<T> {
-    if entry1.is_none() || entry2.is_none() {
-        return None;
+    if let (Some(x1), Some(x2)) = (entry1, entry2) {
+        Some(std::cmp::min(x1, x2))
+    } else {
+        None
     }
-
-    let x1 = entry1.unwrap();
-    let x2 = entry2.unwrap();
-
-    Some(std::cmp::min(x1, x2))
 }
 
 fn max_exif_entry<T: std::cmp::Ord>(entry1: Option<T>, entry2: Option<T>) -> Option<T> {

@@ -125,21 +125,19 @@ impl Trawls {
         sorted_paths: &[String],
     ) {
         let last = self.last_clicked_mut(is_light);
-        if shift {
-            if let Some(anchor) = *last {
-                // Match the selection state of the anchor row
-                let anchor_selected = sorted_paths
-                    .get(anchor)
-                    .is_some_and(|p| self.selected_paths(is_light).contains(p.as_str()));
-                let from = anchor.min(ix);
-                let to = anchor.max(ix);
-                for i in from..=to {
-                    if let Some(p) = sorted_paths.get(i) {
-                        self.set_selection(p, is_light, anchor_selected);
-                    }
+        if shift && let Some(anchor) = *last {
+            // Match the selection state of the anchor row
+            let anchor_selected = sorted_paths
+                .get(anchor)
+                .is_some_and(|p| self.selected_paths(is_light).contains(p.as_str()));
+            let from = anchor.min(ix);
+            let to = anchor.max(ix);
+            for i in from..=to {
+                if let Some(p) = sorted_paths.get(i) {
+                    self.set_selection(p, is_light, anchor_selected);
                 }
-                return;
             }
+            return;
         }
         self.toggle_selection(path, is_light);
         *self.last_clicked_mut(is_light) = Some(ix);
