@@ -178,7 +178,7 @@ impl Trawls {
                         div()
                             .text_xs()
                             .text_color(cx.theme().muted_foreground)
-                            .child(format!("{} selected", selected_visible_count)),
+                            .child(format!("{selected_visible_count} selected")),
                     ),
             )
             .border_1()
@@ -529,7 +529,7 @@ impl Trawls {
                                                             dt.format("%H:%M:%S")
                                                                 .to_string()
                                                         })
-                                                        .unwrap_or_else(|| "".to_string()),
+                                                        .unwrap_or_default(),
                                                 ),
                                             )
                                             .into_any_element()

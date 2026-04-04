@@ -139,7 +139,7 @@ impl Trawls {
 
             window
                 .update(|window, cx| {
-                    _ = view.update(cx, |this, cx| {
+                    view.update(cx, |this, cx| {
                         if is_light && this.output_path.is_none() {
                             if let Some(dir) = files.first().and_then(|f| f.parent()) {
                                 let default_output = dir.join("trawls_output.dng");

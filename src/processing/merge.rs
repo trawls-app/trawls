@@ -34,7 +34,7 @@ pub fn run_merge<S: ProcessingStatus + Send>(
     status: Arc<Mutex<S>>,
 ) -> anyhow::Result<Image> {
     let num_threads = rayon::current_num_threads();
-    info!("Using {} worker threads for merge.", num_threads);
+    info!("Using {num_threads} worker threads for merge.");
 
     let mut tasks: Vec<LoadTask> = lightframe_files
         .iter()

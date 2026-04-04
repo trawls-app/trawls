@@ -207,10 +207,10 @@ impl Render for Trawls {
             .size_full()
             .track_focus(&self.focus_handle)
             .on_key_down(cx.listener(|this, event: &KeyDownEvent, _, cx| {
-                if event.keystroke.key.as_str() == "escape" {
-                    if this.frame_preview.is_some() || this.frame_preview_loading {
-                        this.close_frame_preview(cx);
-                    }
+                if event.keystroke.key.as_str() == "escape"
+                    && (this.frame_preview.is_some() || this.frame_preview_loading)
+                {
+                    this.close_frame_preview(cx);
                 }
             }))
             .bg(cx.theme().background)

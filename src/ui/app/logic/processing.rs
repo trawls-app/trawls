@@ -25,7 +25,7 @@ impl Trawls {
             let path = path.await.ok()?.ok()??;
             window
                 .update(|window, cx| {
-                    _ = view.update(cx, |this, cx| {
+                    view.update(cx, |this, cx| {
                         let as_text = path.to_string_lossy().to_string();
                         this.output_path = Some(as_text.clone().into());
                         this.output_input.update(cx, |state, cx| {

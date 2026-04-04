@@ -90,8 +90,7 @@ impl Frame {
     }
 
     fn count_and_merge(x: Image, y: Image, mode: MergeMode) -> anyhow::Result<Image> {
-        let image = x.merge(y, mode);
-        image
+        x.merge(y, mode)
     }
 }
 
@@ -178,7 +177,7 @@ impl Image {
                     d.iter().map(|x| (*x as f32 * intensity) as u16).collect(),
                 ),
                 RawImageData::Float(d) => {
-                    RawImageData::Float(d.iter().map(|x| (*x as f32 * intensity)).collect())
+                    RawImageData::Float(d.iter().map(|x| (*x * intensity)).collect())
                 }
             };
         }

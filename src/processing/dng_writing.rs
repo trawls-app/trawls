@@ -58,10 +58,10 @@ impl ImageWriter {
     }
 
     pub fn write_dng(&self, path: PathBuf) -> anyhow::Result<()> {
-        info!("Writing DNG to {:?}...", path);
+        info!("Writing DNG to {path:?}...");
 
         let mut output = File::create(path.clone())
-            .with_context(|| format!("Error while opening {:#?} for writing.", path))?;
+            .with_context(|| format!("Error while opening {path:#?} for writing."))?;
 
         let wb_coeff = wbcoeff_to_tiff_value(&self.raw_image);
 
@@ -79,7 +79,7 @@ impl ImageWriter {
         dng_put_thumbnail(&mut root_ifd, &self.preview).unwrap();
 
         // Add basic info
-        root_ifd.add_tag(TiffCommonTag::Software, &program_description())?;
+        root_ifd.add_tag(TiffCommonTag::Software, program_description())?;
         root_ifd.add_tag(DngTag::DNGVersion, &DNG_VERSION_V1_6[..])?;
         root_ifd.add_tag(DngTag::DNGBackwardVersion, &DNG_VERSION_V1_1[..])?;
         root_ifd.add_tag(TiffCommonTag::Make, self.raw_image.clean_make.as_str())?;
