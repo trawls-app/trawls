@@ -1,38 +1,59 @@
 # Trawls
-<img align="right" width="128" height="128" src="src-tauri/icons/128x128.png">
+<img align="right" width="128" height="128" src="assets/images/trawls-logo.png">
 
-![CI dev branch](https://github.com/Silberschleier/trawls/actions/workflows/test-on-pr.yml/badge.svg?branch=dev)
+[![CI](https://github.com/trawls-app/trawls/actions/workflows/lint.yml/badge.svg)](https://github.com/trawls-app/trawls/actions/workflows/lint.yml)
+[![CI](https://github.com/trawls-app/trawls/actions/workflows/test-on-pr.yml/badge.svg)](https://github.com/trawls-app/trawls/actions/workflows/test-on-pr.yml)
 
 Trawls is a fast image processing tool to merge nightsky RAW photos to create a startrail image and output it as another RAW file.
 
+Users load RAW lightframes (and optional darkframes for noise reduction), process them with a parallel merge pipeline, and output a DNG file with JPEG preview.
+
+## Features
+
+- Load and merge RAW lightframes into startrail composites
+- Optional darkframe subtraction for noise reduction
+- Multiple merge modes: Normal, Falling Comets, Raising Comets
+- Parallel processing pipeline using Rayon
+- DNG output with embedded JPEG preview and EXIF metadata
 
 ## Download
-Pre-compiled packages for Linux, macOS and Windows can be found and downloaded on the [release page](https://github.com/Silberschleier/trawls/releases).
 
-## Project setup
-Trawls is based on [Tauri](https://tauri.studio/en/) and uses [Vue](https://vuejs.org/) for its user interface.
-Tauri is integrated using a vue-cli plugin, such that setup, compilation and building of the Rust parts can be controlled through `yarn`.
+Pre-compiled packages can be found on the [release page](https://github.com/trawls-app/trawls/releases).
 
-```
-CXXFLAGS="--std=c++14" yarn install
+## Building from source
+
+Trawls is a native Rust desktop application built with [GPUI](https://gpui.rs/) (Zed's GPU-accelerated UI framework) and [gpui-component](https://github.com/longbridge/gpui-component).
+
+### Prerequisites
+
+- Rust (stable toolchain)
+- Linux system dependencies:
+  ```
+  sudo apt-get install -y libvulkan1 libwayland-dev libxkbcommon-x11-dev libfontconfig-dev libssl-dev libgit2-dev cmake
+  ```
+
+### Build and run
+
+```bash
+cargo build              # Debug build
+cargo build --release    # Release build
+cargo run                # Run the application
+RUST_LOG=debug cargo run # Run with debug logging
 ```
 
-### Compiles and hot-reloads for development
-```
-yarn run tauri:serve
+### Linting and testing
+
+```bash
+cargo clippy             # Lint
+cargo fmt                # Format
+cargo test               # Run all tests
 ```
 
-### Compiles, minifies and packages for production
-```
-yarn run tauri:build
-```
+## Architecture
 
-### Lints and fixes Vue/JS files
-```
-yarn run lint
-```
+The codebase is split into two layers:
 
-### Lints Rust code
-```
-cargo clippy --all-targets --manifest-path src-tauri/Cargo.toml
-```
+- **`src/processing/`** — Image processing logic, fully decoupled from the UI. Handles RAW frame loading, pixel-level merge operations, and DNG output writing.
+- **`src/ui/`** — GPUI-based desktop interface with a 4-step workflow: lightframes, darkframes, processing, and preview.
+
+Processing communicates back to the UI through callback traits (`MetadataStatus`, `ProcessingStatus`), keeping the two layers independent.
