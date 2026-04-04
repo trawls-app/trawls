@@ -8,14 +8,23 @@ concurrency:
 
 jobs:
   build-and-test:
-    name: Build & Test (${{ matrix.os }})
+    name: Build & Test (${{ matrix.name }})
     strategy:
       fail-fast: false
       matrix:
         include:
-          - os: ubuntu-latest
-          - os: macos-latest
-          - os: windows-latest
+          - name: Linux x86_64
+            os: ubuntu-latest
+            artifact: trawls-linux-x86_64
+            binary: target/debug/trawls-gpui
+          - name: macOS aarch64
+            os: macos-latest
+            artifact: trawls-macos-aarch64
+            binary: target/debug/trawls-gpui
+          - name: Windows x86_64
+            os: windows-latest
+            artifact: trawls-windows-x86_64
+            binary: target/debug/trawls-gpui.exe
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
@@ -28,3 +37,7 @@ jobs:
       - uses: Swatinem/rust-cache@v2
       - run: cargo test
       - run: cargo build
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact }}
+          path: ${{ matrix.binary }}
