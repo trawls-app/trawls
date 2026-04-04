@@ -1,0 +1,122 @@
+<?xml version='1.0' encoding='windows-1252'?>
+<!--
+  Copyright (C) 2017 Christopher R. Field.
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+  http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+-->
+
+<?if $(sys.BUILDARCH) = x64 or $(sys.BUILDARCH) = arm64 ?>
+    <?define PlatformProgramFilesFolder = "ProgramFiles64Folder" ?>
+<?else ?>
+    <?define PlatformProgramFilesFolder = "ProgramFilesFolder" ?>
+<?endif ?>
+
+<Wix xmlns='http://schemas.microsoft.com/wix/2006/wi'>
+
+    <Product
+        Id='*'
+        Name='Trawls'
+        UpgradeCode='E8B9B0A0-5D1A-4C3E-9F2B-1A8D7C6E5F4B'
+        Manufacturer='trawls-app'
+        Language='1033'
+        Codepage='1252'
+        Version='$(var.Version)'>
+
+        <Package Id='*'
+            Keywords='Installer'
+            Description='Trawls - Startrail Image Merger'
+            Manufacturer='trawls-app'
+            InstallerVersion='450'
+            Languages='1033'
+            Compressed='yes'
+            InstallScope='perMachine'
+            SummaryCodepage='1252'
+            />
+
+        <MajorUpgrade
+            Schedule='afterInstallInitialize'
+            DowngradeErrorMessage='A newer version of [ProductName] is already installed. Setup will now exit.'/>
+
+        <Media Id='1' Cabinet='media1.cab' EmbedCab='yes' DiskPrompt='CD-ROM #1'/>
+        <Property Id='DiskPrompt' Value='Trawls Installation'/>
+
+        <Icon Id='ProductICO' SourceFile='resources\windows\app-icon.ico'/>
+        <Property Id='ARPPRODUCTICON' Value='ProductICO'/>
+
+        <Directory Id='TARGETDIR' Name='SourceDir'>
+            <Directory Id='$(var.PlatformProgramFilesFolder)' Name='PFiles'>
+                <Directory Id='APPLICATIONFOLDER' Name='Trawls'>
+
+                    <Component Id='binary0' Guid='*'>
+                        <File
+                            Id='exe0'
+                            Name='trawls-gpui.exe'
+                            DiskId='1'
+                            Source='$(var.CargoTargetBinDir)\trawls-gpui.exe'
+                            KeyPath='yes'/>
+                    </Component>
+
+                </Directory>
+            </Directory>
+
+            <Directory Id='ProgramMenuFolder'>
+                <Directory Id='ApplicationProgramsFolder' Name='Trawls'>
+                    <Component Id='ApplicationShortcut' Guid='*'>
+                        <Shortcut Id='ApplicationStartMenuShortcut'
+                            Name='Trawls'
+                            Description='Merge nightsky RAW photos into startrail images'
+                            Target='[#exe0]'
+                            WorkingDirectory='APPLICATIONFOLDER'
+                            Icon='ProductICO'/>
+                        <RemoveFolder Id='CleanUpShortCut' Directory='ApplicationProgramsFolder' On='uninstall'/>
+                        <RegistryValue Root='HKCU' Key='Software\trawls-app\Trawls' Name='installed' Type='integer' Value='1' KeyPath='yes'/>
+                    </Component>
+                </Directory>
+            </Directory>
+        </Directory>
+
+        <Feature
+            Id='Binaries'
+            Title='Application'
+            Description='Installs the Trawls application.'
+            Level='1'
+            ConfigurableDirectory='APPLICATIONFOLDER'
+            AllowAdvertise='no'
+            Display='expand'
+            Absent='disallow'>
+
+            <ComponentRef Id='binary0'/>
+
+            <Feature
+                Id='StartMenu'
+                Title='Start Menu Shortcut'
+                Description='Add a shortcut to the Start Menu.'
+                Level='1'
+                Absent='allow'>
+                <ComponentRef Id='ApplicationShortcut'/>
+            </Feature>
+        </Feature>
+
+        <SetProperty Id='ARPINSTALLLOCATION' Value='[APPLICATIONFOLDER]' After='CostFinalize'/>
+
+        <UI>
+            <UIRef Id='WixUI_InstallDir'/>
+            <Publish Dialog='WelcomeDlg' Control='Next' Event='NewDialog' Value='InstallDirDlg' Order='2'>1</Publish>
+            <Publish Dialog='InstallDirDlg' Control='Back' Event='NewDialog' Value='WelcomeDlg' Order='2'>1</Publish>
+        </UI>
+
+        <Property Id='WIXUI_INSTALLDIR' Value='APPLICATIONFOLDER'/>
+
+    </Product>
+
+</Wix>

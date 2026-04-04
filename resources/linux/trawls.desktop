@@ -1,0 +1,7 @@
+[Desktop Entry]
+Name=Trawls
+Exec=trawls-gpui
+Icon=trawls
+Type=Application
+Categories=Graphics;Photography;
+Comment=Merge nightsky RAW photos into startrail images

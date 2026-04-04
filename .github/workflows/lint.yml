@@ -1,41 +1,33 @@
+name: Lint
+
 on:
   push:
     branches-ignore:
       - 'dependabot/**'
-name: Linting check
+  pull_request:
+
 jobs:
-  clippy_check:
+  clippy:
+    name: Clippy
     runs-on: ubuntu-latest
-    permissions: write-all
     steps:
-      - uses: actions/checkout@v1
-      - name: install dependencies
+      - uses: actions/checkout@v4
+      - name: Install system dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y webkit2gtk-4.0 libdbus-1-dev
-      - uses: actions-rs/toolchain@v1
+          sudo apt-get install -y libvulkan1 libwayland-dev libxkbcommon-x11-dev libfontconfig-dev libssl-dev libgit2-dev cmake
+      - uses: dtolnay/rust-toolchain@stable
         with:
-          toolchain: nightly
           components: clippy
-          override: true
-      - run: mkdir dist
-      - uses: actions-rs/clippy-check@v1
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          args: --all-targets --manifest-path src-tauri/Cargo.toml
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo clippy --all-targets -- -D warnings
 
   fmt:
-    name: rustfmt
+    name: Rustfmt
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions-rs/toolchain@v1
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@nightly
         with:
-          toolchain: nightly
-          override: true
-          profile: minimal
           components: rustfmt
-      - uses: actions-rs/cargo@v1
-        with:
-          command: fmt
-          args: --manifest-path src-tauri/Cargo.toml -- --check
+      - run: cargo fmt --check

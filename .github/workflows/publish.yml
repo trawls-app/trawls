@@ -1,54 +1,94 @@
-name: "publish"
+name: Release
+
 on:
   push:
     branches:
       - main
 
 jobs:
-  publish-tauri:
-    permissions: write-all
-    strategy:
-      fail-fast: false
-      matrix:
-        platform: [macos-latest, ubuntu-latest, windows-2022]
-
-    runs-on: ${{ matrix.platform }}
+  build-linux:
+    name: Build (Linux AppImage)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
-    - uses: actions/checkout@v3
-    - name: setup node
-      uses: actions/setup-node@v1
-      with:
-        node-version: 16
-    - name: install Rust stable for default architecture
-      uses: actions-rs/toolchain@v1
-      with:
-        profile: minimal
-        toolchain: stable
-    - name: install Rust stable for aarch64-apple-darwin
-      if: matrix.platform == 'macos-latest'
-      uses: actions-rs/toolchain@v1
-      with:
-        profile: minimal
-        toolchain: stable
-        target: aarch64-apple-darwin
-    - name: install dependencies (ubuntu only)
-      if: matrix.platform == 'ubuntu-latest'
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y libgtk-3-dev webkit2gtk-4.0 libappindicator3-dev librsvg2-dev patchelf
-    - name: install app dependencies
-      run: yarn
-      env:
-        CXXFLAGS: --std=c++14
-    - uses: tauri-apps/tauri-action@fa6292738e73baa75c31ab9d5fd1a95aaea45537
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        CXXFLAGS: --std=c++14
-        TAURI_PRIVATE_KEY: ${{ secrets.TAURI_PRIVATE_KEY }}
-      with:
-        args: ${{ matrix.platform == 'macos-latest' && '--target universal-apple-darwin' || '' }}
-        tagName: trawls-v__VERSION__ # the action automatically replaces \_\_VERSION\_\_ with the app version
-        releaseName: "Trawls v__VERSION__"
-        releaseBody: "See the assets to download this version and install."
-        releaseDraft: true
-        prerelease: false
+      - uses: actions/checkout@v4
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libvulkan1 libwayland-dev libxkbcommon-x11-dev libfontconfig-dev libssl-dev libgit2-dev cmake libfuse2
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo build --release
+      - name: Create AppImage
+        run: |
+          wget -q https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-x86_64.AppImage
+          chmod +x linuxdeploy-x86_64.AppImage
+          ./linuxdeploy-x86_64.AppImage \
+            --appdir AppDir \
+            --executable target/release/trawls-gpui \
+            --desktop-file resources/linux/trawls.desktop \
+            --icon-file app-icon.png \
+            --output appimage
+      - uses: actions/upload-artifact@v4
+        with:
+          name: trawls-linux-x86_64
+          path: Trawls*.AppImage
+
+  build-macos:
+    name: Build (macOS DMG)
+    runs-on: macos-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo build --release
+      - name: Create .icns icon
+        run: |
+          mkdir -p app-icon.iconset
+          sips -z 16 16 app-icon.png --out app-icon.iconset/icon_16x16.png
+          sips -z 32 32 app-icon.png --out app-icon.iconset/icon_16x16@2x.png
+          sips -z 32 32 app-icon.png --out app-icon.iconset/icon_32x32.png
+          sips -z 64 64 app-icon.png --out app-icon.iconset/icon_32x32@2x.png
+          sips -z 128 128 app-icon.png --out app-icon.iconset/icon_128x128.png
+          sips -z 256 256 app-icon.png --out app-icon.iconset/icon_128x128@2x.png
+          sips -z 256 256 app-icon.png --out app-icon.iconset/icon_256x256.png
+          sips -z 512 512 app-icon.png --out app-icon.iconset/icon_256x256@2x.png
+          sips -z 512 512 app-icon.png --out app-icon.iconset/icon_512x512.png
+          sips -z 1024 1024 app-icon.png --out app-icon.iconset/icon_512x512@2x.png
+          iconutil -c icns app-icon.iconset -o app-icon.icns
+      - name: Create .app bundle
+        run: |
+          mkdir -p "Trawls.app/Contents/MacOS"
+          mkdir -p "Trawls.app/Contents/Resources"
+          cp target/release/trawls-gpui "Trawls.app/Contents/MacOS/"
+          cp resources/macos/Info.plist "Trawls.app/Contents/"
+          cp app-icon.icns "Trawls.app/Contents/Resources/"
+      - name: Create DMG
+        run: |
+          hdiutil create -volname "Trawls" -srcfolder Trawls.app -ov -format UDZO Trawls.dmg
+      - uses: actions/upload-artifact@v4
+        with:
+          name: trawls-macos-aarch64
+          path: Trawls.dmg
+
+  build-windows:
+    name: Build (Windows MSI)
+    runs-on: windows-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo build --release
+      - name: Install cargo-wix
+        run: cargo install cargo-wix
+      - name: Build MSI
+        run: cargo wix --no-build --nocapture
+      - uses: actions/upload-artifact@v4
+        with:
+          name: trawls-windows-x86_64
+          path: target/wix/*.msi
