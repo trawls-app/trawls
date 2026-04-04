@@ -28,15 +28,11 @@ impl AssetSource for Assets {
     }
 
     fn list(&self, path: &str) -> anyhow::Result<Vec<SharedString>> {
-        let mut result: Vec<SharedString> = gpui_component_assets::Assets
-            .list(path)
-            .unwrap_or_default();
+        let mut result: Vec<SharedString> =
+            gpui_component_assets::Assets.list(path).unwrap_or_default();
 
-        result.extend(
-            TrawlsAssets::iter().filter_map(|p| p.starts_with(path).then(|| p.into())),
-        );
+        result.extend(TrawlsAssets::iter().filter_map(|p| p.starts_with(path).then(|| p.into())));
 
         Ok(result)
     }
 }
-
