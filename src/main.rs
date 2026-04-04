@@ -25,6 +25,7 @@ fn main() {
                     width: px(960.0),
                     height: px(680.0),
                 }),
+                app_id: Some("trawls".into()),
                 ..Default::default()
             };
 
