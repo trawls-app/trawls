@@ -9,20 +9,15 @@ jobs:
     permissions: write-all
     steps:
       - uses: actions/checkout@v1
-      - name: install dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y webkit2gtk-4.0 libdbus-1-dev
       - uses: actions-rs/toolchain@v1
         with:
-          toolchain: nightly
+          toolchain: stable
           components: clippy
           override: true
-      - run: mkdir dist
       - uses: actions-rs/clippy-check@v1
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          args: --all-targets --manifest-path src-tauri/Cargo.toml
+          args: --all-targets
 
   fmt:
     name: rustfmt
@@ -38,4 +33,4 @@ jobs:
       - uses: actions-rs/cargo@v1
         with:
           command: fmt
-          args: --manifest-path src-tauri/Cargo.toml -- --check
+          args: --check
