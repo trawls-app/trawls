@@ -343,7 +343,7 @@ impl Trawls {
                             .flex_wrap()
                             .child(self.render_mode_card(
                                 "mode-normal-card",
-                                "examples/mode_normal.jpg",
+                                "examples/mode_normal.png",
                                 "Normal",
                                 "All images will be weighted identically.",
                                 MergeMode::Normal,
@@ -351,7 +351,7 @@ impl Trawls {
                             ))
                             .child(self.render_mode_card(
                                 "mode-falling-card",
-                                "examples/mode_falling.jpg",
+                                "examples/mode_falling.png",
                                 "Falling Comets",
                                 "Later images become darker, such that stars will fade away.",
                                 MergeMode::Falling,
@@ -359,7 +359,7 @@ impl Trawls {
                             ))
                             .child(self.render_mode_card(
                                 "mode-raising-card",
-                                "examples/mode_raising.jpg",
+                                "examples/mode_raising.png",
                                 "Raising Comets",
                                 "Earlier images are darker, such that stars will fade in.",
                                 MergeMode::Raising,

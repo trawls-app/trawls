@@ -50,9 +50,9 @@ impl Trawls {
                             .justify_center()
                             .rounded(cx.theme().radius)
                             .bg(cx.theme().sidebar_accent)
-                            .size_8()
+                            .size_10()
                             .flex_shrink_0()
-                            .child(img("trawls-logo.png").w(px(22.0)).h(px(22.0))),
+                            .child(img("images/trawls-logo.png").w(px(32.0)).h(px(32.0))),
                     )
                     .child(
                         v_flex()

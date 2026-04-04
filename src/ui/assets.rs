@@ -5,7 +5,7 @@ use std::borrow::Cow;
 #[derive(RustEmbed)]
 #[folder = "./assets"]
 #[include = "examples/**"]
-#[include = "*.png"]
+#[include = "images/**"]
 struct TrawlsAssets;
 
 /// Composite asset source that delegates to gpui-component's bundled icons
@@ -18,13 +18,13 @@ impl AssetSource for Assets {
             return Ok(None);
         }
 
-        // Try gpui-component icons first
-        if let Ok(Some(data)) = gpui_component_assets::Assets.load(path) {
-            return Ok(Some(data));
+        // Try trawls-specific assets first
+        if let Some(file) = TrawlsAssets::get(path) {
+            return Ok(Some(file.data));
         }
 
-        // Fall back to trawls-specific assets
-        Ok(TrawlsAssets::get(path).map(|f| f.data))
+        // Fall back to gpui-component bundled icons
+        gpui_component_assets::Assets.load(path)
     }
 
     fn list(&self, path: &str) -> anyhow::Result<Vec<SharedString>> {
@@ -39,3 +39,4 @@ impl AssetSource for Assets {
         Ok(result)
     }
 }
+
