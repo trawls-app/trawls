@@ -494,14 +494,16 @@ mod tests {
 
     #[test]
     fn add_tiff_rational_basic() {
-        let result = add_tiff_rational(Some(Rational::new(1, 2)), Some(Rational::new(1, 2))).unwrap();
+        let result =
+            add_tiff_rational(Some(Rational::new(1, 2)), Some(Rational::new(1, 2))).unwrap();
         assert_eq!(result.n, 1);
         assert_eq!(result.d, 1);
     }
 
     #[test]
     fn add_tiff_rational_different_denominators() {
-        let result = add_tiff_rational(Some(Rational::new(1, 3)), Some(Rational::new(1, 6))).unwrap();
+        let result =
+            add_tiff_rational(Some(Rational::new(1, 3)), Some(Rational::new(1, 6))).unwrap();
         assert_eq!(result.n, 1);
         assert_eq!(result.d, 2);
     }
@@ -515,7 +517,8 @@ mod tests {
 
     #[test]
     fn add_tiff_rational_exposure_times() {
-        let result = add_tiff_rational(Some(Rational::new(20, 1)), Some(Rational::new(20, 1))).unwrap();
+        let result =
+            add_tiff_rational(Some(Rational::new(20, 1)), Some(Rational::new(20, 1))).unwrap();
         assert_eq!(result.n, 40);
         assert_eq!(result.d, 1);
     }

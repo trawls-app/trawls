@@ -1,12 +1,14 @@
 use gpui::{
     AnyElement, Context, InteractiveElement as _, IntoElement, Keystroke, ParentElement as _,
-    ScrollDelta, ScrollWheelEvent, SharedString, StatefulInteractiveElement as _, Styled as _, div,
-    point, prelude::FluentBuilder as _, px, Pixels, Point, ScrollHandle, Window,
+    Pixels, Point, ScrollDelta, ScrollHandle, ScrollWheelEvent, SharedString,
+    StatefulInteractiveElement as _, Styled as _, Window, div, point, prelude::FluentBuilder as _,
+    px,
 };
 use gpui_component::{
     ActiveTheme as _, IconName, Sizable as _,
     button::Button,
-    h_flex, kbd::Kbd,
+    h_flex,
+    kbd::Kbd,
     scroll::{Scrollbar, ScrollbarShow, ScrollbarState},
     v_flex,
 };
@@ -135,7 +137,9 @@ pub fn render_image_viewer(
                 .items_center()
                 .gap_2()
                 .child(
-                    params.left_header.unwrap_or_else(|| div().into_any_element()),
+                    params
+                        .left_header
+                        .unwrap_or_else(|| div().into_any_element()),
                 )
                 .child(
                     h_flex()
@@ -160,15 +164,12 @@ pub fn render_image_viewer(
                                     cx.notify();
                                 })),
                         )
-                        .child(
-                            Button::new(zoom_100_id)
-                                .small()
-                                .label("100%")
-                                .on_click(cx.listener(move |this, _, _, cx| {
-                                    state_accessor_mut(this).set_zoom(1.0);
-                                    cx.notify();
-                                })),
-                        )
+                        .child(Button::new(zoom_100_id).small().label("100%").on_click(
+                            cx.listener(move |this, _, _, cx| {
+                                state_accessor_mut(this).set_zoom(1.0);
+                                cx.notify();
+                            }),
+                        ))
                         .child(
                             Button::new(zoom_in_id)
                                 .small()
@@ -209,25 +210,27 @@ pub fn render_image_viewer(
                 .flex_1()
                 .min_h_0()
                 .w_full()
-                .on_scroll_wheel(cx.listener(move |this, event: &ScrollWheelEvent, window, cx| {
-                    if !event.modifiers.secondary() {
-                        return;
-                    }
-                    let delta_y = match event.delta {
-                        ScrollDelta::Pixels(delta) => f32::from(delta.y),
-                        ScrollDelta::Lines(delta) => delta.y * 16.0,
-                    };
-                    if delta_y != 0.0 {
-                        state_accessor_mut(this).zoom_at_cursor(
-                            event.position,
-                            delta_y < 0.0,
-                            window,
-                            cx,
-                        );
-                        cx.notify();
-                    }
-                    cx.stop_propagation();
-                }))
+                .on_scroll_wheel(
+                    cx.listener(move |this, event: &ScrollWheelEvent, window, cx| {
+                        if !event.modifiers.secondary() {
+                            return;
+                        }
+                        let delta_y = match event.delta {
+                            ScrollDelta::Pixels(delta) => f32::from(delta.y),
+                            ScrollDelta::Lines(delta) => delta.y * 16.0,
+                        };
+                        if delta_y != 0.0 {
+                            state_accessor_mut(this).zoom_at_cursor(
+                                event.position,
+                                delta_y < 0.0,
+                                window,
+                                cx,
+                            );
+                            cx.notify();
+                        }
+                        cx.stop_propagation();
+                    }),
+                )
                 .child(
                     div()
                         .id(scroll_id.clone())
@@ -302,7 +305,10 @@ mod tests {
     #[test]
     fn fit_to_viewport_landscape() {
         let mut state = ImageViewerState::default();
-        let viewport = Size { width: px(1920.0), height: px(1080.0) };
+        let viewport = Size {
+            width: px(1920.0),
+            height: px(1080.0),
+        };
         state.fit_to_viewport(viewport, 6000, 4000);
         assert!((state.zoom - 0.2075).abs() < 0.01);
     }
@@ -310,7 +316,10 @@ mod tests {
     #[test]
     fn fit_to_viewport_small_image() {
         let mut state = ImageViewerState::default();
-        let viewport = Size { width: px(1920.0), height: px(1080.0) };
+        let viewport = Size {
+            width: px(1920.0),
+            height: px(1080.0),
+        };
         state.fit_to_viewport(viewport, 100, 100);
         assert!((state.zoom - MAX_ZOOM).abs() < f32::EPSILON);
     }

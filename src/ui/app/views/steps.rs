@@ -17,8 +17,8 @@ use crate::ui::{
     model::{LightframeStats, MergeMode},
 };
 
-use super::{format_duration, format_file_size, light_dark};
 use super::image_viewer::{ImageViewerParams, render_image_viewer};
+use super::{format_duration, format_file_size, light_dark};
 
 impl Trawls {
     pub(crate) fn render_image_step(
@@ -92,25 +92,21 @@ impl Trawls {
                             .gap_2()
                             .child(
                                 Button::new(light_dark(is_light, "pick-lights", "pick-darks"))
-                                .success()
-                                .icon(IconName::Search)
-                                .label("Add images")
-                                .on_click(cx.listener(
-                                    move |this, _, window, cx| {
+                                    .success()
+                                    .icon(IconName::Search)
+                                    .label("Add images")
+                                    .on_click(cx.listener(move |this, _, window, cx| {
                                         this.pick_image_files(is_light, window, cx);
-                                    },
-                                )),
+                                    })),
                             )
                             .child(
                                 Button::new(light_dark(is_light, "clear-lights", "clear-darks"))
-                                .warning()
-                                .icon(IconName::Minus)
-                                .label("Clear list")
-                                .on_click(cx.listener(
-                                    move |this, _, _, cx| {
+                                    .warning()
+                                    .icon(IconName::Minus)
+                                    .label("Clear list")
+                                    .on_click(cx.listener(move |this, _, _, cx| {
                                         this.clear_frames(is_light, cx);
-                                    },
-                                )),
+                                    })),
                             ),
                     )
                     .child(
@@ -156,10 +152,14 @@ impl Trawls {
             .bg(cx.theme().sidebar.alpha(0.45))
             .border_1()
             .border_color(cx.theme().border)
-            .child(self.render_stat_cell("Frames", format!(
-                "{} total, {} valid, {} errors",
-                stats.total_count, stats.valid_count, stats.error_count
-            ), cx))
+            .child(self.render_stat_cell(
+                "Frames",
+                format!(
+                    "{} total, {} valid, {} errors",
+                    stats.total_count, stats.valid_count, stats.error_count
+                ),
+                cx,
+            ))
             .child(self.render_stat_cell(
                 "Shutter open",
                 format_duration(stats.total_exposure_seconds),
@@ -179,7 +179,12 @@ impl Trawls {
             .child(match &stats.largest_gap {
                 Some(gap) => self.render_stat_cell(
                     "Largest gap",
-                    format!("{} ({} -> {})", format_duration(gap.seconds), gap.from, gap.to),
+                    format!(
+                        "{} ({} -> {})",
+                        format_duration(gap.seconds),
+                        gap.from,
+                        gap.to
+                    ),
                     cx,
                 ),
                 None => self.render_stat_cell("Largest gap", "none".to_string(), cx),
@@ -261,11 +266,7 @@ impl Trawls {
                                 })
                                 .xsmall(),
                             )
-                            .child(
-                                div()
-                                    .text_xs()
-                                    .child(description.to_string()),
-                            ),
+                            .child(div().text_xs().child(description.to_string())),
                     ),
             )
     }
@@ -442,7 +443,11 @@ impl Trawls {
                                 .text_color(cx.theme().muted_foreground)
                                 .child(format!(
                                     "{}: {}",
-                                    if self.processing_running { "Elapsed" } else { "Completed in" },
+                                    if self.processing_running {
+                                        "Elapsed"
+                                    } else {
+                                        "Completed in"
+                                    },
                                     format_duration(elapsed),
                                 ))
                                 .when(self.processing_running, |el| {
@@ -506,10 +511,7 @@ impl Trawls {
             .justify_center()
             .gap_3()
             .py_12()
-            .child(
-                Icon::new(IconName::Eye)
-                    .text_color(cx.theme().muted_foreground),
-            )
+            .child(Icon::new(IconName::Eye).text_color(cx.theme().muted_foreground))
             .child(
                 div()
                     .text_sm()

@@ -92,7 +92,8 @@ impl Trawls {
             self.dark_sort
         };
         let selected_paths = self.selected_paths(is_light);
-        let visible_paths: Rc<Vec<String>> = Rc::new(rows.iter().map(|row| row.path.clone()).collect());
+        let visible_paths: Rc<Vec<String>> =
+            Rc::new(rows.iter().map(|row| row.path.clone()).collect());
         let selected_visible_count = rows
             .iter()
             .filter(|row| selected_paths.contains(row.path.as_str()))

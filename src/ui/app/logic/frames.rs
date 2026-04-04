@@ -166,8 +166,16 @@ impl Trawls {
         is_light: bool,
         cx: &mut Context<Self>,
     ) {
-        let same_list = if is_light { &self.lightframes } else { &self.darkframes };
-        let other_list = if is_light { &self.darkframes } else { &self.lightframes };
+        let same_list = if is_light {
+            &self.lightframes
+        } else {
+            &self.darkframes
+        };
+        let other_list = if is_light {
+            &self.darkframes
+        } else {
+            &self.lightframes
+        };
         let existing_paths: std::collections::HashSet<String> =
             same_list.iter().map(|row| row.path.clone()).collect();
         let other_paths: std::collections::HashMap<String, &FrameInfo> = other_list

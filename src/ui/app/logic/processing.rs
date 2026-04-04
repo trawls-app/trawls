@@ -171,7 +171,8 @@ impl Trawls {
 
                 if cancel.load(Ordering::Relaxed) {
                     _ = view.update_in(window, |this, window, cx| {
-                        this.processing_elapsed = this.processing_started_at
+                        this.processing_elapsed = this
+                            .processing_started_at
                             .map(|t| t.elapsed().as_secs_f32());
                         this.processing_running = false;
                         window.push_notification("Processing cancelled.", cx);
@@ -183,7 +184,8 @@ impl Trawls {
                 match done_rx.try_recv() {
                     Ok(result) => {
                         _ = view.update_in(window, |this, window, cx| {
-                            this.processing_elapsed = this.processing_started_at
+                            this.processing_elapsed = this
+                                .processing_started_at
                                 .map(|t| t.elapsed().as_secs_f32());
                             this.processing_running = false;
                             match result {

@@ -204,7 +204,9 @@ mod tests {
 
     #[test]
     fn falling_mode_decreases() {
-        let intensities: Vec<f32> = (0..5).map(|i| comet_intensity(Comets::Falling, i, 5)).collect();
+        let intensities: Vec<f32> = (0..5)
+            .map(|i| comet_intensity(Comets::Falling, i, 5))
+            .collect();
         assert!((intensities[0] - 1.0).abs() < f32::EPSILON);
         for w in intensities.windows(2) {
             assert!(w[0] > w[1]);
@@ -213,7 +215,9 @@ mod tests {
 
     #[test]
     fn raising_mode_increases() {
-        let intensities: Vec<f32> = (0..5).map(|i| comet_intensity(Comets::Raising, i, 5)).collect();
+        let intensities: Vec<f32> = (0..5)
+            .map(|i| comet_intensity(Comets::Raising, i, 5))
+            .collect();
         assert!((intensities[0] - 0.0).abs() < f32::EPSILON);
         for w in intensities.windows(2) {
             assert!(w[0] < w[1]);

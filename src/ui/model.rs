@@ -58,7 +58,6 @@ pub struct PreviewData {
     pub output_path: String,
 }
 
-
 #[derive(Clone)]
 pub struct FramePreview {
     pub filename: String,

@@ -31,10 +31,10 @@ impl Trawls {
             .saturating_sub(1)
             .max(1) as f32;
         let max_possible = self.processing.count_loaded.saturating_sub(1) as f32;
-        let current =
-            (self.processing.count_merged as f32 + self.processing.count_merging as f32 * 0.5)
-                .min(total)
-                .min(max_possible);
+        let current = (self.processing.count_merged as f32
+            + self.processing.count_merging as f32 * 0.5)
+            .min(total)
+            .min(max_possible);
         (current / total * 100.0).clamp(0.0, 100.0)
     }
 
@@ -47,9 +47,9 @@ impl Trawls {
         let total_work = load_total + merge_total;
 
         let load_done = (self.processing.count_loaded as f32).min(load_total);
-        let merge_done =
-            (self.processing.count_merged as f32 + self.processing.count_merging as f32 * 0.5)
-                .min(merge_total);
+        let merge_done = (self.processing.count_merged as f32
+            + self.processing.count_merging as f32 * 0.5)
+            .min(merge_total);
 
         ((load_done + merge_done) / total_work).clamp(0.0, 1.0)
     }
@@ -313,7 +313,13 @@ pub(crate) mod tests {
 
     #[test]
     fn recompute_intervals_single_frame() {
-        let mut frames = vec![make_loaded_frame("a.arw", 20.0, 2.8, 1600, "2024-01-01 01:00:00")];
+        let mut frames = vec![make_loaded_frame(
+            "a.arw",
+            20.0,
+            2.8,
+            1600,
+            "2024-01-01 01:00:00",
+        )];
         recompute_intervals(&mut frames);
         assert!(frames[0].interval_seconds.is_none());
     }
@@ -360,7 +366,9 @@ pub(crate) mod tests {
 
     #[test]
     fn lightframe_stats_only_pending() {
-        assert!(Trawls::lightframe_stats(&[make_frame("a.arw", MetadataStatus::Pending)]).is_none());
+        assert!(
+            Trawls::lightframe_stats(&[make_frame("a.arw", MetadataStatus::Pending)]).is_none()
+        );
     }
 
     #[test]

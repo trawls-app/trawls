@@ -65,7 +65,10 @@ mod tests {
 
     #[test]
     fn error_warning_no_errors() {
-        assert!(!Trawls::error_warning(&[make_frame("a.arw", MetadataStatus::Loaded)]));
+        assert!(!Trawls::error_warning(&[make_frame(
+            "a.arw",
+            MetadataStatus::Loaded
+        )]));
     }
 
     #[test]
@@ -113,7 +116,10 @@ mod tests {
 
     #[test]
     fn interval_warning_threshold_no_intervals() {
-        assert!(Trawls::interval_warning_threshold(&[make_frame("a.arw", MetadataStatus::Loaded)]).is_none());
+        assert!(
+            Trawls::interval_warning_threshold(&[make_frame("a.arw", MetadataStatus::Loaded)])
+                .is_none()
+        );
     }
 
     #[test]
